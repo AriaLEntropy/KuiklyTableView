@@ -1,0 +1,60 @@
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+/build/
+**/build/
+Kotlin-js-store/
+
+# Local machine config
+/local.properties
+/androidApp/local.properties
+/work/
+.DS_Store
+*.iml
+
+# IDE / AI assistant local state
+.idea/
+.run/
+.codebuddy/
+.cursor/
+.claude/
+.vscode/
+
+# Android / native build outputs
+/captures/
+.externalNativeBuild/
+.cxx/
+*.so
+
+# Node / JS generated outputs
+node_modules/
+*.js
+!static_server/**/*.js
+
+# CocoaPods generated dependencies
+Pods/
+Pods-iosApp/
+
+# Local backups / temporary files
+*.bak.*
+
+## Various settings
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+**/xcuserdata/**
+**/*.xcuserdatad/**
+**/xcshareddata/
+**/IDEWorkspaceChecks.plist
+
+## Other
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+*.xcbkptlist
+*.pyc
