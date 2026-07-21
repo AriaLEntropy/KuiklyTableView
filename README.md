@@ -12,6 +12,17 @@
 
 上图为内置 Demo（`table_basic`），顶部配置面板可实时切换列数、任意列的对齐方式、斑马纹、边框、内边距与行高。五列模式支持横向滚动，表体纵向滚动时表头保持固定。
 
+ST-3 还提供浅色、深色和蓝色主题，以及状态列的自定义 renderer：
+
+<div align="center">
+  <img src="assets/table_st3_light.png" alt="KuiklyTable 浅色主题与自定义状态列" width="420">
+  <img src="assets/table_st3_dark.png" alt="KuiklyTable 深色主题" width="420">
+</div>
+
+<div align="center">
+  <img src="assets/table_st3_custom_renderer_scroll.gif" alt="KuiklyTable 自定义状态列横向滚动" width="480">
+</div>
+
 <div align="center">
   <img src="assets/table_st2_horizontal_scroll.gif" alt="KuiklyTable 横向滚动" width="480">
 </div>
@@ -71,6 +82,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `rowHeight` | `Float` | `0f` | 固定行高（dp）；`0f` 表示由内容与内边距自适应 |
 | `themeColors` | `TableThemeColors` | `TableThemeColors()` | 主题色（表头/文字/分隔线/行背景） |
 
+`TableThemeColors.Light` 和 `TableThemeColors.Dark` 提供浅色/深色预设，使用方也可以直接构造 `TableThemeColors` 覆盖语义角色。
+
 ### ColumnModel（列模型）
 
 | 字段 | 类型 | 默认值 | 说明 |
@@ -81,6 +94,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `width` | `Float?` | `null` | 固定列宽（dp）；`null` 表示弹性宽度 |
 | `flex` | `Float` | `1f` | 弹性权重（`width` 为 `null` 时生效） |
 | `alignment` | `ColumnAlignment` | `Start` | 对齐方式（响应式，运行时修改即重渲染） |
+| `cellRenderer` | `((ViewContainer, T, ColumnModel<T>) -> Unit)?` | `null` | 可选自定义单元格内容；未配置时使用默认 Text |
 
 ### ColumnAlignment（对齐方式）
 
@@ -132,6 +146,7 @@ TableView<User> {
 - [x] Simple Table：列定义、行列渲染、列对齐、斑马纹、文字截断
 - [x] 横向滚动 + 纵向滚动 + 固定表头
 - [x] 边框、内边距、行高配置
+- [x] ST-3：主题预设与自定义单元格 renderer
 - [ ] 空 / 加载 / 错误状态层
 - [ ] Mobile List 模式（移动端卡片转译）
 - [ ] Data Table Basic：行选择、排序、筛选、分页
