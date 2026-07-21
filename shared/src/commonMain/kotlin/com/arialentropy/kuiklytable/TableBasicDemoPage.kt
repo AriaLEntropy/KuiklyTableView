@@ -83,6 +83,8 @@ internal class TableBasicDemoPage : BasePager() {
     private var selectedColumn by observable<ColumnModel<User>>(ageColumn)
     private var zebraOn by observable(true)             // 斑马纹
     private var borderedOn by observable(false)         // 列边框
+    private var compactPadding by observable(false)     // 紧凑内边距
+    private var fixedRowHeight by observable(false)     // 固定行高
 
     init {
         activeColumns.addAll(columns5)
@@ -177,6 +179,12 @@ internal class TableBasicDemoPage : BasePager() {
                     ToggleChip(label = { "边框:${if (ctx.borderedOn) "开" else "关"}" }, active = { ctx.borderedOn }) {
                         ctx.borderedOn = !ctx.borderedOn
                     }
+                    ToggleChip(label = { "内边距:${if (ctx.compactPadding) "紧凑" else "标准"}" }, active = { ctx.compactPadding }) {
+                        ctx.compactPadding = !ctx.compactPadding
+                    }
+                    ToggleChip(label = { "行高:${if (ctx.fixedRowHeight) "固定48" else "自适应"}" }, active = { ctx.fixedRowHeight }) {
+                        ctx.fixedRowHeight = !ctx.fixedRowHeight
+                    }
                 }
             }
 
@@ -195,6 +203,9 @@ internal class TableBasicDemoPage : BasePager() {
                         data = ctx.users
                         zebraStripe = ctx.zebraOn
                         bordered = ctx.borderedOn
+                        cellPaddingH = if (ctx.compactPadding) 8f else 12f
+                        cellPaddingV = if (ctx.compactPadding) 6f else 10f
+                        rowHeight = if (ctx.fixedRowHeight) 48f else 0f
                     }
                     event {
                         rowClick = { user ->

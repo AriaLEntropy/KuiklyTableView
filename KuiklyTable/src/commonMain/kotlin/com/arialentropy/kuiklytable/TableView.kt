@@ -42,6 +42,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 attr {
                     flexDirectionRow()
                     backgroundColor(Color(tableAttr.themeColors.headerBackground))
+                    if (tableAttr.rowHeight > 0f) {
+                        height(tableAttr.rowHeight)
+                        alignItemsCenter()
+                    }
                 }
                 vforIndex({ tableAttr.columns }) { column, index, count ->
                     View {
@@ -57,10 +61,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             attr {
                                 flex(1f)
                                 flexDirectionRow()
-                                paddingLeft(12f)
-                                paddingRight(12f)
-                                paddingTop(10f)
-                                paddingBottom(10f)
+                                paddingLeft(tableAttr.cellPaddingH)
+                                paddingRight(tableAttr.cellPaddingH)
+                                paddingTop(tableAttr.cellPaddingV)
+                                paddingBottom(tableAttr.cellPaddingV)
                             }
                             Text {
                                 attr {
@@ -116,6 +120,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                         tableAttr.themeColors.rowBackground
                                 )
                             )
+                            if (tableAttr.rowHeight > 0f) {
+                                height(tableAttr.rowHeight)
+                                alignItemsCenter()
+                            }
                         }
                         event {
                             click {
@@ -136,10 +144,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                     attr {
                                         flex(1f)
                                         flexDirectionRow()
-                                        paddingLeft(12f)
-                                        paddingRight(12f)
-                                        paddingTop(10f)
-                                        paddingBottom(10f)
+                                        paddingLeft(tableAttr.cellPaddingH)
+                                        paddingRight(tableAttr.cellPaddingH)
+                                        paddingTop(tableAttr.cellPaddingV)
+                                        paddingBottom(tableAttr.cellPaddingV)
                                     }
                                     Text {
                                         attr {
@@ -210,6 +218,15 @@ class TableAttr<T> : ComposeAttr() {
 
     /** 是否显示列边框（竖向分隔线）；水平分隔线始终显示 */
     var bordered: Boolean by observable(false)
+
+    /** 单元格水平内边距（dp） */
+    var cellPaddingH: Float by observable(12f)
+
+    /** 单元格垂直内边距（dp） */
+    var cellPaddingV: Float by observable(10f)
+
+    /** 行高（dp）；> 0 时固定行高并垂直居中，0 表示由内边距+内容自适应 */
+    var rowHeight: Float by observable(0f)
 
     /** 主题色 */
     var themeColors: TableThemeColors by observable(TableThemeColors())
