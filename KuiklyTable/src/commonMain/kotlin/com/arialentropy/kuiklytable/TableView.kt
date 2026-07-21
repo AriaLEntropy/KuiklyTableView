@@ -149,6 +149,15 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                         paddingTop(tableAttr.cellPaddingV)
                                         paddingBottom(tableAttr.cellPaddingV)
                                     }
+                                if (column.cellRenderer != null) {
+                                    View {
+                                        attr {
+                                            flex(1f)
+                                            flexDirectionRow()
+                                        }
+                                        column.cellRenderer.invoke(this, item, column)
+                                    }
+                                } else {
                                     Text {
                                         attr {
                                             flex(1f)
@@ -164,6 +173,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                             }
                                         }
                                     }
+                                }
                                 }
                                 View {
                                     attr {
