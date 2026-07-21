@@ -7,10 +7,14 @@
 ## 效果预览
 
 <div align="center">
-  <img src="assets/table_basic_demo.png" alt="KuiklyTable 基础展示" width="420">
+  <img src="assets/table_st2_default.png" alt="KuiklyTable 五列宽表" width="420">
 </div>
 
-上图为内置 Demo（`table_basic`），顶部为可交互配置面板，可实时切换任意列的对齐方式与斑马纹。
+上图为内置 Demo（`table_basic`），顶部配置面板可实时切换列数、任意列的对齐方式、斑马纹、边框、内边距与行高。五列模式支持横向滚动，表体纵向滚动时表头保持固定。
+
+<div align="center">
+  <img src="assets/table_st2_horizontal_scroll.gif" alt="KuiklyTable 横向滚动" width="480">
+</div>
 
 ## 接入指南
 
@@ -58,9 +62,13 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `columns` | `List<ColumnModel<T>>` | `emptyList()` | 列定义列表 |
+| `columns` | `ObservableList<ColumnModel<T>>` | 空列表 | 列定义列表；通过列表 mutation 支持动态增删列 |
 | `data` | `List<T>` | `emptyList()` | 数据源 |
 | `zebraStripe` | `Boolean` | `true` | 是否启用斑马纹 |
+| `bordered` | `Boolean` | `false` | 是否显示列分隔线；水平分隔线始终显示 |
+| `cellPaddingH` | `Float` | `12f` | 单元格水平内边距（dp） |
+| `cellPaddingV` | `Float` | `10f` | 单元格垂直内边距（dp） |
+| `rowHeight` | `Float` | `0f` | 固定行高（dp）；`0f` 表示由内容与内边距自适应 |
 | `themeColors` | `TableThemeColors` | `TableThemeColors()` | 主题色（表头/文字/分隔线/行背景） |
 
 ### ColumnModel（列模型）
@@ -93,18 +101,21 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 ```kotlin
 TableView<User> {
     attr {
-        columns = listOf(
-            ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f),
-            ColumnModel(
-                key = "age", title = "年龄",
-                accessor = { it.age.toString() },
-                width = 60f,
-                alignment = ColumnAlignment.End,   // 数字列右对齐
-            ),
-            ColumnModel(key = "email", title = "邮箱", accessor = { it.email }),
+        columns.addAll(
+            listOf(
+                ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f),
+                ColumnModel(
+                    key = "age", title = "年龄",
+                    accessor = { it.age.toString() },
+                    width = 60f,
+                    alignment = ColumnAlignment.End,   // 数字列右对齐
+                ),
+                ColumnModel(key = "email", title = "邮箱", accessor = { it.email }),
+            )
         )
         data = users
         zebraStripe = true
+        bordered = false
     }
     event {
         rowClick = { user -> /* 行点击 */ }
@@ -114,12 +125,13 @@ TableView<User> {
 
 ## Demo
 
-`shared` 模块内置演示页 `table_basic`，在 Android 宿主中运行后通过路由页输入 `table_basic` 进入，支持交互式切换任意列的对齐方式与斑马纹开关。
+`shared` 模块内置演示页 `table_basic`，在 Android 宿主中运行后通过路由页输入 `table_basic` 进入，支持交互式切换 3/5 列、任意列对齐方式、斑马纹、边框、内边距与行高。
 
 ## Roadmap
 
 - [x] Simple Table：列定义、行列渲染、列对齐、斑马纹、文字截断
-- [ ] 横向滚动 + 固定表头
+- [x] 横向滚动 + 纵向滚动 + 固定表头
+- [x] 边框、内边距、行高配置
 - [ ] 空 / 加载 / 错误状态层
 - [ ] Mobile List 模式（移动端卡片转译）
 - [ ] Data Table Basic：行选择、排序、筛选、分页
