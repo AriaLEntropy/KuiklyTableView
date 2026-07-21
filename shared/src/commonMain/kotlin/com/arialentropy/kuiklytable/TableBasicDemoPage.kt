@@ -66,7 +66,13 @@ internal class TableBasicDemoPage : BasePager() {
         accessor = { it.email },
         width = 150f,
     )
-    private val statusColumn = ColumnModel<User>(
+    private val statusTextColumn = ColumnModel<User>(
+        key = "status",
+        title = "状态",
+        accessor = { it.status },
+        width = 90f,
+    )
+    private val statusRendererColumn = ColumnModel<User>(
         key = "status",
         title = "状态",
         accessor = { it.status },
@@ -114,13 +120,7 @@ internal class TableBasicDemoPage : BasePager() {
     private val columns3 = listOf(nameColumn, ageColumn, emailColumn)
 
     // 5 列模式（总宽超页面 → 横向滚动）
-    private val columns5 = listOf(
-        nameColumn,
-        ageColumn,
-        wideEmailColumn,
-        ColumnModel<User>(key = "city", title = "城市", accessor = { it.city }, width = 100f),
-        statusColumn,
-    )
+    private val cityColumn = ColumnModel<User>(key = "city", title = "城市", accessor = { it.city }, width = 100f)
 
     // ===== 可配置状态（observable，变化触发表格重渲染）=====
     private var wideTable by observable(true)          // 3列 / 5列（横向滚动）
@@ -132,9 +132,10 @@ internal class TableBasicDemoPage : BasePager() {
     private var fixedRowHeight by observable(false)     // 固定行高
     private var themeMode by observable("浅色")
     private var compactHeader by observable(false)
+    private var customStatusRendererOn by observable(true)
 
     init {
-        activeColumns.addAll(columns5)
+        activeColumns.addAll(currentColumns())
     }
 
     override fun body(): ViewBuilder {
@@ -179,7 +180,7 @@ internal class TableBasicDemoPage : BasePager() {
                     ToggleChip(label = { "5 列（横向滚动）" }, active = { ctx.wideTable }) {
                         ctx.wideTable = true
                         ctx.activeColumns.clear()
-                        ctx.activeColumns.addAll(ctx.columns5)
+                        ctx.activeColumns.addAll(ctx.currentColumns())
                         ctx.selectedColumn = ctx.ageColumn
                     }
                 }
@@ -248,7 +249,14 @@ internal class TableBasicDemoPage : BasePager() {
                             else -> "浅色"
                         }
                     }
-                    ToggleChip(label = { "状态列：自定义渲染" }, active = { true }) { }
+                    ToggleChip(
+                        label = { "状态渲染:${if (ctx.customStatusRendererOn) "自定义" else "默认"}" },
+                        active = { ctx.customStatusRendererOn },
+                    ) {
+                        ctx.customStatusRendererOn = !ctx.customStatusRendererOn
+                        ctx.syncActiveColumns()
+                        ctx.selectedColumn = ctx.ageColumn
+                    }
                     ToggleChip(label = { "表头:${if (ctx.compactHeader) "紧凑" else "标准"}" }, active = { ctx.compactHeader }) {
                         ctx.compactHeader = !ctx.compactHeader
                     }
@@ -308,6 +316,17 @@ internal class TableBasicDemoPage : BasePager() {
             rowBackgroundAlt = 0xFFDCEEFF,
         )
         else -> TableThemeColors.Light
+    }
+
+    private fun currentStatusColumn(): ColumnModel<User> =
+        if (customStatusRendererOn) statusRendererColumn else statusTextColumn
+
+    private fun currentColumns(): List<ColumnModel<User>> =
+        if (wideTable) listOf(nameColumn, ageColumn, wideEmailColumn, cityColumn, currentStatusColumn()) else columns3
+
+    private fun syncActiveColumns() {
+        activeColumns.clear()
+        activeColumns.addAll(currentColumns())
     }
 }
 
