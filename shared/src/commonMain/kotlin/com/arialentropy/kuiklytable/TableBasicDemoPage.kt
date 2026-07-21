@@ -99,7 +99,7 @@ internal class TableBasicDemoPage : BasePager() {
             Text {
                 attr {
                     flex(1f)
-                    text("◆ ${column.title}")
+                    text("状态列")
                     fontSize(14f)
                     fontWeightBold()
                     color(Color(0xFF1565C0))
