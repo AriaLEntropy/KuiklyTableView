@@ -20,4 +20,19 @@ class TableThemeColors(
     val rowBackground: Long = 0xFFFFFFFF,
     /** 斑马纹行背景 */
     val rowBackgroundAlt: Long = 0xFFFAFAFA,
-)
+) {
+    companion object {
+        /** 默认浅色主题，语义角色对齐 KuiklyUI 宿主皮肤 token。 */
+        val Light = TableThemeColors()
+
+        /** 深色主题，语义角色参考 Material 3 dark color scheme。 */
+        val Dark = TableThemeColors(
+            headerBackground = 0xFF242326,
+            headerText = 0xFFE6E1E5,
+            cellText = 0xFFE6E1E5,
+            gridLine = 0xFF49454F,
+            rowBackground = 0xFF1C1B1F,
+            rowBackgroundAlt = 0xFF211F23,
+        )
+    }
+}
