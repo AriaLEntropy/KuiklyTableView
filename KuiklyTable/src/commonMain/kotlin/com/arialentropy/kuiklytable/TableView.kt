@@ -13,6 +13,8 @@ import com.tencent.kuikly.core.views.*
  *
  * 滚动架构（ST-2）：
  * - 单个横向 Scroller 包住「表头行 + 纵向 List」，横向滚动时表头与数据行天然同步（无需手写同步逻辑）
+ * - 表头作为纵向 List 的兄弟节点，纵向滚动时天然固定（固定表头）
+ * - 纵向 List 复用 KuiklyUI 原生列表（RecyclerView/UICollectionView 回收）
  */
 class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
@@ -95,9 +97,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
             }
 
-            // === 数据行 ===
-            View {
+            // === 数据行（纵向 List，原生回收；作为 body 直接子级，flex 才能撑满剩余高度） ===
+            List {
                 attr {
+                    flex(1f)
                     backgroundColor(Color(tableAttr.themeColors.rowBackground))
                 }
                 tableAttr.data.forEachIndexed { index, item ->
