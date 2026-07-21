@@ -81,7 +81,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         }
                         View {
                             attr {
-                                width(0f)
+                                width(if (tableAttr.bordered && index < count - 1) 1f else 0f)
                                 backgroundColor(Color(tableAttr.themeColors.gridLine))
                             }
                         }
@@ -159,7 +159,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                 }
                                 View {
                                     attr {
-                                        width(0f)
+                                        width(if (tableAttr.bordered && colIndex < count - 1) 1f else 0f)
                                         backgroundColor(Color(tableAttr.themeColors.gridLine))
                                     }
                                 }
@@ -207,6 +207,9 @@ class TableAttr<T> : ComposeAttr() {
 
     /** 是否启用斑马纹 */
     var zebraStripe: Boolean by observable(true)
+
+    /** 是否显示列边框（竖向分隔线）；水平分隔线始终显示 */
+    var bordered: Boolean by observable(false)
 
     /** 主题色 */
     var themeColors: TableThemeColors by observable(TableThemeColors())
