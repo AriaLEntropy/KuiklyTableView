@@ -82,6 +82,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var activeColumns: ObservableList<ColumnModel<User>> by observableList()
     private var selectedColumn by observable<ColumnModel<User>>(ageColumn)
     private var zebraOn by observable(true)             // 斑马纹
+    private var borderedOn by observable(false)         // 列边框
 
     init {
         activeColumns.addAll(columns5)
@@ -173,6 +174,9 @@ internal class TableBasicDemoPage : BasePager() {
                     ToggleChip(label = { "斑马纹:${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }) {
                         ctx.zebraOn = !ctx.zebraOn
                     }
+                    ToggleChip(label = { "边框:${if (ctx.borderedOn) "开" else "关"}" }, active = { ctx.borderedOn }) {
+                        ctx.borderedOn = !ctx.borderedOn
+                    }
                 }
             }
 
@@ -190,6 +194,7 @@ internal class TableBasicDemoPage : BasePager() {
                         columns = ctx.activeColumns
                         data = ctx.users
                         zebraStripe = ctx.zebraOn
+                        bordered = ctx.borderedOn
                     }
                     event {
                         rowClick = { user ->
