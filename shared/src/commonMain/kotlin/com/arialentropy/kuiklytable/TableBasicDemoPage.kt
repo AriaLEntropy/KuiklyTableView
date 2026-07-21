@@ -95,6 +95,19 @@ internal class TableBasicDemoPage : BasePager() {
                 }
             }
         },
+        headerRenderer = { column ->
+            Text {
+                attr {
+                    flex(1f)
+                    text("◆ ${column.title}")
+                    fontSize(14f)
+                    fontWeightBold()
+                    color(Color(0xFF1565C0))
+                    lines(1)
+                    textOverFlowTail()
+                }
+            }
+        },
     )
 
     // 3 列模式（fits 页面，无横向滚动）
@@ -118,6 +131,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var compactPadding by observable(false)     // 紧凑内边距
     private var fixedRowHeight by observable(false)     // 固定行高
     private var themeMode by observable("浅色")
+    private var compactHeader by observable(false)
 
     init {
         activeColumns.addAll(columns5)
@@ -235,6 +249,9 @@ internal class TableBasicDemoPage : BasePager() {
                         }
                     }
                     ToggleChip(label = { "状态列：自定义渲染" }, active = { true }) { }
+                    ToggleChip(label = { "表头:${if (ctx.compactHeader) "紧凑" else "标准"}" }, active = { ctx.compactHeader }) {
+                        ctx.compactHeader = !ctx.compactHeader
+                    }
                 }
             }
 
@@ -257,6 +274,18 @@ internal class TableBasicDemoPage : BasePager() {
                         cellPaddingV = if (ctx.compactPadding) 6f else 10f
                         rowHeight = if (ctx.fixedRowHeight) 48f else 0f
                         themeColors = ctx.currentTheme()
+                        headerStyle = if (ctx.compactHeader) {
+                            TableHeaderStyle(
+                                fontSize = 13f,
+                                fontWeight = TableHeaderFontWeight.Bold,
+                                paddingH = 8f,
+                                paddingV = 6f,
+                                height = 40f,
+                                bottomBorderWidth = 2f,
+                            )
+                        } else {
+                            TableHeaderStyle.Default
+                        }
                     }
                     event {
                         rowClick = { user ->
