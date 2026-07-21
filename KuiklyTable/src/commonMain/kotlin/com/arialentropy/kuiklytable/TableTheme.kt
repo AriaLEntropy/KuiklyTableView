@@ -36,3 +36,24 @@ class TableThemeColors(
         )
     }
 }
+
+/** 表头的结构化视觉样式；颜色仍由 TableThemeColors 提供。 */
+class TableHeaderStyle(
+    val fontSize: Float = 14f,
+    val fontWeight: TableHeaderFontWeight = TableHeaderFontWeight.Medium,
+    val paddingH: Float = 12f,
+    val paddingV: Float = 10f,
+    val height: Float = 0f,
+    val bottomBorderWidth: Float = 1f,
+) {
+    companion object {
+        val Default = TableHeaderStyle()
+    }
+}
+
+sealed class TableHeaderFontWeight {
+    object Normal : TableHeaderFontWeight()
+    object Medium : TableHeaderFontWeight()
+    object Semisolid : TableHeaderFontWeight()
+    object Bold : TableHeaderFontWeight()
+}
