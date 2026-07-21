@@ -1,5 +1,6 @@
 package com.arialentropy.kuiklytable
 
+import com.tencent.kuikly.core.base.ViewContainer
 import com.tencent.kuikly.core.reactive.handler.observable
 
 /**
@@ -25,6 +26,8 @@ sealed class ColumnAlignment {
  * @param width 固定列宽（dp），为 null 时使用 flex 分配
  * @param flex 弹性权重，仅在 width 为 null 时生效
  * @param alignment 单元格文字对齐方式（响应式，运行时修改会触发表格重渲染）
+ * @param cellRenderer 可选的单元格渲染器；未配置时使用默认 Text
+ * @param headerRenderer 可选的表头渲染器；未配置时使用默认 Text
  */
 class ColumnModel<T>(
     val key: String,
@@ -33,6 +36,8 @@ class ColumnModel<T>(
     val width: Float? = null,
     val flex: Float = 1f,
     alignment: ColumnAlignment = ColumnAlignment.Start,
+    val cellRenderer: (ViewContainer<*, *>.(T, ColumnModel<T>) -> Unit)? = null,
+    val headerRenderer: (ViewContainer<*, *>.(ColumnModel<T>) -> Unit)? = null,
 ) {
     var alignment: ColumnAlignment by observable(alignment)
 }

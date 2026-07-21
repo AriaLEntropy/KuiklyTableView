@@ -42,8 +42,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 attr {
                     flexDirectionRow()
                     backgroundColor(Color(tableAttr.themeColors.headerBackground))
-                    if (tableAttr.rowHeight > 0f) {
-                        height(tableAttr.rowHeight)
+                    if (tableAttr.headerStyle.height > 0f) {
+                        height(tableAttr.headerStyle.height)
                         alignItemsCenter()
                     }
                 }
@@ -61,24 +61,33 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             attr {
                                 flex(1f)
                                 flexDirectionRow()
-                                paddingLeft(tableAttr.cellPaddingH)
-                                paddingRight(tableAttr.cellPaddingH)
-                                paddingTop(tableAttr.cellPaddingV)
-                                paddingBottom(tableAttr.cellPaddingV)
+                                paddingLeft(tableAttr.headerStyle.paddingH)
+                                paddingRight(tableAttr.headerStyle.paddingH)
+                                paddingTop(tableAttr.headerStyle.paddingV)
+                                paddingBottom(tableAttr.headerStyle.paddingV)
                             }
-                            Text {
-                                attr {
-                                    flex(1f)
-                                    text(column.title)
-                                    fontSize(14f)
-                                    fontWeightMedium()
-                                    color(Color(tableAttr.themeColors.headerText))
-                                    lines(1)
-                                    textOverFlowTail()
-                                    when (column.alignment) {
-                                        is ColumnAlignment.Center -> textAlignCenter()
-                                        is ColumnAlignment.End -> textAlignRight()
-                                        is ColumnAlignment.Start -> textAlignLeft()
+                            if (column.headerRenderer != null) {
+                                column.headerRenderer.invoke(this, column)
+                            } else {
+                                Text {
+                                    attr {
+                                        flex(1f)
+                                        text(column.title)
+                                        fontSize(tableAttr.headerStyle.fontSize)
+                                        when (tableAttr.headerStyle.fontWeight) {
+                                            is TableHeaderFontWeight.Normal -> fontWeightNormal()
+                                            is TableHeaderFontWeight.Medium -> fontWeightMedium()
+                                            is TableHeaderFontWeight.Semisolid -> fontWeightSemisolid()
+                                            is TableHeaderFontWeight.Bold -> fontWeightBold()
+                                        }
+                                        color(Color(tableAttr.themeColors.headerText))
+                                        lines(1)
+                                        textOverFlowTail()
+                                        when (column.alignment) {
+                                            is ColumnAlignment.Center -> textAlignCenter()
+                                            is ColumnAlignment.End -> textAlignRight()
+                                            is ColumnAlignment.Start -> textAlignLeft()
+                                        }
                                     }
                                 }
                             }
@@ -96,7 +105,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             // 表头下分割线
             View {
                 attr {
-                    height(1f)
+                    height(tableAttr.headerStyle.bottomBorderWidth)
                     backgroundColor(Color(tableAttr.themeColors.gridLine))
                 }
             }
@@ -149,6 +158,15 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                         paddingTop(tableAttr.cellPaddingV)
                                         paddingBottom(tableAttr.cellPaddingV)
                                     }
+                                if (column.cellRenderer != null) {
+                                    View {
+                                        attr {
+                                            flex(1f)
+                                            flexDirectionRow()
+                                        }
+                                        column.cellRenderer.invoke(this, item, column)
+                                    }
+                                } else {
                                     Text {
                                         attr {
                                             flex(1f)
@@ -164,6 +182,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                             }
                                         }
                                     }
+                                }
                                 }
                                 View {
                                     attr {
@@ -230,6 +249,9 @@ class TableAttr<T> : ComposeAttr() {
 
     /** 主题色 */
     var themeColors: TableThemeColors by observable(TableThemeColors())
+
+    /** 表头结构样式；品牌主题不在此处固化。 */
+    var headerStyle: TableHeaderStyle by observable(TableHeaderStyle.Default)
 }
 
 /**

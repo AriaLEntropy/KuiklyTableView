@@ -30,6 +30,7 @@ internal class TableBasicDemoPage : BasePager() {
         val position: String,
         val hireDate: String,
         val salary: String,
+        val status: String,
     )
 
     // 20 行数据，足够触发纵向滚动（验证固定表头）
@@ -44,6 +45,7 @@ internal class TableBasicDemoPage : BasePager() {
             position = listOf("工程师", "产品经理", "设计师", "运营专员")[i % 4],
             hireDate = "202${i % 5}-0${i % 9 + 1}-1${i % 9}",
             salary = "${10 + i}k",
+            status = if (i % 3 == 0) "离职" else if (i % 2 == 0) "休假" else "在职",
         )
     }
 
@@ -64,18 +66,61 @@ internal class TableBasicDemoPage : BasePager() {
         accessor = { it.email },
         width = 150f,
     )
+    private val statusTextColumn = ColumnModel<User>(
+        key = "status",
+        title = "状态",
+        accessor = { it.status },
+        width = 90f,
+    )
+    private val statusRendererColumn = ColumnModel<User>(
+        key = "status",
+        title = "状态",
+        accessor = { it.status },
+        width = 90f,
+        cellRenderer = {
+            user, _ ->
+            View {
+                attr {
+                    flex(1f)
+                    flexDirectionRow()
+                    alignItemsCenter()
+                    justifyContentCenter()
+                    backgroundColor(Color(if (user.status == "在职") 0xFFE1F5EA else 0xFFFFEED6))
+                    borderRadius(4f)
+                    paddingLeft(8f)
+                    paddingRight(8f)
+                    paddingTop(3f)
+                    paddingBottom(3f)
+                }
+                Text {
+                    attr {
+                        text(user.status)
+                        fontSize(12f)
+                        color(Color(if (user.status == "在职") 0xFF16794A else 0xFF9A5B00))
+                    }
+                }
+            }
+        },
+        headerRenderer = { column ->
+            Text {
+                attr {
+                    flex(1f)
+                    text("状态列")
+                    fontSize(14f)
+                    fontWeightBold()
+                    color(Color(0xFF1565C0))
+                    lines(1)
+                    textOverFlowTail()
+                }
+            }
+        },
+    )
 
     // 3 列模式（fits 页面，无横向滚动）
     private val columns3 = listOf(nameColumn, ageColumn, emailColumn)
 
     // 5 列模式（总宽超页面 → 横向滚动）
-    private val columns5 = listOf(
-        nameColumn,
-        ageColumn,
-        wideEmailColumn,
-        ColumnModel<User>(key = "city", title = "城市", accessor = { it.city }, width = 100f),
-        ColumnModel<User>(key = "department", title = "部门", accessor = { it.department }, width = 100f),
-    )
+    private val cityColumn = ColumnModel<User>(key = "city", title = "城市", accessor = { it.city }, width = 100f)
 
     // ===== 可配置状态（observable，变化触发表格重渲染）=====
     private var wideTable by observable(true)          // 3列 / 5列（横向滚动）
@@ -85,16 +130,19 @@ internal class TableBasicDemoPage : BasePager() {
     private var borderedOn by observable(false)         // 列边框
     private var compactPadding by observable(false)     // 紧凑内边距
     private var fixedRowHeight by observable(false)     // 固定行高
+    private var themeMode by observable("浅色")
+    private var compactHeader by observable(false)
+    private var customStatusRendererOn by observable(true)
 
     init {
-        activeColumns.addAll(columns5)
+        activeColumns.addAll(currentColumns())
     }
 
     override fun body(): ViewBuilder {
         val ctx = this
         return {
             attr {
-                backgroundColor(Color.WHITE)
+                backgroundColor(Color(ctx.currentTheme().rowBackground))
             }
 
             // 页面标题
@@ -103,6 +151,7 @@ internal class TableBasicDemoPage : BasePager() {
                     text("Table 基础展示")
                     fontSize(18f)
                     fontWeightSemisolid()
+                    color(Color(ctx.currentTheme().cellText))
                     margin(16f)
                     marginBottom(8f)
                 }
@@ -131,7 +180,7 @@ internal class TableBasicDemoPage : BasePager() {
                     ToggleChip(label = { "5 列（横向滚动）" }, active = { ctx.wideTable }) {
                         ctx.wideTable = true
                         ctx.activeColumns.clear()
-                        ctx.activeColumns.addAll(ctx.columns5)
+                        ctx.activeColumns.addAll(ctx.currentColumns())
                         ctx.selectedColumn = ctx.ageColumn
                     }
                 }
@@ -186,6 +235,32 @@ internal class TableBasicDemoPage : BasePager() {
                         ctx.fixedRowHeight = !ctx.fixedRowHeight
                     }
                 }
+
+                // 第五行：主题与自定义渲染
+                View {
+                    attr {
+                        flexDirectionRow()
+                        flexWrap(FlexWrap.WRAP)
+                    }
+                    ToggleChip(label = { "主题:${ctx.themeMode}" }, active = { ctx.themeMode == "浅色" }) {
+                        ctx.themeMode = when (ctx.themeMode) {
+                            "浅色" -> "深色"
+                            "深色" -> "蓝色"
+                            else -> "浅色"
+                        }
+                    }
+                    ToggleChip(
+                        label = { "状态渲染:${if (ctx.customStatusRendererOn) "自定义" else "默认"}" },
+                        active = { ctx.customStatusRendererOn },
+                    ) {
+                        ctx.customStatusRendererOn = !ctx.customStatusRendererOn
+                        ctx.syncActiveColumns()
+                        ctx.selectedColumn = ctx.ageColumn
+                    }
+                    ToggleChip(label = { "表头:${if (ctx.compactHeader) "紧凑" else "标准"}" }, active = { ctx.compactHeader }) {
+                        ctx.compactHeader = !ctx.compactHeader
+                    }
+                }
             }
 
             // ===== 表格（左右留白 16dp）=====
@@ -206,6 +281,19 @@ internal class TableBasicDemoPage : BasePager() {
                         cellPaddingH = if (ctx.compactPadding) 8f else 12f
                         cellPaddingV = if (ctx.compactPadding) 6f else 10f
                         rowHeight = if (ctx.fixedRowHeight) 48f else 0f
+                        themeColors = ctx.currentTheme()
+                        headerStyle = if (ctx.compactHeader) {
+                            TableHeaderStyle(
+                                fontSize = 13f,
+                                fontWeight = TableHeaderFontWeight.Bold,
+                                paddingH = 8f,
+                                paddingV = 6f,
+                                height = 40f,
+                                bottomBorderWidth = 2f,
+                            )
+                        } else {
+                            TableHeaderStyle.Default
+                        }
                     }
                     event {
                         rowClick = { user ->
@@ -215,6 +303,30 @@ internal class TableBasicDemoPage : BasePager() {
                 }
             }
         }
+    }
+
+    private fun currentTheme(): TableThemeColors = when (themeMode) {
+        "深色" -> TableThemeColors.Dark
+        "蓝色" -> TableThemeColors(
+            headerBackground = 0xFF0D47A1,
+            headerText = 0xFFFFFFFF,
+            cellText = 0xFF12304A,
+            gridLine = 0xFF90CAF9,
+            rowBackground = 0xFFEAF4FF,
+            rowBackgroundAlt = 0xFFDCEEFF,
+        )
+        else -> TableThemeColors.Light
+    }
+
+    private fun currentStatusColumn(): ColumnModel<User> =
+        if (customStatusRendererOn) statusRendererColumn else statusTextColumn
+
+    private fun currentColumns(): List<ColumnModel<User>> =
+        if (wideTable) listOf(nameColumn, ageColumn, wideEmailColumn, cityColumn, currentStatusColumn()) else columns3
+
+    private fun syncActiveColumns() {
+        activeColumns.clear()
+        activeColumns.addAll(currentColumns())
     }
 }
 
