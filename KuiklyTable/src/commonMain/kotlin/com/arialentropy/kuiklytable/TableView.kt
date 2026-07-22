@@ -590,6 +590,9 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 visibility(ctx.shouldShowOverflowPopup())
                 touchEnable(ctx.shouldShowOverflowPopup())
             }
+            event {
+                click { ctx.closeOverflowPopup() }
+            }
 
             View {
                 attr {
