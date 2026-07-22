@@ -5,6 +5,8 @@ import com.tencent.kuikly.core.directives.vforIndex
 import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.*
 import com.tencent.kuikly.core.views.*
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * KuiklyTable 主组件
@@ -21,6 +23,14 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     override fun createAttr(): TableAttr<T> = TableAttr()
 
     override fun createEvent(): TableEvent<T> = TableEvent()
+
+    private var overflowPopupVisible by observable(false)
+    private var overflowPopupText by observable("")
+
+    override fun didRemoveFromParentView() {
+        closeOverflowPopup()
+        super.didRemoveFromParentView()
+    }
 
     override fun body(): ViewBuilder {
         val ctx = this
@@ -60,6 +70,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
 
                 ctx.renderStateLayer(this)
+                ctx.renderOverflowPopupLayer(this)
             }
         }
     }
@@ -70,6 +81,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             attr {
                 flex(1f)
                 flexDirectionRow()
+            }
+            event {
+                scroll { ctx.closeOverflowPopup() }
+                dragBegin { ctx.closeOverflowPopup() }
             }
             View {
                 attr {
@@ -168,6 +183,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 flex(1f)
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
             }
+            event {
+                scroll { ctx.closeOverflowPopup() }
+                dragBegin { ctx.closeOverflowPopup() }
+            }
             tableAttr.data.forEachIndexed { index, item ->
                 ctx.renderTableRow(this, item, index)
                 View {
@@ -206,6 +225,9 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
             }
             vforIndex({ tableAttr.columns }) { column, colIndex, count ->
+                val cellText = column.accessor(item)
+                val isDefaultText = column.cellRenderer == null
+                val isTruncatedText = isDefaultText && ctx.isDefaultCellTextTruncated(cellText, column)
                 View {
                     attr {
                         if (column.width != null) {
@@ -214,6 +236,17 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             flex(column.flex)
                         }
                         flexDirectionRow()
+                    }
+                    if (isDefaultText) {
+                        event {
+                            click {
+                                if (isTruncatedText) {
+                                    ctx.showOverflowPopup(cellText)
+                                } else {
+                                    ctx.event.rowClick?.invoke(item)
+                                }
+                            }
+                        }
                     }
                     View {
                         attr {
@@ -236,7 +269,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             Text {
                                 attr {
                                     flex(1f)
-                                    text(column.accessor(item))
+                                    text(cellText)
                                     fontSize(14f)
                                     color(Color(tableAttr.themeColors.cellText))
                                     lines(1)
@@ -270,6 +303,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 backgroundColor(Color(tableAttr.themeColors.rowBackgroundAlt))
                 paddingTop(8f)
                 paddingBottom(8f)
+            }
+            event {
+                scroll { ctx.closeOverflowPopup() }
+                dragBegin { ctx.closeOverflowPopup() }
             }
             tableAttr.data.forEach { item ->
                 ctx.renderMobileCard(this, item)
@@ -363,13 +400,28 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         item: T,
         column: ColumnModel<T>,
     ) {
+        val ctx = this
         val tableAttr = attr
+        val fieldText = column.accessor(item)
+        val isDefaultText = column.cellRenderer == null
+        val isTruncatedText = isDefaultText && ctx.isMobileFieldTextTruncated(fieldText)
         container.View {
             attr {
                 flexDirectionRow()
                 alignItemsCenter()
                 paddingTop(4f)
                 paddingBottom(4f)
+            }
+            if (isDefaultText) {
+                event {
+                    click {
+                        if (isTruncatedText) {
+                            ctx.showOverflowPopup(fieldText)
+                        } else {
+                            ctx.event.rowClick?.invoke(item)
+                        }
+                    }
+                }
             }
             Text {
                 attr {
@@ -384,7 +436,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             Text {
                 attr {
                     flex(1f)
-                    text(column.accessor(item))
+                    text(fieldText)
                     fontSize(14f)
                     color(Color(tableAttr.themeColors.cellText))
                     lines(1)
@@ -527,6 +579,126 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
+    private fun renderOverflowPopupLayer(container: ViewContainer<*, *>) {
+        val ctx = this
+        val tableAttr = attr
+        container.View {
+            attr {
+                absolutePositionAllZero()
+                zIndex(20)
+                allCenter()
+                visibility(ctx.shouldShowOverflowPopup())
+                touchEnable(ctx.shouldShowOverflowPopup())
+            }
+
+            View {
+                attr {
+                    absolutePositionAllZero()
+                    zIndex(20)
+                    backgroundColor(Color(tableAttr.themeColors.popupScrim))
+                    touchEnable(ctx.shouldShowOverflowPopup())
+                }
+                event {
+                    click { ctx.closeOverflowPopup() }
+                }
+            }
+
+            View {
+                attr {
+                    zIndex(21)
+                    width(ctx.popupWidth())
+                    paddingLeft(16f)
+                    paddingRight(16f)
+                    paddingTop(14f)
+                    paddingBottom(14f)
+                    borderRadius(8f)
+                    backgroundColor(Color(tableAttr.themeColors.popupBackground))
+                    border(Border(1f, BorderStyle.SOLID, Color(tableAttr.themeColors.popupBorder)))
+                }
+                event {
+                    click {
+                        // Consume taps inside the popup so only outside taps close it.
+                    }
+                }
+                Text {
+                    attr {
+                        text(ctx.overflowPopupText)
+                        fontSize(14f)
+                        color(Color(tableAttr.themeColors.cellText))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showOverflowPopup(text: String) {
+        if (!attr.enableOverflowPopup) {
+            return
+        }
+        overflowPopupText = text
+        overflowPopupVisible = true
+    }
+
+    private fun closeOverflowPopup() {
+        if (overflowPopupVisible) {
+            overflowPopupVisible = false
+            overflowPopupText = ""
+        }
+    }
+
+    private fun isDefaultCellTextTruncated(text: String, column: ColumnModel<T>): Boolean {
+        if (!attr.enableOverflowPopup || text.isEmpty()) {
+            return false
+        }
+        val availableWidth = max(columnRenderWidth(column) - attr.cellPaddingH * 2f, 0f)
+        return estimatedTextWidth(text, DEFAULT_CELL_FONT_SIZE) > availableWidth
+    }
+
+    private fun isMobileFieldTextTruncated(text: String): Boolean {
+        if (!attr.enableOverflowPopup || text.isEmpty()) {
+            return false
+        }
+        val availableWidth = max(
+            pagerData.pageViewWidth -
+                MOBILE_CARD_HORIZONTAL_MARGIN * 2f -
+                MOBILE_CARD_HORIZONTAL_PADDING * 2f -
+                MOBILE_FIELD_LABEL_WIDTH,
+            0f,
+        )
+        return estimatedTextWidth(text, DEFAULT_CELL_FONT_SIZE) > availableWidth
+    }
+
+    private fun shouldShowOverflowPopup(): Boolean =
+        attr.enableOverflowPopup && overflowPopupVisible
+
+    private fun columnRenderWidth(column: ColumnModel<T>): Float {
+        column.width?.let { return it }
+        val fixedTotal = attr.columns.sumOf { it.width?.toDouble() ?: 0.0 }.toFloat()
+        val flexTotal = attr.columns
+            .filter { it.width == null }
+            .sumOf { it.flex.toDouble() }
+            .toFloat()
+        if (flexTotal <= 0f) {
+            return MIN_FLEX_COLUMN_WIDTH
+        }
+        val flexSpace = max(contentWidth() - fixedTotal, attr.columns.count { it.width == null } * MIN_FLEX_COLUMN_WIDTH)
+        return flexSpace * column.flex / flexTotal
+    }
+
+    private fun estimatedTextWidth(text: String, fontSize: Float): Float =
+        text.sumOf { ch ->
+            val width = if (ch.code > ASCII_MAX_CODE) fontSize else fontSize * ASCII_CHAR_WIDTH_RATIO
+            width.toDouble()
+        }.toFloat()
+
+    private fun popupWidth(): Float {
+        val pageWidth = pagerData.pageViewWidth
+        if (pageWidth <= POPUP_HORIZONTAL_MARGIN * 2f) {
+            return POPUP_DEFAULT_WIDTH
+        }
+        return min(pageWidth - POPUP_HORIZONTAL_MARGIN * 2f, POPUP_MAX_WIDTH)
+    }
+
     /** 表格内容总宽：固定列宽之和 + 弹性列最小宽，与页面宽取较大者（小于页宽时弹性列撑满） */
     private fun contentWidth(): Float {
         val pageWidth = pagerData.pageViewWidth
@@ -569,6 +741,15 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         /** 弹性列最小宽（表格超宽需要横向滚动时，弹性列至少有这么宽） */
         private const val MIN_FLEX_COLUMN_WIDTH = 100f
         private const val MOBILE_LIST_AUTO_MAX_COLUMNS = 3
+        private const val DEFAULT_CELL_FONT_SIZE = 14f
+        private const val ASCII_CHAR_WIDTH_RATIO = 0.58f
+        private const val ASCII_MAX_CODE = 255
+        private const val MOBILE_CARD_HORIZONTAL_MARGIN = 8f
+        private const val MOBILE_CARD_HORIZONTAL_PADDING = 16f
+        private const val MOBILE_FIELD_LABEL_WIDTH = 86f
+        private const val POPUP_HORIZONTAL_MARGIN = 24f
+        private const val POPUP_DEFAULT_WIDTH = 320f
+        private const val POPUP_MAX_WIDTH = 420f
     }
 }
 
@@ -640,6 +821,9 @@ class TableAttr<T> : ComposeAttr() {
 
     /** Retry 按钮文案。 */
     var retryText: String by observable("重试")
+
+    /** 是否启用默认文本单元格的截断全文浮层；自定义 renderer 不受此开关接管。 */
+    var enableOverflowPopup: Boolean by observable(true)
 }
 
 /**
