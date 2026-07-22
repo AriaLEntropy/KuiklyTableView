@@ -40,11 +40,11 @@ ST-4 新增状态层与 Mobile List 默认卡片转译：
 | --- |
 | <img src="assets/table_st4_retry.gif" alt="KuiklyTable Error 状态点击重试恢复" width="360"> |
 
-ST-5 新增截断单元格全文浮层，支持点击被省略的默认文本查看完整内容，并可点击外部关闭：
+ST-5 新增截断单元格溢出提示事件，Demo 使用该事件展示 title-like 提示：
 
-| 截断文本全文浮层 |
+| 截断文本溢出提示 |
 | --- |
-| <img src="assets/table_st5_overflow_popup.gif" alt="KuiklyTable 截断单元格点击显示全文浮层并点击外部关闭" width="360"> |
+| <img src="assets/table_st5_overflow_popup.gif" alt="KuiklyTable 截断单元格点击显示溢出提示并点击外部关闭" width="360"> |
 
 ## 接入指南
 
@@ -108,7 +108,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
 | `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
 | `retryText` | `String` | `"重试"` | Error 状态重试按钮文案 |
-| `enableOverflowPopup` | `Boolean` | `true` | 是否为实际截断的默认文本单元格启用点击全文浮层；自定义 renderer 不自动接管 |
+| `enableOverflowCellClick` | `Boolean` | `true` | 是否为实际截断的默认文本单元格启用溢出点击事件；自定义 renderer 不自动接管 |
 
 `TableThemeColors.Light` 和 `TableThemeColors.Dark` 提供浅色/深色预设，使用方也可以直接构造 `TableThemeColors` 覆盖语义角色。
 
@@ -172,7 +172,7 @@ TableView<User> {
         mobileStatusColumnKey = "status"
         loading = false
         errorText = null
-        enableOverflowPopup = true
+        enableOverflowCellClick = true
     }
     event {
         rowClick = { user -> /* 行点击 */ }
@@ -192,7 +192,7 @@ ST-4 Demo 在同一页面新增：
 
 ST-5 Demo 在同一页面新增：
 
-- 全文浮层：开 / 关；开启时点击被省略的默认文本单元格显示完整内容，关闭后保留 ellipsis 并回到普通行点击。
+- 溢出提示：开 / 关；开启时点击被省略的默认文本单元格触发溢出事件，Demo 展示 title-like 提示；关闭后保留 ellipsis 并回到普通行点击。
 
 ## Roadmap
 
@@ -202,7 +202,7 @@ ST-5 Demo 在同一页面新增：
 - [x] ST-3：主题预设与自定义单元格 renderer
 - [x] 空 / 加载 / 错误状态层
 - [x] Mobile List 模式（当前默认卡片转译）
-- [x] 截断单元格全文浮层
+- [x] 截断单元格溢出提示事件
 - [ ] Data Table Basic：行选择、排序、筛选、分页
 - [ ] Data Table Enhanced / Advanced：固定列、自定义单元格、虚拟滚动等
 
