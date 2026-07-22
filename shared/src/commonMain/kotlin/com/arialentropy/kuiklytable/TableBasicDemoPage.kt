@@ -133,6 +133,8 @@ internal class TableBasicDemoPage : BasePager() {
     private var themeMode by observable("浅色")
     private var compactHeader by observable(false)
     private var customStatusRendererOn by observable(true)
+    private var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
+    private var tableState by observable("正常")
 
     init {
         activeColumns.addAll(currentColumns())
@@ -261,6 +263,43 @@ internal class TableBasicDemoPage : BasePager() {
                         ctx.compactHeader = !ctx.compactHeader
                     }
                 }
+
+                // 第六行：ST-4 MobileMode，Auto 用列数验证默认转译规则
+                View {
+                    attr {
+                        flexDirectionRow()
+                        flexWrap(FlexWrap.WRAP)
+                    }
+                    ToggleChip(label = { "模式:Auto" }, active = { ctx.mobileMode is TableMobileMode.Auto }) {
+                        ctx.mobileMode = TableMobileMode.Auto
+                    }
+                    ToggleChip(label = { "模式:Table" }, active = { ctx.mobileMode is TableMobileMode.Table }) {
+                        ctx.mobileMode = TableMobileMode.Table
+                    }
+                    ToggleChip(label = { "模式:List" }, active = { ctx.mobileMode is TableMobileMode.List }) {
+                        ctx.mobileMode = TableMobileMode.List
+                    }
+                }
+
+                // 第七行：ST-4 状态层，切换项均改变表格实际状态
+                View {
+                    attr {
+                        flexDirectionRow()
+                        flexWrap(FlexWrap.WRAP)
+                    }
+                    ToggleChip(label = { "状态:正常" }, active = { ctx.tableState == "正常" }) {
+                        ctx.tableState = "正常"
+                    }
+                    ToggleChip(label = { "状态:空" }, active = { ctx.tableState == "空" }) {
+                        ctx.tableState = "空"
+                    }
+                    ToggleChip(label = { "状态:加载" }, active = { ctx.tableState == "加载" }) {
+                        ctx.tableState = "加载"
+                    }
+                    ToggleChip(label = { "状态:错误" }, active = { ctx.tableState == "错误" }) {
+                        ctx.tableState = "错误"
+                    }
+                }
             }
 
             // ===== 表格（左右留白 16dp）=====
@@ -275,13 +314,21 @@ internal class TableBasicDemoPage : BasePager() {
                     attr {
                         flex(1f) // 让 TableView（ComposeView）撑满父容器，内部 List 的 flex 才能拿到高度
                         columns = ctx.activeColumns
-                        data = ctx.users
+                        data = ctx.currentData()
                         zebraStripe = ctx.zebraOn
                         bordered = ctx.borderedOn
                         cellPaddingH = if (ctx.compactPadding) 8f else 12f
                         cellPaddingV = if (ctx.compactPadding) 6f else 10f
                         rowHeight = if (ctx.fixedRowHeight) 48f else 0f
                         themeColors = ctx.currentTheme()
+                        mobileMode = ctx.mobileMode
+                        mobilePrimaryColumnKey = "name"
+                        mobileStatusColumnKey = "status"
+                        loading = ctx.tableState == "加载"
+                        errorText = if (ctx.tableState == "错误") "加载失败，请稍后重试" else null
+                        emptyText = "暂无员工数据"
+                        loadingText = "正在加载员工数据"
+                        retryText = "恢复正常"
                         headerStyle = if (ctx.compactHeader) {
                             TableHeaderStyle(
                                 fontSize = 13f,
@@ -298,6 +345,10 @@ internal class TableBasicDemoPage : BasePager() {
                     event {
                         rowClick = { user ->
                             ctx.bridgeModule.toast("点击了: ${user.name}")
+                        }
+                        retry = {
+                            ctx.tableState = "正常"
+                            ctx.bridgeModule.toast("已恢复正常数据")
                         }
                     }
                 }
@@ -323,6 +374,9 @@ internal class TableBasicDemoPage : BasePager() {
 
     private fun currentColumns(): List<ColumnModel<User>> =
         if (wideTable) listOf(nameColumn, ageColumn, wideEmailColumn, cityColumn, currentStatusColumn()) else columns3
+
+    private fun currentData(): List<User> =
+        if (tableState == "空") emptyList() else users
 
     private fun syncActiveColumns() {
         activeColumns.clear()
