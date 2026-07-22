@@ -5,6 +5,7 @@ import com.tencent.kuikly.core.directives.vforIndex
 import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.*
 import com.tencent.kuikly.core.views.*
+import kotlin.math.max
 
 /**
  * KuiklyTable 主组件
@@ -71,6 +72,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 flex(1f)
                 flexDirectionRow()
             }
+            event {
+                scroll { ctx.event.overflowTipDismiss?.invoke() }
+                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
+            }
             View {
                 attr {
                     width(ctx.contentWidth())
@@ -103,6 +108,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             flex(column.flex)
                         }
                         flexDirectionRow()
+                        touchEnable(true)
                     }
                     View {
                         attr {
@@ -168,6 +174,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 flex(1f)
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
             }
+            event {
+                scroll { ctx.event.overflowTipDismiss?.invoke() }
+                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
+            }
             tableAttr.data.forEachIndexed { index, item ->
                 ctx.renderTableRow(this, item, index)
                 View {
@@ -200,12 +210,15 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     alignItemsCenter()
                 }
             }
-            event {
-                click {
-                    ctx.event.rowClick?.invoke(item)
-                }
-            }
             vforIndex({ tableAttr.columns }) { column, colIndex, count ->
+                val cellText = column.accessor(item)
+                val isDefaultText = column.cellRenderer == null
+                val isTruncatedText = isDefaultText && ctx.isDefaultCellTextTruncated(cellText, column)
+                val cellInfo = if (isDefaultText) {
+                    ctx.createOverflowCellInfo(item, index, colIndex, column, cellText, isTruncatedText)
+                } else {
+                    null
+                }
                 View {
                     attr {
                         if (column.width != null) {
@@ -215,6 +228,15 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         }
                         flexDirectionRow()
                     }
+                    event {
+                        click {
+                            if (isDefaultText) {
+                                ctx.handleDefaultTextCellClick(item, cellInfo, isTruncatedText)
+                            } else {
+                                ctx.event.rowClick?.invoke(item)
+                            }
+                        }
+                    }
                     View {
                         attr {
                             flex(1f)
@@ -223,6 +245,14 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             paddingRight(tableAttr.cellPaddingH)
                             paddingTop(tableAttr.cellPaddingV)
                             paddingBottom(tableAttr.cellPaddingV)
+                            touchEnable(true)
+                        }
+                        if (isDefaultText) {
+                            event {
+                                click {
+                                    ctx.handleDefaultTextCellClick(item, cellInfo, isTruncatedText)
+                                }
+                            }
                         }
                         if (column.cellRenderer != null) {
                             View {
@@ -236,15 +266,21 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                             Text {
                                 attr {
                                     flex(1f)
-                                    text(column.accessor(item))
+                                    text(cellText)
                                     fontSize(14f)
                                     color(Color(tableAttr.themeColors.cellText))
                                     lines(1)
                                     textOverFlowTail()
+                                    touchEnable(true)
                                     when (column.alignment) {
                                         is ColumnAlignment.Center -> textAlignCenter()
                                         is ColumnAlignment.End -> textAlignRight()
                                         is ColumnAlignment.Start -> textAlignLeft()
+                                    }
+                                }
+                                event {
+                                    click {
+                                        ctx.handleDefaultTextCellClick(item, cellInfo, isTruncatedText)
                                     }
                                 }
                             }
@@ -270,6 +306,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 backgroundColor(Color(tableAttr.themeColors.rowBackgroundAlt))
                 paddingTop(8f)
                 paddingBottom(8f)
+            }
+            event {
+                scroll { ctx.event.overflowTipDismiss?.invoke() }
+                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
             }
             tableAttr.data.forEach { item ->
                 ctx.renderMobileCard(this, item)
@@ -363,13 +403,29 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         item: T,
         column: ColumnModel<T>,
     ) {
+        val ctx = this
         val tableAttr = attr
+        val fieldText = column.accessor(item)
+        val isDefaultText = column.cellRenderer == null
+        val isTruncatedText = isDefaultText && ctx.isMobileFieldTextTruncated(fieldText)
+        val fieldInfo = if (isDefaultText) {
+            ctx.createOverflowCellInfo(item, -1, attr.columns.indexOf(column), column, fieldText, isTruncatedText)
+        } else {
+            null
+        }
         container.View {
             attr {
                 flexDirectionRow()
                 alignItemsCenter()
                 paddingTop(4f)
                 paddingBottom(4f)
+            }
+            if (isDefaultText) {
+                event {
+                    click {
+                        ctx.handleDefaultTextCellClick(item, fieldInfo, isTruncatedText)
+                    }
+                }
             }
             Text {
                 attr {
@@ -384,7 +440,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             Text {
                 attr {
                     flex(1f)
-                    text(column.accessor(item))
+                    text(fieldText)
                     fontSize(14f)
                     color(Color(tableAttr.themeColors.cellText))
                     lines(1)
@@ -393,6 +449,11 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         is ColumnAlignment.Center -> textAlignCenter()
                         is ColumnAlignment.End -> textAlignRight()
                         is ColumnAlignment.Start -> textAlignLeft()
+                    }
+                }
+                event {
+                    click {
+                        ctx.handleDefaultTextCellClick(item, fieldInfo, isTruncatedText)
                     }
                 }
             }
@@ -527,6 +588,96 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
+    private fun isDefaultCellTextTruncated(text: String, column: ColumnModel<T>): Boolean {
+        if (!attr.enableOverflowCellClick || text.isEmpty()) {
+            return false
+        }
+        val availableWidth = max(columnRenderWidth(column) - attr.cellPaddingH * 2f, 0f)
+        return estimatedTextWidth(text, DEFAULT_CELL_FONT_SIZE) > availableWidth
+    }
+
+    private fun handleDefaultTextCellClick(
+        item: T,
+        cellInfo: TableOverflowCellInfo<T>?,
+        isTruncatedText: Boolean,
+    ) {
+        if (isTruncatedText && cellInfo != null && event.overflowCellClick != null) {
+            event.overflowCellClick?.invoke(cellInfo)
+        } else {
+            event.rowClick?.invoke(item)
+        }
+    }
+
+    private fun isMobileFieldTextTruncated(text: String): Boolean {
+        if (!attr.enableOverflowCellClick || text.isEmpty()) {
+            return false
+        }
+        val availableWidth = max(
+            pagerData.pageViewWidth -
+                MOBILE_CARD_HORIZONTAL_MARGIN * 2f -
+                MOBILE_CARD_HORIZONTAL_PADDING * 2f -
+                MOBILE_FIELD_LABEL_WIDTH,
+            0f,
+        )
+        return estimatedTextWidth(text, DEFAULT_CELL_FONT_SIZE) > availableWidth
+    }
+
+    private fun columnRenderWidth(column: ColumnModel<T>): Float {
+        column.width?.let { return it }
+        val fixedTotal = attr.columns.sumOf { it.width?.toDouble() ?: 0.0 }.toFloat()
+        val flexTotal = attr.columns
+            .filter { it.width == null }
+            .sumOf { it.flex.toDouble() }
+            .toFloat()
+        if (flexTotal <= 0f) {
+            return MIN_FLEX_COLUMN_WIDTH
+        }
+        val flexSpace = max(contentWidth() - fixedTotal, attr.columns.count { it.width == null } * MIN_FLEX_COLUMN_WIDTH)
+        return flexSpace * column.flex / flexTotal
+    }
+
+    private fun estimatedTextWidth(text: String, fontSize: Float): Float =
+        text.sumOf { ch ->
+            val width = if (ch.code > ASCII_MAX_CODE) fontSize else fontSize * ASCII_CHAR_WIDTH_RATIO
+            width.toDouble()
+        }.toFloat()
+
+    private fun createOverflowCellInfo(
+        item: T,
+        rowIndex: Int,
+        columnIndex: Int,
+        column: ColumnModel<T>,
+        text: String,
+        isOverflow: Boolean,
+    ): TableOverflowCellInfo<T> = TableOverflowCellInfo(
+        rowIndex = rowIndex,
+        columnIndex = columnIndex,
+        columnKey = column.key,
+        rowData = item,
+        text = text,
+        isOverflow = isOverflow,
+        estimatedCellX = estimatedCellX(columnIndex),
+        estimatedCellY = estimatedCellY(rowIndex),
+        estimatedCellWidth = columnRenderWidth(column),
+        estimatedCellHeight = if (attr.rowHeight > 0f) attr.rowHeight else DEFAULT_ROW_HEIGHT_ESTIMATE,
+    )
+
+    private fun estimatedCellX(columnIndex: Int): Float {
+        if (columnIndex <= 0) {
+            return 0f
+        }
+        var x = 0f
+        var index = 0
+        while (index < columnIndex && index < attr.columns.size) {
+            x += columnRenderWidth(attr.columns[index])
+            index++
+        }
+        return x
+    }
+
+    private fun estimatedCellY(rowIndex: Int): Float =
+        if (rowIndex < 0) 0f else rowIndex * if (attr.rowHeight > 0f) attr.rowHeight else DEFAULT_ROW_HEIGHT_ESTIMATE
+
     /** 表格内容总宽：固定列宽之和 + 弹性列最小宽，与页面宽取较大者（小于页宽时弹性列撑满） */
     private fun contentWidth(): Float {
         val pageWidth = pagerData.pageViewWidth
@@ -569,8 +720,28 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         /** 弹性列最小宽（表格超宽需要横向滚动时，弹性列至少有这么宽） */
         private const val MIN_FLEX_COLUMN_WIDTH = 100f
         private const val MOBILE_LIST_AUTO_MAX_COLUMNS = 3
+        private const val DEFAULT_CELL_FONT_SIZE = 14f
+        private const val ASCII_CHAR_WIDTH_RATIO = 0.58f
+        private const val ASCII_MAX_CODE = 255
+        private const val MOBILE_CARD_HORIZONTAL_MARGIN = 8f
+        private const val MOBILE_CARD_HORIZONTAL_PADDING = 16f
+        private const val MOBILE_FIELD_LABEL_WIDTH = 86f
+        private const val DEFAULT_ROW_HEIGHT_ESTIMATE = 48f
     }
 }
+
+class TableOverflowCellInfo<T>(
+    val rowIndex: Int,
+    val columnIndex: Int,
+    val columnKey: String,
+    val rowData: T,
+    val text: String,
+    val isOverflow: Boolean,
+    val estimatedCellX: Float,
+    val estimatedCellY: Float,
+    val estimatedCellWidth: Float,
+    val estimatedCellHeight: Float,
+)
 
 /**
  * 移动端展示模式。
@@ -640,6 +811,9 @@ class TableAttr<T> : ComposeAttr() {
 
     /** Retry 按钮文案。 */
     var retryText: String by observable("重试")
+
+    /** 是否启用默认文本单元格的溢出点击事件；自定义 renderer 不受此开关接管。 */
+    var enableOverflowCellClick: Boolean by observable(true)
 }
 
 /**
@@ -651,6 +825,12 @@ class TableEvent<T> : ComposeEvent() {
 
     /** 错误状态重试回调 */
     var retry: (() -> Unit)? = null
+
+    /** 默认文本单元格被判断为溢出时触发；具体 tip/popover/sheet 由使用方决定。 */
+    var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
+
+    /** 表格滚动或拖动时通知外部关闭溢出提示。 */
+    var overflowTipDismiss: (() -> Unit)? = null
 }
 
 /**

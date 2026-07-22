@@ -14,10 +14,9 @@
 
 ST-3 还提供浅色、深色和蓝色主题，以及状态列的自定义 renderer：
 
-<div align="center">
-  <img src="assets/table_st3_light.png" alt="KuiklyTable 浅色主题与自定义状态列" width="420">
-  <img src="assets/table_st3_dark.png" alt="KuiklyTable 深色主题" width="420">
-</div>
+| 浅色主题 | 深色主题 | 蓝色主题 |
+| --- | --- | --- |
+| <img src="assets/table_st3_light.png" alt="KuiklyTable 浅色主题与自定义状态列" width="260"> | <img src="assets/table_st3_dark.png" alt="KuiklyTable 深色主题" width="260"> | <img src="assets/table_st3_blue.png" alt="KuiklyTable 蓝色主题" width="260"> |
 
 <div align="center">
   <img src="assets/table_st3_custom_renderer_scroll.gif" alt="KuiklyTable 自定义状态列横向滚动" width="480">
@@ -40,6 +39,12 @@ ST-4 新增状态层与 Mobile List 默认卡片转译：
 | Retry 恢复 |
 | --- |
 | <img src="assets/table_st4_retry.gif" alt="KuiklyTable Error 状态点击重试恢复" width="360"> |
+
+ST-5 新增截断单元格溢出提示事件，Demo 使用该事件展示 title-like 提示：
+
+| 截断文本溢出提示 |
+| --- |
+| <img src="assets/table_st5_overflow_popup.gif" alt="KuiklyTable 截断单元格点击显示溢出提示并点击外部关闭" width="360"> |
 
 ## 接入指南
 
@@ -103,6 +108,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
 | `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
 | `retryText` | `String` | `"重试"` | Error 状态重试按钮文案 |
+| `enableOverflowCellClick` | `Boolean` | `true` | 是否为实际截断的默认文本单元格启用溢出点击事件；自定义 renderer 不自动接管 |
 
 `TableThemeColors.Light` 和 `TableThemeColors.Dark` 提供浅色/深色预设，使用方也可以直接构造 `TableThemeColors` 覆盖语义角色。
 
@@ -166,6 +172,7 @@ TableView<User> {
         mobileStatusColumnKey = "status"
         loading = false
         errorText = null
+        enableOverflowCellClick = true
     }
     event {
         rowClick = { user -> /* 行点击 */ }
@@ -183,6 +190,10 @@ ST-4 Demo 在同一页面新增：
 - MobileMode：Auto / Table / List，Auto 可配合 3/5 列切换验证默认转译规则。
 - 状态层：正常 / 空 / 加载 / 错误；错误态的“恢复正常”按钮会真实恢复数据并触发 toast。
 
+ST-5 Demo 在同一页面新增：
+
+- 溢出提示：开 / 关；开启时点击被省略的默认文本单元格触发溢出事件，Demo 展示 title-like 提示；关闭后保留 ellipsis 并回到普通行点击。
+
 ## Roadmap
 
 - [x] Simple Table：列定义、行列渲染、列对齐、斑马纹、文字截断
@@ -191,6 +202,7 @@ ST-4 Demo 在同一页面新增：
 - [x] ST-3：主题预设与自定义单元格 renderer
 - [x] 空 / 加载 / 错误状态层
 - [x] Mobile List 模式（当前默认卡片转译）
+- [x] 截断单元格溢出提示事件
 - [ ] Data Table Basic：行选择、排序、筛选、分页
 - [ ] Data Table Enhanced / Advanced：固定列、自定义单元格、虚拟滚动等
 

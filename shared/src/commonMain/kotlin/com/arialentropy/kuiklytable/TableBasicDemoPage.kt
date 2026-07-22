@@ -9,6 +9,8 @@ import com.tencent.kuikly.core.reactive.handler.*
 import com.tencent.kuikly.core.views.*
 import com.arialentropy.kuiklytable.base.BasePager
 import com.arialentropy.kuiklytable.base.bridgeModule
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Table 基础展示 Demo
@@ -39,7 +41,7 @@ internal class TableBasicDemoPage : BasePager() {
             id = i,
             name = "员工$i",
             age = 20 + (i * 3) % 40,
-            email = "user$i@example.com",
+            email = "employee$i.long.mailbox@example-company.internal",
             city = listOf("北京", "上海", "广州", "深圳", "杭州")[i % 5],
             department = listOf("技术部", "产品部", "设计部", "运营部")[i % 4],
             position = listOf("工程师", "产品经理", "设计师", "运营专员")[i % 4],
@@ -135,6 +137,12 @@ internal class TableBasicDemoPage : BasePager() {
     private var customStatusRendererOn by observable(true)
     private var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
     private var tableState by observable("正常")
+    private var overflowTipOn by observable(true)
+    private var overflowTipVisible by observable(false)
+    private var overflowTipText by observable("")
+    private var overflowTipLeft by observable(24f)
+    private var overflowTipTop by observable(220f)
+    private var overflowTipArrowLeft by observable(40f)
 
     init {
         activeColumns.addAll(currentColumns())
@@ -187,7 +195,16 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第二行：配置列（动态反映当前列）
+                // 第二行：ST-5 截断全文浮层，独立热区避免和表格区域命中冲突
+                ConfigRow(
+                    label = { "溢出提示:${if (ctx.overflowTipOn) "开" else "关"}" },
+                    active = { ctx.overflowTipOn },
+                ) {
+                    ctx.overflowTipOn = !ctx.overflowTipOn
+                    ctx.hideOverflowTip()
+                }
+
+                // 第三行：配置列（动态反映当前列）
                 View {
                     attr {
                         flexDirectionRow()
@@ -201,7 +218,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第三行：对齐方式（作用于选中列）
+                // 第四行：对齐方式（作用于选中列）
                 View {
                     attr {
                         flexDirectionRow()
@@ -218,7 +235,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第四行：样式配置
+                // 第五行：样式配置
                 View {
                     attr {
                         flexDirectionRow()
@@ -238,7 +255,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第五行：主题与自定义渲染
+                // 第六行：主题与自定义渲染
                 View {
                     attr {
                         flexDirectionRow()
@@ -264,7 +281,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第六行：ST-4 MobileMode，Auto 用列数验证默认转译规则
+                // 第七行：ST-4 MobileMode，Auto 用列数验证默认转译规则
                 View {
                     attr {
                         flexDirectionRow()
@@ -281,7 +298,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第七行：ST-4 状态层，切换项均改变表格实际状态
+                // 第八行：ST-4 状态层，切换项均改变表格实际状态
                 View {
                     attr {
                         flexDirectionRow()
@@ -329,6 +346,7 @@ internal class TableBasicDemoPage : BasePager() {
                         emptyText = "暂无员工数据"
                         loadingText = "正在加载员工数据"
                         retryText = "恢复正常"
+                        enableOverflowCellClick = ctx.overflowTipOn
                         headerStyle = if (ctx.compactHeader) {
                             TableHeaderStyle(
                                 fontSize = 13f,
@@ -350,6 +368,56 @@ internal class TableBasicDemoPage : BasePager() {
                             ctx.tableState = "正常"
                             ctx.bridgeModule.toast("已恢复正常数据")
                         }
+                        overflowCellClick = { info ->
+                            ctx.showOverflowTip(info)
+                        }
+                        overflowTipDismiss = {
+                            ctx.hideOverflowTip()
+                        }
+                    }
+                }
+            }
+
+            View {
+                attr {
+                    absolutePositionAllZero()
+                    zIndex(30)
+                    visibility(ctx.overflowTipVisible && ctx.overflowTipOn)
+                    touchEnable(ctx.overflowTipVisible && ctx.overflowTipOn)
+                }
+                event {
+                    click { ctx.hideOverflowTip() }
+                }
+                View {
+                    attr {
+                        absolutePosition(left = ctx.overflowTipLeft, top = ctx.overflowTipTop)
+                        width(ctx.overflowTipWidth())
+                        paddingLeft(12f)
+                        paddingRight(12f)
+                        paddingTop(8f)
+                        paddingBottom(8f)
+                        borderRadius(8f)
+                        backgroundColor(Color(0xEE222222))
+                    }
+                    event {
+                        click {
+                            // Consume taps inside the title-like tip.
+                        }
+                    }
+                    Text {
+                        attr {
+                            text(ctx.overflowTipText)
+                            fontSize(13f)
+                            color(Color.WHITE)
+                        }
+                    }
+                }
+                Image {
+                    attr {
+                        absolutePosition(left = ctx.overflowTipLeft + ctx.overflowTipArrowLeft, top = ctx.overflowTipTop - 6f)
+                        zIndex(31)
+                        size(16f, 8f)
+                        src("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAICAYAAADwdn+XAAAANElEQVR42mNgwAOUlJTewTADqQBZM8mGYNNMtCH4NBM0hBjNOA0hRTOGIeRohhtCiWYQBgBrGmjtRbMqEAAAAABJRU5ErkJggg==")
                     }
                 }
             }
@@ -382,6 +450,48 @@ internal class TableBasicDemoPage : BasePager() {
         activeColumns.clear()
         activeColumns.addAll(currentColumns())
     }
+
+    private fun hideOverflowTip() {
+        overflowTipVisible = false
+        overflowTipText = ""
+    }
+
+    private fun showOverflowTip(info: TableOverflowCellInfo<User>) {
+        overflowTipText = info.text
+        overflowTipLeft = overflowTipLeft(info)
+        overflowTipTop = overflowTipTop(info)
+        overflowTipArrowLeft = overflowTipArrowLeft(info, overflowTipLeft)
+        overflowTipVisible = true
+    }
+
+    private fun overflowTipWidth(): Float = min(320f, pagerData.pageViewWidth - TIP_SCREEN_MARGIN * 2f)
+
+    private fun overflowTipLeft(info: TableOverflowCellInfo<User>): Float {
+        val width = overflowTipWidth()
+        val desiredLeft = TABLE_LEFT + info.estimatedCellX + info.estimatedCellWidth / 2f - width / 2f
+        return min(max(desiredLeft, TIP_SCREEN_MARGIN), pagerData.pageViewWidth - width - TIP_SCREEN_MARGIN)
+    }
+
+    private fun overflowTipTop(info: TableOverflowCellInfo<User>): Float {
+        val cellTop = TABLE_TOP_ESTIMATE + info.estimatedCellY
+        return min(cellTop + info.estimatedCellHeight + TIP_GAP, pagerData.pageViewHeight - TIP_HEIGHT_ESTIMATE - TIP_SCREEN_MARGIN)
+    }
+
+    private fun overflowTipArrowLeft(info: TableOverflowCellInfo<User>, tipLeft: Float): Float {
+        val cellCenter = TABLE_LEFT + info.estimatedCellX + info.estimatedCellWidth / 2f
+        return min(max(cellCenter - tipLeft - TIP_ARROW_HALF_WIDTH, 16f), overflowTipWidth() - TIP_ARROW_WIDTH - 8f)
+    }
+
+    companion object {
+        private const val TABLE_LEFT = 16f
+        private const val TABLE_TOP_ESTIMATE = 390f
+        private const val TIP_SCREEN_MARGIN = 16f
+        private const val TIP_HEIGHT_ESTIMATE = 50f
+        private const val TIP_GAP = 6f
+        private const val TIP_ARROW_WIDTH = 16f
+        private const val TIP_ARROW_HALF_WIDTH = 8f
+    }
+
 }
 
 /**
@@ -409,6 +519,40 @@ private fun ViewContainer<*, *>.ToggleChip(
                 text(label())
                 fontSize(12f)
                 color(Color(if (active()) 0xFFFFFFFF else 0xFF666666))
+            }
+        }
+        event {
+            click { onClick() }
+        }
+    }
+}
+
+private fun ViewContainer<*, *>.ConfigRow(
+    label: () -> String,
+    active: () -> Boolean,
+    onClick: () -> Unit,
+) {
+    View {
+        attr {
+            flexDirectionRow()
+            alignItemsCenter()
+            paddingLeft(12f)
+            paddingRight(12f)
+            paddingTop(10f)
+            paddingBottom(10f)
+            marginBottom(8f)
+            borderRadius(12f)
+            backgroundColor(Color(if (active()) 0xFFEAF4FF else 0xFFF4F4F4))
+        }
+        Text {
+            attr {
+                flex(1f)
+                text(label())
+                fontSize(13f)
+                color(Color(if (active()) 0xFF0D47A1 else 0xFF666666))
+            }
+            event {
+                click { onClick() }
             }
         }
         event {
