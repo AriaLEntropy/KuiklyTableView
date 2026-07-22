@@ -39,7 +39,7 @@ internal class TableBasicDemoPage : BasePager() {
             id = i,
             name = "员工$i",
             age = 20 + (i * 3) % 40,
-            email = "user$i@example.com",
+            email = "employee$i.long.mailbox@example-company.internal",
             city = listOf("北京", "上海", "广州", "深圳", "杭州")[i % 5],
             department = listOf("技术部", "产品部", "设计部", "运营部")[i % 4],
             position = listOf("工程师", "产品经理", "设计师", "运营专员")[i % 4],
@@ -135,6 +135,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var customStatusRendererOn by observable(true)
     private var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
     private var tableState by observable("正常")
+    private var overflowPopupOn by observable(true)
 
     init {
         activeColumns.addAll(currentColumns())
@@ -300,6 +301,17 @@ internal class TableBasicDemoPage : BasePager() {
                         ctx.tableState = "错误"
                     }
                 }
+
+                // 第八行：ST-5 截断全文浮层，开/关均有可观察行为
+                View {
+                    attr {
+                        flexDirectionRow()
+                        flexWrap(FlexWrap.WRAP)
+                    }
+                    ToggleChip(label = { "全文浮层:${if (ctx.overflowPopupOn) "开" else "关"}" }, active = { ctx.overflowPopupOn }) {
+                        ctx.overflowPopupOn = !ctx.overflowPopupOn
+                    }
+                }
             }
 
             // ===== 表格（左右留白 16dp）=====
@@ -329,6 +341,7 @@ internal class TableBasicDemoPage : BasePager() {
                         emptyText = "暂无员工数据"
                         loadingText = "正在加载员工数据"
                         retryText = "恢复正常"
+                        enableOverflowPopup = ctx.overflowPopupOn
                         headerStyle = if (ctx.compactHeader) {
                             TableHeaderStyle(
                                 fontSize = 13f,

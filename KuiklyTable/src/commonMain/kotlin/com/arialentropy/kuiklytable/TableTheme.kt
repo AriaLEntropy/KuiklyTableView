@@ -40,6 +40,12 @@ class TableThemeColors(
     val actionText: Long = 0xFF2E77E5,
     /** 状态层主操作填充上的文字 */
     val actionTextOnFill: Long = 0xFFFFFFFF,
+    /** 截断全文浮层背景 */
+    val popupBackground: Long = 0xFFFFFFFF,
+    /** 截断全文浮层边框 */
+    val popupBorder: Long = 0xFFE6E6E6,
+    /** 截断全文浮层遮罩 */
+    val popupScrim: Long = 0x22000000,
 ) {
     companion object {
         /** 默认浅色主题，语义角色对齐 KuiklyUI 宿主皮肤 token。 */
@@ -63,6 +69,9 @@ class TableThemeColors(
             errorText = 0xFFF2B8B5,
             actionText = 0xFF90CAF9,
             actionTextOnFill = 0xFF10223A,
+            popupBackground = 0xFF242326,
+            popupBorder = 0xFF49454F,
+            popupScrim = 0x66000000,
         )
     }
 }
