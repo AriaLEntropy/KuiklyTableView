@@ -27,6 +27,20 @@ ST-3 还提供浅色、深色和蓝色主题，以及状态列的自定义 rende
   <img src="assets/table_st2_horizontal_scroll.gif" alt="KuiklyTable 横向滚动" width="480">
 </div>
 
+ST-4 新增状态层与 Mobile List 默认卡片转译：
+
+| Mobile List 默认卡片 | Empty 状态层 |
+| --- | --- |
+| <img src="assets/table_st4_mobile_list.png" alt="KuiklyTable Mobile List 默认卡片" width="320"> | <img src="assets/table_st4_empty.png" alt="KuiklyTable Empty 状态层" width="320"> |
+
+| Loading 状态层 | 组件 Error 状态（重试入口） |
+| --- | --- |
+| <img src="assets/table_st4_loading.png" alt="KuiklyTable Loading 状态层" width="320"> | <img src="assets/table_st4_error.png" alt="KuiklyTable Error 状态层与重试入口" width="320"> |
+
+| Retry 恢复 |
+| --- |
+| <img src="assets/table_st4_retry.gif" alt="KuiklyTable Error 状态点击重试恢复" width="360"> |
+
 ## 接入指南
 
 > ⚠️ 组件处于活跃开发中，**尚未发布到 Maven 仓库**。当前为源码级接入。
@@ -80,7 +94,15 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `cellPaddingH` | `Float` | `12f` | 单元格水平内边距（dp） |
 | `cellPaddingV` | `Float` | `10f` | 单元格垂直内边距（dp） |
 | `rowHeight` | `Float` | `0f` | 固定行高（dp）；`0f` 表示由内容与内边距自适应 |
-| `themeColors` | `TableThemeColors` | `TableThemeColors()` | 主题色（表头/文字/分隔线/行背景） |
+| `themeColors` | `TableThemeColors` | `TableThemeColors()` | 主题色（表头/文字/分隔线/行背景/状态层/Mobile List 默认卡片） |
+| `mobileMode` | `TableMobileMode` | `TableMobileMode.Auto` | 移动端展示模式；Auto 下列数 ≤ 3 转为 Mobile List |
+| `mobilePrimaryColumnKey` | `String?` | `null` | Mobile List 主字段列；未配置时使用第一列 |
+| `mobileStatusColumnKey` | `String?` | `null` | Mobile List 状态标签列；未配置时不显示状态标签 |
+| `loading` | `Boolean` | `false` | Loading 状态；保留旧内容并降低透明度 |
+| `errorText` | `String?` | `null` | Error 状态文案；非 null 时显示错误层 |
+| `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
+| `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
+| `retryText` | `String` | `"重试"` | Error 状态重试按钮文案 |
 
 `TableThemeColors.Light` 和 `TableThemeColors.Dark` 提供浅色/深色预设，使用方也可以直接构造 `TableThemeColors` 覆盖语义角色。
 
@@ -104,11 +126,20 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `Center` | 居中 |
 | `End` | 右对齐（适合数字列） |
 
+### TableMobileMode（移动端模式）
+
+| 值 | 说明 |
+|----|------|
+| `Auto` | 列数 ≤ 3 时自动转为 Mobile List，否则保留横向表格 |
+| `Table` | 强制使用横向表格 |
+| `List` | 强制使用 Mobile List；当前默认渲染为卡片 |
+
 ### TableEvent（事件）
 
 | 回调 | 类型 | 说明 |
 |------|------|------|
 | `rowClick` | `((T) -> Unit)?` | 行点击，回调该行数据 |
+| `retry` | `(() -> Unit)?` | 错误状态重试点击回调 |
 
 ## 快速使用
 
@@ -130,9 +161,15 @@ TableView<User> {
         data = users
         zebraStripe = true
         bordered = false
+        mobileMode = TableMobileMode.Auto
+        mobilePrimaryColumnKey = "name"
+        mobileStatusColumnKey = "status"
+        loading = false
+        errorText = null
     }
     event {
         rowClick = { user -> /* 行点击 */ }
+        retry = { /* 重新加载 */ }
     }
 }
 ```
@@ -141,14 +178,19 @@ TableView<User> {
 
 `shared` 模块内置演示页 `table_basic`，在 Android 宿主中运行后通过路由页输入 `table_basic` 进入，支持交互式切换 3/5 列、任意列对齐方式、斑马纹、边框、内边距与行高。
 
+ST-4 Demo 在同一页面新增：
+
+- MobileMode：Auto / Table / List，Auto 可配合 3/5 列切换验证默认转译规则。
+- 状态层：正常 / 空 / 加载 / 错误；错误态的“恢复正常”按钮会真实恢复数据并触发 toast。
+
 ## Roadmap
 
 - [x] Simple Table：列定义、行列渲染、列对齐、斑马纹、文字截断
 - [x] 横向滚动 + 纵向滚动 + 固定表头
 - [x] 边框、内边距、行高配置
 - [x] ST-3：主题预设与自定义单元格 renderer
-- [ ] 空 / 加载 / 错误状态层
-- [ ] Mobile List 模式（移动端卡片转译）
+- [x] 空 / 加载 / 错误状态层
+- [x] Mobile List 模式（当前默认卡片转译）
 - [ ] Data Table Basic：行选择、排序、筛选、分页
 - [ ] Data Table Enhanced / Advanced：固定列、自定义单元格、虚拟滚动等
 

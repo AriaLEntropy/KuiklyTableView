@@ -1,0 +1,59 @@
+name: Table Compile Checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  android:
+    name: Android compile
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile Android targets
+        run: |
+          ./gradlew \
+            :KuiklyTable:compileDebugKotlinAndroid \
+            :shared:compileDebugKotlinAndroid \
+            :androidApp:compileDebugKotlin
+
+  ios-kotlin:
+    name: iOS Kotlin compile
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile iOS Kotlin targets
+        run: |
+          ./gradlew \
+            :KuiklyTable:compileKotlinIosArm64 \
+            :KuiklyTable:compileKotlinIosSimulatorArm64 \
+            :KuiklyTable:compileKotlinIosX64 \
+            :shared:compileKotlinIosArm64 \
+            :shared:compileKotlinIosSimulatorArm64 \
+            :shared:compileKotlinIosX64

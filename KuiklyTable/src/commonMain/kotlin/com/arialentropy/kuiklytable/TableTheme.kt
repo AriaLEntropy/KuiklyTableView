@@ -14,12 +14,32 @@ class TableThemeColors(
     val headerText: Long = 0xFF333333,
     /** 单元格主文本 */
     val cellText: Long = 0xFF333333,
+    /** 单元格次要文本 / Mobile List 标签 */
+    val cellTextSecondary: Long = 0xFF999999,
     /** 网格线 / 边框 */
     val gridLine: Long = 0xFFE6E6E6,
     /** 默认行背景 */
     val rowBackground: Long = 0xFFFFFFFF,
     /** 斑马纹行背景 */
     val rowBackgroundAlt: Long = 0xFFFAFAFA,
+    /** Mobile List 卡片背景 */
+    val cardBackground: Long = 0xFFFFFFFF,
+    /** Mobile List 卡片边框 */
+    val cardBorder: Long = 0xFFE6E6E6,
+    /** Mobile List 状态标签背景 */
+    val statusTagBackground: Long = 0xFFEAF4FF,
+    /** Mobile List 状态标签文字 */
+    val statusTagText: Long = 0xFF2E77E5,
+    /** 状态层遮罩背景 */
+    val stateOverlayBackground: Long = 0x00FFFFFF,
+    /** 状态层正文 */
+    val stateText: Long = 0xFF666666,
+    /** 错误状态文字 */
+    val errorText: Long = 0xFFFF5967,
+    /** 状态层主操作 */
+    val actionText: Long = 0xFF2E77E5,
+    /** 状态层主操作填充上的文字 */
+    val actionTextOnFill: Long = 0xFFFFFFFF,
 ) {
     companion object {
         /** 默认浅色主题，语义角色对齐 KuiklyUI 宿主皮肤 token。 */
@@ -30,9 +50,19 @@ class TableThemeColors(
             headerBackground = 0xFF242326,
             headerText = 0xFFE6E1E5,
             cellText = 0xFFE6E1E5,
+            cellTextSecondary = 0xFFCAC4D0,
             gridLine = 0xFF49454F,
             rowBackground = 0xFF1C1B1F,
             rowBackgroundAlt = 0xFF211F23,
+            cardBackground = 0xFF242326,
+            cardBorder = 0xFF49454F,
+            statusTagBackground = 0xFF1E3557,
+            statusTagText = 0xFF90CAF9,
+            stateOverlayBackground = 0x001C1B1F,
+            stateText = 0xFFCAC4D0,
+            errorText = 0xFFF2B8B5,
+            actionText = 0xFF90CAF9,
+            actionTextOnFill = 0xFF10223A,
         )
     }
 }
