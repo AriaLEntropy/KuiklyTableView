@@ -188,7 +188,15 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第二行：配置列（动态反映当前列）
+                // 第二行：ST-5 截断全文浮层，独立热区避免和表格区域命中冲突
+                ConfigRow(
+                    label = { "全文浮层:${if (ctx.overflowPopupOn) "开" else "关"}" },
+                    active = { ctx.overflowPopupOn },
+                ) {
+                    ctx.overflowPopupOn = !ctx.overflowPopupOn
+                }
+
+                // 第三行：配置列（动态反映当前列）
                 View {
                     attr {
                         flexDirectionRow()
@@ -202,7 +210,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第三行：对齐方式（作用于选中列）
+                // 第四行：对齐方式（作用于选中列）
                 View {
                     attr {
                         flexDirectionRow()
@@ -219,7 +227,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第四行：样式配置
+                // 第五行：样式配置
                 View {
                     attr {
                         flexDirectionRow()
@@ -239,7 +247,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第五行：主题与自定义渲染
+                // 第六行：主题与自定义渲染
                 View {
                     attr {
                         flexDirectionRow()
@@ -265,7 +273,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第六行：ST-4 MobileMode，Auto 用列数验证默认转译规则
+                // 第七行：ST-4 MobileMode，Auto 用列数验证默认转译规则
                 View {
                     attr {
                         flexDirectionRow()
@@ -282,7 +290,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
 
-                // 第七行：ST-4 状态层，切换项均改变表格实际状态
+                // 第八行：ST-4 状态层，切换项均改变表格实际状态
                 View {
                     attr {
                         flexDirectionRow()
@@ -299,17 +307,6 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                     ToggleChip(label = { "状态:错误" }, active = { ctx.tableState == "错误" }) {
                         ctx.tableState = "错误"
-                    }
-                }
-
-                // 第八行：ST-5 截断全文浮层，开/关均有可观察行为
-                View {
-                    attr {
-                        flexDirectionRow()
-                        flexWrap(FlexWrap.WRAP)
-                    }
-                    ToggleChip(label = { "全文浮层:${if (ctx.overflowPopupOn) "开" else "关"}" }, active = { ctx.overflowPopupOn }) {
-                        ctx.overflowPopupOn = !ctx.overflowPopupOn
                     }
                 }
             }
@@ -422,6 +419,40 @@ private fun ViewContainer<*, *>.ToggleChip(
                 text(label())
                 fontSize(12f)
                 color(Color(if (active()) 0xFFFFFFFF else 0xFF666666))
+            }
+        }
+        event {
+            click { onClick() }
+        }
+    }
+}
+
+private fun ViewContainer<*, *>.ConfigRow(
+    label: () -> String,
+    active: () -> Boolean,
+    onClick: () -> Unit,
+) {
+    View {
+        attr {
+            flexDirectionRow()
+            alignItemsCenter()
+            paddingLeft(12f)
+            paddingRight(12f)
+            paddingTop(10f)
+            paddingBottom(10f)
+            marginBottom(8f)
+            borderRadius(12f)
+            backgroundColor(Color(if (active()) 0xFFEAF4FF else 0xFFF4F4F4))
+        }
+        Text {
+            attr {
+                flex(1f)
+                text(label())
+                fontSize(13f)
+                color(Color(if (active()) 0xFF0D47A1 else 0xFF666666))
+            }
+            event {
+                click { onClick() }
             }
         }
         event {
