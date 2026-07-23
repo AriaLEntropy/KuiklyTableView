@@ -26,10 +26,14 @@ class TableThemeColors(
     val cardBackground: Long = 0xFFFFFFFF,
     /** Mobile List 卡片边框 */
     val cardBorder: Long = 0xFFE6E6E6,
-    /** Mobile List 状态标签背景 */
-    val statusTagBackground: Long = 0xFFEAF4FF,
-    /** Mobile List 状态标签文字 */
-    val statusTagText: Long = 0xFF2E77E5,
+    /** 状态标签背景（在职/正常 → 浅绿） */
+    val statusTagBackground: Long = 0xFFC8E6C9,
+    /** 状态标签文字（在职/正常 → 绿） */
+    val statusTagText: Long = 0xFF4CAF50,
+    /** 次要状态标签背景（如警告/休假） */
+    val statusTagBackgroundAlt: Long = 0xFFFFE0B2,
+    /** 次要状态标签文字 */
+    val statusTagTextAlt: Long = 0xFFFF9800,
     /** 状态层遮罩背景 */
     val stateOverlayBackground: Long = 0x00FFFFFF,
     /** 状态层正文 */
@@ -56,8 +60,10 @@ class TableThemeColors(
             rowBackgroundAlt = 0xFF211F23,
             cardBackground = 0xFF242326,
             cardBorder = 0xFF49454F,
-            statusTagBackground = 0xFF1E3557,
-            statusTagText = 0xFF90CAF9,
+            statusTagBackground = 0xFF1B3A26,
+            statusTagText = 0xFFA5D6A7,
+            statusTagBackgroundAlt = 0xFF3E2A10,
+            statusTagTextAlt = 0xFFFFCC80,
             stateOverlayBackground = 0x001C1B1F,
             stateText = 0xFFCAC4D0,
             errorText = 0xFFF2B8B5,
