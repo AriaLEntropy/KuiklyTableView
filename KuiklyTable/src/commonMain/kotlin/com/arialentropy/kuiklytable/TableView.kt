@@ -196,6 +196,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         container.View {
             attr {
                 flexDirectionRow()
+                alignItemsCenter()
                 backgroundColor(
                     Color(
                         if (tableAttr.zebraStripe && index % 2 == 1) {
@@ -207,7 +208,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 )
                 if (tableAttr.rowHeight > 0f) {
                     height(tableAttr.rowHeight)
-                    alignItemsCenter()
                 }
             }
             vforIndex({ tableAttr.columns }) { column, colIndex, count ->
@@ -241,6 +241,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         attr {
                             flex(1f)
                             flexDirectionRow()
+                            alignItemsCenter()
                             paddingLeft(tableAttr.cellPaddingH)
                             paddingRight(tableAttr.cellPaddingH)
                             paddingTop(tableAttr.cellPaddingV)
@@ -259,6 +260,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                                 attr {
                                     flex(1f)
                                     flexDirectionRow()
+                                    alignItemsCenter()
                                 }
                                 column.cellRenderer.invoke(this, item, column)
                             }
