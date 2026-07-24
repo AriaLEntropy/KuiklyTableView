@@ -26,14 +26,26 @@ class TableThemeColors(
     val cardBackground: Long = 0xFFFFFFFF,
     /** Mobile List 卡片边框 */
     val cardBorder: Long = 0xFFE6E6E6,
-    /** 状态标签背景（在职/正常 → 浅绿） */
-    val statusTagBackground: Long = 0xFFC8E6C9,
-    /** 状态标签文字（在职/正常 → 绿） */
-    val statusTagText: Long = 0xFF4CAF50,
-    /** 次要状态标签背景（如警告/休假） */
-    val statusTagBackgroundAlt: Long = 0xFFFFE0B2,
-    /** 次要状态标签文字 */
+    /** 成功状态标签背景（在职/正常） */
+    val statusTagBackground: Long = 0xFFE8F5E9,
+    /** 成功状态标签文字（在职/正常） */
+    val statusTagText: Long = 0xFF2E7D32,
+    /** 警告状态标签背景（如休假/待处理） */
+    val statusTagBackgroundAlt: Long = 0xFFFFF4E5,
+    /** 警告状态标签文字 */
     val statusTagTextAlt: Long = 0xFFFF9800,
+    /** 危险状态标签背景（如离职/异常） */
+    val statusTagDangerBackground: Long = 0xFFFFEFF0,
+    /** 危险状态标签文字；取宿主 text_warning 方向 */
+    val statusTagDangerText: Long = 0xFFFF5967,
+    /** 中性状态标签背景；取宿主 bg_backplate 方向 */
+    val statusTagNeutralBackground: Long = 0xFFF5F5F5,
+    /** 中性状态标签文字；取宿主 text_secondary 方向 */
+    val statusTagNeutralText: Long = 0xFF999999,
+    /** 信息状态标签背景 */
+    val statusTagInfoBackground: Long = 0xFFEAF4FF,
+    /** 信息状态标签文字；取宿主 text_link 方向 */
+    val statusTagInfoText: Long = 0xFF2E77E5,
     /** 状态层遮罩背景 */
     val stateOverlayBackground: Long = 0x00FFFFFF,
     /** 状态层正文 */
@@ -64,12 +76,81 @@ class TableThemeColors(
             statusTagText = 0xFFA5D6A7,
             statusTagBackgroundAlt = 0xFF3E2A10,
             statusTagTextAlt = 0xFFFFCC80,
+            statusTagDangerBackground = 0xFF4A1618,
+            statusTagDangerText = 0xFFF2B8B5,
+            statusTagNeutralBackground = 0xFF2B2930,
+            statusTagNeutralText = 0xFFCAC4D0,
+            statusTagInfoBackground = 0xFF0E2D4A,
+            statusTagInfoText = 0xFF90CAF9,
             stateOverlayBackground = 0x001C1B1F,
             stateText = 0xFFCAC4D0,
             errorText = 0xFFF2B8B5,
             actionText = 0xFF90CAF9,
             actionTextOnFill = 0xFF10223A,
         )
+    }
+}
+
+/** Mobile List 状态标签色板。 */
+class TableStatusTagStyle(
+    val background: Long,
+    val text: Long,
+) {
+    companion object {
+        fun fromPreset(
+            preset: TableStatusTagPreset,
+            themeColors: TableThemeColors,
+        ): TableStatusTagStyle = when (preset) {
+            is TableStatusTagPreset.Success -> TableStatusTagStyle(
+                background = themeColors.statusTagBackground,
+                text = themeColors.statusTagText,
+            )
+            is TableStatusTagPreset.Warning -> TableStatusTagStyle(
+                background = themeColors.statusTagBackgroundAlt,
+                text = themeColors.statusTagTextAlt,
+            )
+            is TableStatusTagPreset.Danger -> TableStatusTagStyle(
+                background = themeColors.statusTagDangerBackground,
+                text = themeColors.statusTagDangerText,
+            )
+            is TableStatusTagPreset.Neutral -> TableStatusTagStyle(
+                background = themeColors.statusTagNeutralBackground,
+                text = themeColors.statusTagNeutralText,
+            )
+            is TableStatusTagPreset.Info -> TableStatusTagStyle(
+                background = themeColors.statusTagInfoBackground,
+                text = themeColors.statusTagInfoText,
+            )
+        }
+    }
+}
+
+/** Mobile List 状态标签预设，业务可通过 resolver 自行决定状态文本对应的语义。 */
+sealed class TableStatusTagPreset {
+    object Success : TableStatusTagPreset()
+    object Warning : TableStatusTagPreset()
+    object Danger : TableStatusTagPreset()
+    object Neutral : TableStatusTagPreset()
+    object Info : TableStatusTagPreset()
+
+    companion object {
+        private val successTexts = setOf("在职", "正常", "启用", "成功", "已完成", "通过", "active", "enabled", "success")
+        private val warningTexts = setOf("休假", "待处理", "进行中", "处理中", "warning", "pending", "processing", "in progress")
+        private val dangerTexts = setOf("离职", "停用", "异常", "错误", "失败", "禁用", "error", "failed", "disabled", "inactive")
+        private val neutralTexts = setOf("草稿", "未知", "无", "未开始", "default", "neutral", "draft", "unknown")
+        private val infoTexts = setOf("信息", "新建", "通知", "info", "new", "notice")
+
+        fun fromText(text: String): TableStatusTagPreset {
+            val normalized = text.trim().lowercase()
+            return when {
+                normalized in successTexts -> Success
+                normalized in warningTexts -> Warning
+                normalized in dangerTexts -> Danger
+                normalized in neutralTexts -> Neutral
+                normalized in infoTexts -> Info
+                else -> Neutral
+            }
+        }
     }
 }
 

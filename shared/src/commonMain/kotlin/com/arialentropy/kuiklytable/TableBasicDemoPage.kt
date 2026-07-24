@@ -81,40 +81,35 @@ internal class TableBasicDemoPage : BasePager() {
         width = 90f,
         cellRenderer = {
             user, _ ->
+            val tagStyle = this@TableBasicDemoPage.resolveStatusTagStyle(user.status)
             View {
                 attr {
                     flex(1f)
                     flexDirectionRow()
                     alignItemsCenter()
                     justifyContentCenter()
-                     backgroundColor(
-                         Color(
-                             if (user.status == "在职") {
-                                 this@TableBasicDemoPage.currentTheme().statusTagBackground
-                             } else {
-                                 this@TableBasicDemoPage.currentTheme().statusTagBackgroundAlt
-                             },
-                         ),
-                     )
-                    borderRadius(4f)
-                    paddingLeft(8f)
-                    paddingRight(8f)
-                    paddingTop(3f)
-                    paddingBottom(3f)
                 }
-                Text {
+                View {
                     attr {
-                        text(user.status)
-                        fontSize(12f)
-                         color(
-                             Color(
-                                 if (user.status == "在职") {
-                                     this@TableBasicDemoPage.currentTheme().statusTagText
-                                 } else {
-                                     this@TableBasicDemoPage.currentTheme().statusTagTextAlt
-                                 },
-                             ),
-                         )
+                        height(22f)
+                        flexDirectionRow()
+                        alignItemsCenter()
+                        justifyContentCenter()
+                        backgroundColor(Color(tagStyle.background))
+                        borderRadius(11f)
+                        paddingLeft(8f)
+                        paddingRight(8f)
+                    }
+                    Text {
+                        attr {
+                            height(22f)
+                            text(user.status)
+                            fontSize(12f)
+                            lineHeight(22f)
+                            color(Color(tagStyle.text))
+                            lines(1)
+                            textOverFlowTail()
+                        }
                     }
                 }
             }
@@ -357,9 +352,6 @@ internal class TableBasicDemoPage : BasePager() {
                 ConfigGroup("模式与状态") {
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(label = { "模式:Auto" }, active = { ctx.mobileMode is TableMobileMode.Auto }) {
-                            ctx.mobileMode = TableMobileMode.Auto
-                        }
                         ToggleChip(label = { "模式:Table" }, active = { ctx.mobileMode is TableMobileMode.Table }) {
                             ctx.mobileMode = TableMobileMode.Table
                         }
@@ -404,6 +396,7 @@ internal class TableBasicDemoPage : BasePager() {
                         mobileMode = ctx.mobileMode
                         mobilePrimaryColumnKey = "name"
                         mobileStatusColumnKey = "status"
+                        mobileStatusTagStyleByText = ctx.statusTagStyleByText(ctx.currentTheme())
                         loading = ctx.tableState == "加载"
                         errorText = if (ctx.tableState == "错误") "加载失败，请稍后重试" else null
                         emptyText = "暂无员工数据"
@@ -502,6 +495,16 @@ internal class TableBasicDemoPage : BasePager() {
 
     private fun currentStatusColumn(): ColumnModel<User> =
         if (customStatusRendererOn) statusRendererColumn else statusTextColumn
+
+    private fun resolveStatusTagStyle(status: String): TableStatusTagStyle =
+        statusTagStyleByText(currentTheme())[status]
+            ?: TableStatusTagStyle.fromPreset(TableStatusTagPreset.fromText(status), currentTheme())
+
+    private fun statusTagStyleByText(themeColors: TableThemeColors): Map<String, TableStatusTagStyle> = mapOf(
+        "在职" to TableStatusTagStyle(themeColors.statusTagInfoBackground, themeColors.statusTagInfoText),
+        "休假" to TableStatusTagStyle(themeColors.statusTagNeutralBackground, themeColors.statusTagNeutralText),
+        "离职" to TableStatusTagStyle(themeColors.statusTagBackgroundAlt, themeColors.statusTagTextAlt),
+    )
 
     private fun currentColumns(): List<ColumnModel<User>> =
         when {
