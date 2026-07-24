@@ -13,7 +13,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Table 基础展示 Demo
+ * KuiklyTable 组件展示 Demo
  *
  * 验证 ST-1 + ST-2：列定义/行列渲染/对齐/斑马纹（ST-1），
  * 横纵双向滚动/固定表头/边框/内边距/行高配置（ST-2）。
@@ -198,7 +198,7 @@ internal class TableBasicDemoPage : BasePager() {
 
     // ===== 可配置状态（observable，变化触发表格重渲染）=====
     private var wideTable by observable(true)          // 3列 / 5列 / 7列（横向滚动）
-    private var richComponentColumns by observable(false)
+    private var rendererExampleColumns by observable(false)
     private var activeColumns: ObservableList<ColumnModel<User>> by observableList()
     private var selectedColumn by observable<ColumnModel<User>>(ageColumn)
     private var zebraOn by observable(true)             // 斑马纹
@@ -232,7 +232,7 @@ internal class TableBasicDemoPage : BasePager() {
             // 页面标题
             Text {
                 attr {
-                    text("Table 基础展示")
+                    text("KuiklyTable 组件展示")
                     fontSize(18f)
                     fontWeightSemiBold()
                     color(Color(ctx.currentTheme().cellText))
@@ -255,21 +255,21 @@ internal class TableBasicDemoPage : BasePager() {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
                         ToggleChip(label = { "3 列" }, active = { !ctx.wideTable }) {
                             ctx.wideTable = false
-                            ctx.richComponentColumns = false
+                            ctx.rendererExampleColumns = false
                             ctx.activeColumns.clear()
                             ctx.activeColumns.addAll(ctx.columns3)
                             ctx.selectedColumn = ctx.ageColumn
                         }
-                        ToggleChip(label = { "5 列（横向滚动）" }, active = { ctx.wideTable && !ctx.richComponentColumns }) {
+                        ToggleChip(label = { "5 列（横向滚动）" }, active = { ctx.wideTable && !ctx.rendererExampleColumns }) {
                             ctx.wideTable = true
-                            ctx.richComponentColumns = false
+                            ctx.rendererExampleColumns = false
                             ctx.activeColumns.clear()
                             ctx.activeColumns.addAll(ctx.currentColumns())
                             ctx.selectedColumn = ctx.ageColumn
                         }
-                        ToggleChip(label = { "7 列（富组件）" }, active = { ctx.wideTable && ctx.richComponentColumns }) {
+                        ToggleChip(label = { "7 列（renderer 示例）" }, active = { ctx.wideTable && ctx.rendererExampleColumns }) {
                             ctx.wideTable = true
-                            ctx.richComponentColumns = true
+                            ctx.rendererExampleColumns = true
                             ctx.activeColumns.clear()
                             ctx.activeColumns.addAll(ctx.currentColumns())
                             ctx.selectedColumn = ctx.ageColumn
@@ -311,7 +311,7 @@ internal class TableBasicDemoPage : BasePager() {
 
                 ConfigGroup("样式") {
                     View {
-                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP);alignItemsCenter() }
                         ToggleChip(label = { "斑马纹:${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }) {
                             ctx.zebraOn = !ctx.zebraOn
                         }
@@ -508,7 +508,7 @@ internal class TableBasicDemoPage : BasePager() {
 
     private fun currentColumns(): List<ColumnModel<User>> =
         when {
-            richComponentColumns -> listOf(
+            rendererExampleColumns -> listOf(
                 avatarColumn,
                 nameColumn,
                 ageColumn,

@@ -38,7 +38,7 @@ class KuiklyRenderActivity : AppCompatActivity(), KuiklyRenderViewBaseDelegatorD
             return if (pn.isNotEmpty()) {
                 return pn
             } else {
-                "router"
+                DEFAULT_PAGE_NAME
             }
         }
 
@@ -114,6 +114,7 @@ class KuiklyRenderActivity : AppCompatActivity(), KuiklyRenderViewBaseDelegatorD
 
         private const val KEY_PAGE_NAME = "pageName"
         private const val KEY_PAGE_DATA = "pageData"
+        private const val DEFAULT_PAGE_NAME = "table_basic"
 
         init {
             initKuiklyAdapter()

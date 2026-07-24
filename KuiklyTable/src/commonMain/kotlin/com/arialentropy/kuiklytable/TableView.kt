@@ -804,7 +804,7 @@ class TableAttr<T> : ComposeAttr() {
     /** 表头结构样式；品牌主题不在此处固化。 */
     var headerStyle: TableHeaderStyle by observable(TableHeaderStyle.Default)
 
-    /** 移动端展示模式；默认保留横向表格，使用方可显式切换为 Mobile List。 */
+    /** 移动端展示模式；由使用方显式选择 Table 或 List，不按列数自动切换。 */
     var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
 
     /** Mobile List 主字段列 key；未配置时使用第一列。 */
