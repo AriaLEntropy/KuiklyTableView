@@ -37,7 +37,7 @@
 
 ### 移动端适配
 
-列数 ≤ 3 时自动转为 Mobile List 卡片模式；支持空 / 加载 / 错误状态层，错误态提供重试入口：
+可显式切换为横向 Table 或 Mobile List 卡片模式；支持空 / 加载 / 错误状态层，错误态提供重试入口：
 
 | Mobile List 卡片 | Empty 状态 |
 | --- | --- |
@@ -111,7 +111,7 @@ TableView<User> {
         data = users
         zebraStripe = true
         bordered = false
-        mobileMode = TableMobileMode.Auto
+        mobileMode = TableMobileMode.Table
         mobilePrimaryColumnKey = "name"
         mobileStatusColumnKey = "status"
     }
@@ -144,9 +144,12 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `cellPaddingV` | `Float` | `10f` | 单元格垂直内边距（dp） |
 | `rowHeight` | `Float` | `0f` | 固定行高（dp）；`0f` 表示由内容与内边距自适应 |
 | `themeColors` | `TableThemeColors` | `TableThemeColors()` | 主题色（表头/文字/分隔线/行背景/状态层/卡片） |
-| `mobileMode` | `TableMobileMode` | `TableMobileMode.Auto` | 移动端展示模式；Auto 下列数 ≤ 3 转为 Mobile List |
+| `mobileMode` | `TableMobileMode` | `TableMobileMode.Table` | 移动端展示模式；显式选择横向 Table 或 Mobile List |
 | `mobilePrimaryColumnKey` | `String?` | `null` | Mobile List 主字段列；未配置时使用第一列 |
 | `mobileStatusColumnKey` | `String?` | `null` | Mobile List 状态标签列；未配置时不显示状态标签 |
+| `mobileStatusTagPresetByText` | `Map<String, TableStatusTagPreset>` | `emptyMap()` | Mobile List 状态文本到语义预设的业务映射 |
+| `mobileStatusTagStyleByText` | `Map<String, TableStatusTagStyle>` | `emptyMap()` | Mobile List 状态文本到具体标签色的业务映射，优先级高于语义预设 |
+| `mobileStatusTagStyleResolver` | `((T, String, TableThemeColors) -> TableStatusTagStyle)?` | `null` | Mobile List 状态标签样式解析器；未配置时使用 success / warning / danger / neutral / info 预设 |
 | `loading` | `Boolean` | `false` | Loading 状态；保留旧内容并降低透明度 |
 | `errorText` | `String?` | `null` | Error 状态文案；非 null 时显示错误层 |
 | `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
@@ -181,7 +184,6 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 | 值 | 说明 |
 |----|------|
-| `Auto` | 列数 ≤ 3 时自动转为 Mobile List，否则保留横向表格 |
 | `Table` | 强制使用横向表格 |
 | `List` | 强制使用 Mobile List 卡片模式 |
 
@@ -200,7 +202,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 - **布局**：3 列 / 5 列（横向滚动）/ 7 列（富组件）切换，任意列对齐方式，内边距与行高
 - **样式**：斑马纹、边框、主题（浅色/深色/蓝色）、表头紧凑模式
 - **渲染**：状态列自定义 renderer 开关、溢出提示开关
-- **模式与状态**：MobileMode（Auto/Table/List）、状态层（正常/空/加载/错误）
+- **模式与状态**：MobileMode（Table/List）、状态层（正常/空/加载/错误）
 
 ## Roadmap
 
