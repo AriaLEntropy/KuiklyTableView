@@ -306,36 +306,39 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             attr {
                 flex(1f)
                 backgroundColor(Color(tableAttr.themeColors.rowBackgroundAlt))
-                paddingTop(8f)
-                paddingBottom(8f)
             }
             event {
                 scroll { ctx.event.overflowTipDismiss?.invoke() }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
             }
-            tableAttr.data.forEach { item ->
-                ctx.renderMobileCard(this, item)
+            View {
+                attr {
+                    marginTop(8f)
+                    marginLeft(8f)
+                    marginRight(8f)
+                    marginBottom(8f)
+                    borderRadius(8f)
+                    backgroundColor(Color(tableAttr.themeColors.cardBackground))
+                }
+                tableAttr.data.forEachIndexed { index, item ->
+                    ctx.renderMobileCard(this, item, index == tableAttr.data.lastIndex)
+                }
             }
         }
     }
 
-    private fun renderMobileCard(container: ViewContainer<*, *>, item: T) {
+    private fun renderMobileCard(container: ViewContainer<*, *>, item: T, isLast: Boolean) {
         val ctx = this
         val tableAttr = attr
         val primaryColumn = primaryMobileColumn() ?: return
         val statusColumn = statusMobileColumn()
         container.View {
             attr {
-                marginLeft(8f)
-                marginRight(8f)
-                marginBottom(8f)
                 paddingLeft(16f)
                 paddingRight(16f)
                 paddingTop(12f)
                 paddingBottom(12f)
-                borderRadius(8f)
                 backgroundColor(Color(tableAttr.themeColors.cardBackground))
-                border(Border(1f, BorderStyle.SOLID, Color(tableAttr.themeColors.cardBorder)))
             }
             event {
                 click {
@@ -346,35 +349,43 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             View {
                 attr {
                     flexDirectionRow()
-                    alignItemsCenter()
+                    alignItemsFlexEnd()
                 }
                 Text {
                     attr {
                         flex(1f)
+                        height(MOBILE_TITLE_LINE_HEIGHT)
                         text(primaryColumn.accessor(item))
                         fontSize(16f)
                         fontWeightSemisolid()
+                        lineHeight(MOBILE_TITLE_LINE_HEIGHT)
                         color(Color(tableAttr.themeColors.cellText))
                         lines(1)
                         textOverFlowTail()
                     }
                 }
                 if (statusColumn != null) {
+                    val statusText = statusColumn.accessor(item)
+                    val statusTagStyle = ctx.resolveMobileStatusTagStyle(item, statusText)
                     View {
                         attr {
                             marginLeft(8f)
+                            height(22f)
+                            flexDirectionRow()
+                            alignItemsCenter()
+                            justifyContentCenter()
                             paddingLeft(8f)
                             paddingRight(8f)
-                            paddingTop(3f)
-                            paddingBottom(3f)
-                            borderRadius(10f)
-                            backgroundColor(Color(tableAttr.themeColors.statusTagBackground))
+                            borderRadius(11f)
+                            backgroundColor(Color(statusTagStyle.background))
                         }
                         Text {
                             attr {
-                                text(statusColumn.accessor(item))
+                                height(22f)
+                                text(statusText)
                                 fontSize(12f)
-                                color(Color(tableAttr.themeColors.statusTagText))
+                                lineHeight(22f)
+                                color(Color(statusTagStyle.text))
                                 lines(1)
                                 textOverFlowTail()
                             }
@@ -383,18 +394,17 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
             }
 
-            View {
-                attr {
-                    height(1f)
-                    marginTop(10f)
-                    marginBottom(6f)
-                    backgroundColor(Color(tableAttr.themeColors.gridLine))
-                }
-            }
-
             tableAttr.columns.forEach { column ->
                 if (column !== primaryColumn && column !== statusColumn) {
                     ctx.renderMobileFieldRow(this, item, column)
+                }
+            }
+        }
+        if (!isLast) {
+            container.View {
+                attr {
+                    height(1f)
+                    backgroundColor(Color(tableAttr.themeColors.gridLine))
                 }
             }
         }
@@ -691,7 +701,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private fun shouldRenderMobileList(): Boolean =
         when (attr.mobileMode) {
-            is TableMobileMode.Auto -> attr.columns.size <= MOBILE_LIST_AUTO_MAX_COLUMNS
             is TableMobileMode.List -> true
             is TableMobileMode.Table -> false
         }
@@ -718,16 +727,24 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             attr.columns.firstOrNull { it.key == key }
         }
 
+    private fun resolveMobileStatusTagStyle(item: T, statusText: String): TableStatusTagStyle =
+        attr.mobileStatusTagStyleResolver?.invoke(item, statusText, attr.themeColors)
+            ?: attr.mobileStatusTagStyleByText[statusText]
+            ?: attr.mobileStatusTagPresetByText[statusText]?.let { preset ->
+                TableStatusTagStyle.fromPreset(preset, attr.themeColors)
+            }
+            ?: TableStatusTagStyle.fromPreset(TableStatusTagPreset.fromText(statusText), attr.themeColors)
+
     companion object {
         /** 弹性列最小宽（表格超宽需要横向滚动时，弹性列至少有这么宽） */
         private const val MIN_FLEX_COLUMN_WIDTH = 100f
-        private const val MOBILE_LIST_AUTO_MAX_COLUMNS = 3
         private const val DEFAULT_CELL_FONT_SIZE = 14f
         private const val ASCII_CHAR_WIDTH_RATIO = 0.58f
         private const val ASCII_MAX_CODE = 255
         private const val MOBILE_CARD_HORIZONTAL_MARGIN = 8f
         private const val MOBILE_CARD_HORIZONTAL_PADDING = 16f
         private const val MOBILE_FIELD_LABEL_WIDTH = 86f
+        private const val MOBILE_TITLE_LINE_HEIGHT = 22f
         private const val DEFAULT_ROW_HEIGHT_ESTIMATE = 48f
     }
 }
@@ -749,9 +766,6 @@ class TableOverflowCellInfo<T>(
  * 移动端展示模式。
  */
 sealed class TableMobileMode {
-    /** 列数 <= 3 时转译为 Mobile List，否则保留横向表格。 */
-    object Auto : TableMobileMode()
-
     /** 强制保留横向表格。 */
     object Table : TableMobileMode()
 
@@ -790,14 +804,29 @@ class TableAttr<T> : ComposeAttr() {
     /** 表头结构样式；品牌主题不在此处固化。 */
     var headerStyle: TableHeaderStyle by observable(TableHeaderStyle.Default)
 
-    /** 移动端展示模式；Auto 下列数 <= 3 转译为 Mobile List。 */
-    var mobileMode: TableMobileMode by observable(TableMobileMode.Auto)
+    /** 移动端展示模式；默认保留横向表格，使用方可显式切换为 Mobile List。 */
+    var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
 
     /** Mobile List 主字段列 key；未配置时使用第一列。 */
     var mobilePrimaryColumnKey: String? by observable(null)
 
     /** Mobile List 状态标签列 key；未配置时不显示状态标签。 */
     var mobileStatusColumnKey: String? by observable(null)
+
+    /**
+     * Mobile List 状态文本到语义预设的业务映射；为空时回退到组件内置文本识别规则。
+     */
+    var mobileStatusTagPresetByText: Map<String, TableStatusTagPreset> by observable(emptyMap())
+
+    /**
+     * Mobile List 状态文本到具体标签色的业务映射；优先级高于语义预设映射。
+     */
+    var mobileStatusTagStyleByText: Map<String, TableStatusTagStyle> by observable(emptyMap())
+
+    /**
+     * Mobile List 状态标签样式解析器；未配置时使用内置 success / warning / danger / neutral / info 预设。
+     */
+    var mobileStatusTagStyleResolver: ((T, String, TableThemeColors) -> TableStatusTagStyle)? by observable(null)
 
     /** Loading 状态；为 true 时保留旧内容并降低透明度。 */
     var loading: Boolean by observable(false)
