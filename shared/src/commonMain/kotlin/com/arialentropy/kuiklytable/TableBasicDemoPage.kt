@@ -187,12 +187,14 @@ internal class TableBasicDemoPage : BasePager() {
                 Switch {
                     attr {
                         size(40f, 24f)
-                        isOn(user.name.hashCode() % 2 == 0)
+                        isOn(this@TableBasicDemoPage.notifyEnabled(user))
                          onColor(Color(this@TableBasicDemoPage.currentTheme().actionText))
                          unOnColor(Color(this@TableBasicDemoPage.currentTheme().gridLine))
                     }
                     event {
-                        switchOnChanged { }
+                        switchOnChanged { on ->
+                            this@TableBasicDemoPage.setNotifyEnabled(user, on)
+                        }
                     }
                 }
             }
@@ -214,6 +216,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
     private var tableState by observable("正常")
     private var overflowTipOn by observable(true)
+    private var notifyStateById: Map<Int, Boolean> by observable(users.associate { it.id to (it.name.hashCode() % 2 == 0) })
     private var overflowTipVisible by observable(false)
     private var overflowTipText by observable("")
     private var overflowTipLeft by observable(24f)
@@ -517,6 +520,13 @@ internal class TableBasicDemoPage : BasePager() {
 
     private fun currentData(): List<User> =
         if (tableState == "空") emptyList() else users
+
+    private fun notifyEnabled(user: User): Boolean =
+        notifyStateById[user.id] ?: (user.name.hashCode() % 2 == 0)
+
+    private fun setNotifyEnabled(user: User, enabled: Boolean) {
+        notifyStateById = notifyStateById + (user.id to enabled)
+    }
 
     private fun syncActiveColumns() {
         activeColumns.clear()
