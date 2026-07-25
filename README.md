@@ -9,7 +9,7 @@ KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使�
 1. 使用 Android Studio 打开本仓库。
 2. 运行 `androidApp`。
 3. App 默认进入 `table_basic` Table showcase 页面。
-4. 通过顶部配置面板切换布局、样式、渲染、移动端模式和状态层。
+4. 通过顶部章节导航查看基础、滚动、主题、自定义、状态和模式示例；在 Playground 调整完整运行时配置。
 
 如需调试其他 Kuikly 页面，可通过 `KuiklyRenderActivity.start(context, pageName, pageData)` 显式传入目标页面名。
 
@@ -33,14 +33,45 @@ KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使�
 
 ## 当前能力
 
-- 列定义：`ColumnModel` 支持 key、title、accessor、固定宽度、flex 宽度和列对齐。
-- 基础展示：表头、数据行、斑马纹、水平分隔线、可选列边框、行高和内边距配置。
+- 列定义：`ColumnModel` 支持 key、title、accessor、固定 `width`、弹性 `minWidth + flex` 和列对齐。
+- 数据模型：外部 `data` 保持调用方拥有且不被修改；Table 内部生成带 `rowKey`、原始位置和展示位置的派生行，Table / List 模式共用同一顺序。
+- 基础展示：表头、数据行、斑马纹、默认水平分隔线、可选完整网格边框、行高和内边距配置。
 - 滚动：单个横向 `Scroller` 包裹表头和纵向 `List`，保证横向滚动时表头和内容同步；纵向滚动时表头固定。
+- 容器：Table Root 接收外部宽高或 flex，内部 Viewport 按组件实际 frame 解析列宽，不使用整个页面宽度替代组件宽度。
+- 数据浏览：可排序列支持表头升序、降序、取消三态切换。
+- 固定能力：表头可配置固定或随内容滚动；固定列仍在重新验证，不进入当前 Demo。
 - 主题：内置 Light / Dark 预设，并支持通过 `TableThemeColors` 覆盖语义色。
 - 自定义渲染：支持数据单元格 `cellRenderer` 和表头 `headerRenderer`；Table 只提供渲染插槽，头像、状态标签和 Switch 均为 Demo 使用方示例。
 - 状态层：支持默认、加载中、无数据三种表格展示状态；错误和重试由业务页面自行管理。
-- 移动端模式：由使用方显式选择 `TableMobileMode.Table` 或 `TableMobileMode.List`；不按列数自动切换。
+- 展示模式：由使用方显式选择 `TableDisplayMode.Table` 或 `TableDisplayMode.List`；不按列数自动切换。
 - 溢出提示：默认文本单元格被截断时可触发 `overflowCellClick`，由使用方决定展示 tooltip / popover / sheet。
+
+## 活动题目对应
+
+| 题目要求 | 仓库实现 | Demo 入口 |
+| --- | --- | --- |
+| 多行多列与基础样式 | 列模型、行列渲染、行/列边框、内边距、对齐 | `基础样式` |
+| 横纵双向滚动 | 横向 Scroller + 纵向 List，表头固定 | `双向滚动` |
+| 简洁 DSL | `TableView<T>` + `ColumnModel<T>` + attr/event 配置 | README 快速使用 |
+| 主题定制（加分项） | Light / Dark / Blue 与完整语义色覆盖 | `主题定制` |
+| 自定义渲染（加分项） | `cellRenderer` / `headerRenderer` 插槽 | `自定义渲染` |
+
+List 模式、无数据和加载中属于补充示例，不替代题目核心验收。
+
+## 内部架构
+
+对外仍只有一个 `TableView<T>` DSL，内部按数据、布局和独立视觉组件分层：
+
+```text
+TableView
+├── TableDataPipeline          source data → displayRows
+├── TableColumnLayoutResolver  生成列、列宽与 contentWidth
+├── TableHeaderRowView         独立表头行组件
+├── TableRowView               独立 Table 模式数据行组件
+└── TableListRowView           独立 List 模式数据行组件
+```
+
+`TableRowView` 和 `TableListRowView` 只接收一行实际需要的数据和配置，并通过事件向上通知；它们不直接持有根 `TableView`。Cell 暂时保留为 Row 内部渲染单元，避免大数据表为每个单元格额外创建 `ComposeView`；出现编辑、焦点或单元格选择状态后再升级为独立组件。
 
 ## 效果预览
 
@@ -73,13 +104,13 @@ KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使�
 | --- | --- |
 | <img src="assets/table_st6_rich_left.png" alt="自定义 renderer 左侧示例" width="320"> | <img src="assets/table_st6_rich_right.png" alt="自定义 renderer 右侧横滑示例" width="320"> |
 
-### 显式 Mobile List
+### 显式 List 模式
 
-Mobile List 不再按列数自动触发。Demo 中点击 `模式:List` 可切换为 grouped list 形态；点击 `模式:Table` 可回到横向表格。
+List 模式不再按列数自动触发。Demo 中选择 `List 模式` 可切换为 grouped list 形态；选择 `Table 模式` 可回到表格形态。
 
-| Mobile List | Empty 状态 |
+| List 模式 | Empty 状态 |
 | --- | --- |
-| <img src="assets/table_st4_mobile_list.png" alt="Mobile List" width="320"> | <img src="assets/table_st4_empty.png" alt="Empty 状态层" width="320"> |
+| <img src="assets/table_st4_mobile_list.png" alt="List 模式" width="320"> | <img src="assets/table_st4_empty.png" alt="Empty 状态层" width="320"> |
 
 <div align="center">
   <img src="assets/table_st4_loading.png" alt="Loading 状态层" width="320">
@@ -93,14 +124,17 @@ Mobile List 不再按列数自动触发。Demo 中点击 `模式:List` 可切换
   <img src="assets/table_st5_overflow_popup.gif" alt="截断单元格点击显示溢出提示" width="360">
 </div>
 
-## Demo 配置面板
+## Showcase 与 Playground
 
-`shared` 模块内置演示页 `table_basic`，Android 宿主启动后默认进入该页面。配置面板采用“场景优先、细项配置其次”的组织方式：
+`shared` 模块内置演示页 `table_basic`，Android 宿主启动后默认进入该页面。页面只挂载当前章节，避免所有示例同时创建：
 
-- **演示场景**：基础表格、宽表滚动、Renderer 插槽、Mobile List、无数据、加载中，一键切换到可验收状态。
-- **列与布局**：选择任意列并切换左/中/右对齐，调整内边距和行高。
-- **外观**：斑马纹、边框、主题、表头紧凑模式。
-- **扩展能力**：状态列 renderer 默认/自定义 fallback、溢出提示开关。
+- **基础**：默认样式、边框/斑马纹、单列撑满与对齐单选，以及普通列/可排序列对照和排序三态。
+- **滚动**：5 列 × 20 行宽表，验证横纵滚动和固定表头开关。
+- **主题**：Light、Dark、Blue 三个小表格直接对照。
+- **自定义**：默认文本 fallback 与使用方 renderer 表格直接对照；头像、标签和 Switch 都由 Demo 代码实现。
+- **状态**：同一 Table 在正常、加载中和无数据之间切换。
+- **模式**：相同数据的 Table 模式与 grouped List 模式对照。
+- **Playground**：集中调整列对齐、斑马纹、网格、行高、内边距、renderer 和溢出提示。
 
 所有看起来可点击的配置项都会改变可观察状态或触发明确业务动作。
 
@@ -147,19 +181,33 @@ TableView<User> {
                     accessor = { it.age.toString() },
                     width = 60f,
                     alignment = ColumnAlignment.End,
+                    sortable = true,
+                    sortComparator = compareBy { it.age },
                 ),
-                ColumnModel(key = "email", title = "邮箱", accessor = { it.email }),
+                ColumnModel(
+                    key = "email",
+                    title = "邮箱",
+                    accessor = { it.email },
+                    minWidth = 140f,
+                    flex = 2f,
+                ),
             )
         )
         data = users
+        rowKey = { user -> user.id }
         zebraStripe = true
         bordered = false
-        mobileMode = TableMobileMode.Table
-        mobilePrimaryColumnKey = "name"
-        mobileStatusColumnKey = "status"
+        autoIndexColumn = false
+        fixedHeader = true
+        fixedColumnCount = 0
+        rowHeight = 48f
+        displayMode = TableDisplayMode.Table
+        listPrimaryColumnKey = "name"
+        listStatusColumnKey = "status"
     }
     event {
         rowClick = { user -> /* 行点击 */ }
+        sortChange = { state -> /* 观察排序状态 */ }
     }
 }
 ```
@@ -178,18 +226,25 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | --- | --- | --- | --- |
 | `columns` | `ObservableList<ColumnModel<T>>` | 空列表 | 列定义列表 |
 | `data` | `List<T>` | `emptyList()` | 数据源 |
+| `rowKey` | `((T) -> Any)?` | `null` | 稳定业务行标识；建议使用 String/Int/Long。未配置时暂以源数据索引 fallback；经典 `vfor` 暂无 key selector |
 | `zebraStripe` | `Boolean` | `true` | 是否启用斑马纹 |
-| `bordered` | `Boolean` | `false` | 是否显示列分隔线；水平分隔线始终显示 |
+| `bordered` | `Boolean` | `false` | 是否显示外框和竖向分隔线；水平分隔线始终显示 |
 | `cellPaddingH` | `Float` | `12f` | 单元格水平内边距 |
 | `cellPaddingV` | `Float` | `10f` | 单元格垂直内边距 |
 | `rowHeight` | `Float` | `0f` | 固定行高；`0f` 表示由内容自适应 |
+| `sortState` | `TableSortState` | 未排序 | 当前单列排序状态；点击 sortable 表头后由组件更新 |
+| `autoIndexColumn` | `Boolean` | `false` | 内部生成序号列，使用派生行的展示位置编号；当前 Demo 不启用 |
+| `indexColumnTitle` | `String` | `"序号"` | 自动序号列表头 |
+| `indexColumnWidth` | `Float` | `56f` | 自动序号列宽度 |
+| `fixedHeader` | `Boolean` | `true` | 表头是否保持在纵向滚动区域上方 |
+| `fixedColumnCount` | `Int` | `0` | 实验性左侧固定列数量；双 List 纵向同步仍待重新设计，当前 Demo 固定为 0 |
 | `themeColors` | `TableThemeColors` | `TableThemeColors()` | 表头、文字、分隔线、行背景、状态层、卡片等语义色 |
-| `mobileMode` | `TableMobileMode` | `TableMobileMode.Table` | 显式移动端展示模式，不按列数自动切换 |
-| `mobilePrimaryColumnKey` | `String?` | `null` | Mobile List 主字段列；未配置时使用第一列 |
-| `mobileStatusColumnKey` | `String?` | `null` | Mobile List 状态标签列；未配置时不显示状态标签 |
-| `mobileStatusTagPresetByText` | `Map<String, TableStatusTagPreset>` | `emptyMap()` | Mobile List 状态文本到语义预设的业务映射 |
-| `mobileStatusTagStyleByText` | `Map<String, TableStatusTagStyle>` | `emptyMap()` | Mobile List 状态文本到具体标签色的业务映射，优先级高于语义预设 |
-| `mobileStatusTagStyleResolver` | `((T, String, TableThemeColors) -> TableStatusTagStyle)?` | `null` | Mobile List 状态标签样式解析器；未配置时使用 success / warning / danger / neutral / info 预设 |
+| `displayMode` | `TableDisplayMode` | `TableDisplayMode.Table` | 显式选择 Table 或 List 模式，不按列数自动切换 |
+| `listPrimaryColumnKey` | `String?` | `null` | List 模式主字段列；未配置时使用第一列 |
+| `listStatusColumnKey` | `String?` | `null` | List 模式状态标签列；未配置时不显示状态标签 |
+| `listStatusTagPresetByText` | `Map<String, TableStatusTagPreset>` | `emptyMap()` | List 模式状态文本到语义预设的业务映射 |
+| `listStatusTagStyleByText` | `Map<String, TableStatusTagStyle>` | `emptyMap()` | List 模式状态文本到具体标签色的业务映射，优先级高于语义预设 |
+| `listStatusTagStyleResolver` | `((T, String, TableThemeColors) -> TableStatusTagStyle)?` | `null` | List 模式状态标签样式解析器；未配置时使用 success / warning / danger / neutral / info 预设 |
 | `loading` | `Boolean` | `false` | Loading 状态；保留旧内容并降低透明度 |
 | `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
 | `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
@@ -203,17 +258,20 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `title` | `String` | - | 表头文字 |
 | `accessor` | `(T) -> String` | - | 从数据行提取该列显示值 |
 | `width` | `Float?` | `null` | 固定列宽；`null` 表示弹性宽度 |
-| `flex` | `Float` | `1f` | 弹性权重，`width` 为 `null` 时生效 |
+| `minWidth` | `Float` | `100f` | 最小列宽；仅在 `width` 为 `null` 时生效，剩余空间从该宽度起分配 |
+| `flex` | `Float` | `1f` | 剩余空间分配权重；仅在 `width` 为 `null` 时生效 |
 | `alignment` | `ColumnAlignment` | `Start` | 对齐方式，运行时修改会触发表格重渲染 |
+| `sortable` | `Boolean` | `false` | 是否允许点击表头切换排序 |
+| `sortComparator` | `Comparator<T>?` | `null` | 业务值比较器；未配置时按 accessor 字符串比较 |
 | `cellRenderer` | `ViewContainer<*, *>.(T, ColumnModel<T>) -> Unit` | `null` | 自定义单元格内容；未配置时使用默认 Text |
 | `headerRenderer` | `ViewContainer<*, *>.(ColumnModel<T>) -> Unit` | `null` | 自定义表头内容；未配置时使用默认 Text |
 
-### TableMobileMode
+### TableDisplayMode
 
 | 值 | 说明 |
 | --- | --- |
 | `Table` | 强制使用横向表格 |
-| `List` | 强制使用 Mobile List grouped list |
+| `List` | 使用 grouped list 展示 |
 
 ## Roadmap
 
@@ -223,14 +281,16 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 - [x] 主题预设与自定义单元格 renderer
 - [x] renderer 验证示例（头像、状态标签、Switch 由 Demo 使用方实现）
 - [x] 默认 / 加载中 / 无数据状态层
-- [x] 显式 Mobile Table / Mobile List 模式
+- [x] 显式 Table / List 模式
 - [x] 截断单元格溢出提示事件
 - [ ] 行选择（Checkbox / 单选）
-- [ ] 列排序
+- [x] 单列排序
+- [ ] 自动序号列（暂不纳入当前 Demo）
 - [ ] 筛选
 - [ ] 分页
-- [ ] 固定列
-- [ ] 虚拟滚动
+- [x] 可配置固定表头
+- [ ] 左侧固定列（双 List 纵向同步待重新设计）
+- [ ] 大数据虚拟滚动（实验实现已移除，后续按独立可见窗口方案重新设计）
 
 ## License
 
