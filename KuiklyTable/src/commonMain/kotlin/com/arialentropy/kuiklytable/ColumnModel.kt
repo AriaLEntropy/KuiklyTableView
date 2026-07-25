@@ -23,9 +23,12 @@ sealed class ColumnAlignment {
  * @param key 列唯一标识
  * @param title 表头显示文字
  * @param accessor 从数据行提取该列显示值的函数
- * @param width 固定列宽（dp），为 null 时使用 flex 分配
- * @param flex 弹性权重，仅在 width 为 null 时生效
+ * @param width 固定列宽（dp），非 null 时优先于 minWidth 和 flex
+ * @param minWidth 最小列宽（dp），仅在 width 为 null 时生效
+ * @param flex 剩余空间分配权重，仅在 width 为 null 时生效
  * @param alignment 单元格文字对齐方式（响应式，运行时修改会触发表格重渲染）
+ * @param sortable 是否允许点击表头切换排序
+ * @param sortComparator 可选的业务值比较器；未配置时按 accessor 返回的字符串比较
  * @param cellRenderer 可选的单元格渲染器；未配置时使用默认 Text
  * @param headerRenderer 可选的表头渲染器；未配置时使用默认 Text
  */
@@ -34,10 +37,17 @@ class ColumnModel<T>(
     val title: String,
     val accessor: (T) -> String,
     val width: Float? = null,
+    val minWidth: Float = DEFAULT_MIN_WIDTH,
     val flex: Float = 1f,
     alignment: ColumnAlignment = ColumnAlignment.Start,
+    val sortable: Boolean = false,
+    val sortComparator: Comparator<T>? = null,
     val cellRenderer: (ViewContainer<*, *>.(T, ColumnModel<T>) -> Unit)? = null,
     val headerRenderer: (ViewContainer<*, *>.(ColumnModel<T>) -> Unit)? = null,
 ) {
     var alignment: ColumnAlignment by observable(alignment)
+
+    companion object {
+        const val DEFAULT_MIN_WIDTH = 100f
+    }
 }
