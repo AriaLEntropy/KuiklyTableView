@@ -3,6 +3,7 @@ package com.arialentropy.kuiklytable
 import com.tencent.kuikly.core.annotations.Page
 import com.tencent.kuikly.core.base.*
 import com.tencent.kuikly.core.directives.vfor
+import com.tencent.kuikly.core.directives.vif
 import com.tencent.kuikly.core.layout.FlexWrap
 import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.*
@@ -56,12 +57,26 @@ internal class TableBasicDemoPage : BasePager() {
         key = "age",
         title = "年龄",
         accessor = { it.age.toString() },
-        width = 60f,
+        width = 80f,
         alignment = ColumnAlignment.End,
+        sortable = true,
+        sortComparator = compareBy { it.age },
     )
 
-    private val nameColumn = ColumnModel<User>(key = "name", title = "姓名", accessor = { it.name }, width = 80f)
-    private val emailColumn = ColumnModel<User>(key = "email", title = "邮箱", accessor = { it.email })
+    private val nameColumn = ColumnModel<User>(
+        key = "name",
+        title = "姓名",
+        accessor = { it.name },
+        width = 80f,
+        sortable = true,
+    )
+    private val emailColumn = ColumnModel<User>(
+        key = "email",
+        title = "邮箱",
+        accessor = { it.email },
+        minWidth = 140f,
+        flex = 2f,
+    )
     private val wideEmailColumn = ColumnModel<User>(
         key = "email",
         title = "邮箱",
@@ -131,6 +146,55 @@ internal class TableBasicDemoPage : BasePager() {
 
     // 3 列模式（fits 页面，无横向滚动）
     private val columns3 = listOf(nameColumn, ageColumn, emailColumn)
+
+    private val basicColumns = listOf(
+        ColumnModel<User>(
+            key = "basicName",
+            title = "姓名",
+            accessor = { it.name },
+            width = 80f,
+        ),
+        ColumnModel<User>(
+            key = "basicAge",
+            title = "年龄",
+            accessor = { it.age.toString() },
+            width = 80f,
+            alignment = ColumnAlignment.End,
+        ),
+        ColumnModel<User>(
+            key = "basicEmail",
+            title = "邮箱",
+            accessor = { it.email },
+            minWidth = 140f,
+            flex = 2f,
+        ),
+    )
+
+    private val alignmentColumn = ColumnModel<User>(
+        key = "alignment",
+        title = "姓名",
+        accessor = { it.name },
+        width = 180f,
+    )
+
+    private val sortingColumns = listOf(
+        ColumnModel<User>(
+            key = "plainName",
+            title = "姓名（普通列）",
+            accessor = { it.name },
+            minWidth = 140f,
+            sortable = false,
+        ),
+        ColumnModel<User>(
+            key = "sortableAge",
+            title = "年龄（可排序）",
+            accessor = { it.age.toString() },
+            minWidth = 140f,
+            alignment = ColumnAlignment.End,
+            sortable = true,
+            sortComparator = compareBy { it.age },
+        ),
+    )
 
     // 5 列模式（总宽超页面 → 横向滚动）
     private val cityColumn = ColumnModel<User>(key = "city", title = "城市", accessor = { it.city }, width = 100f)
@@ -205,10 +269,13 @@ internal class TableBasicDemoPage : BasePager() {
     private var borderedOn by observable(false)         // 列边框
     private var compactPadding by observable(false)     // 紧凑内边距
     private var fixedRowHeight by observable(false)     // 固定行高
+    private var fixedHeaderOn by observable(true)
+    private var sortState by observable(TableSortState())
+    private var sortingDemoSortState by observable(TableSortState())
     private var themeMode: DemoThemeMode by observable(DemoThemeMode.Light)
     private var compactHeader by observable(false)
     private var customStatusRendererOn by observable(true)
-    private var mobileMode: TableMobileMode by observable(TableMobileMode.Table)
+    private var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     private var tableState by observable("正常")
     private var overflowTipOn by observable(true)
     private var notifyStateById: Map<Int, Boolean> by observable(users.associate { it.id to (it.name.hashCode() % 2 == 0) })
@@ -217,13 +284,34 @@ internal class TableBasicDemoPage : BasePager() {
     private var overflowTipLeft by observable(24f)
     private var overflowTipTop by observable(220f)
     private var overflowTipArrowLeft by observable(40f)
-    private var activeExample by observable("宽表滚动")
+    private var activeExample by observable("双向滚动")
+    private var activeSection by observable("基础")
 
     init {
         activeColumns.addAll(currentColumns())
     }
 
     override fun body(): ViewBuilder {
+        val ctx = this
+        return {
+            attr { backgroundColor(Color(ctx.currentTheme().rowBackground)) }
+            ctx.renderShowcaseHeader(this)
+            ctx.renderSectionNavigation(this)
+            View {
+                attr { flex(1f); positionRelative() }
+                vif({ ctx.activeSection == "基础" }) { ctx.renderBasicSection(this) }
+                vif({ ctx.activeSection == "滚动" }) { ctx.renderScrollSection(this) }
+                vif({ ctx.activeSection == "主题" }) { ctx.renderThemeSection(this) }
+                vif({ ctx.activeSection == "自定义" }) { ctx.renderRendererSection(this) }
+                vif({ ctx.activeSection == "状态" }) { ctx.renderStateSection(this) }
+                vif({ ctx.activeSection == "模式" }) { ctx.renderMobileSection(this) }
+                vif({ ctx.activeSection == "Playground" }) { ctx.renderPlaygroundSection(this) }
+            }
+            ctx.renderOverflowTip(this)
+        }
+    }
+
+    private fun legacyBody(): ViewBuilder {
         val ctx = this
         return {
             attr {
@@ -251,7 +339,7 @@ internal class TableBasicDemoPage : BasePager() {
                     height(300f)
                 }
 
-                ConfigGroup("演示场景", first = true, theme = { ctx.currentTheme() }) {
+                ConfigGroup("核心验收", first = true, theme = { ctx.currentTheme() }) {
                     Text {
                         attr {
                             text(ctx.exampleDescription())
@@ -262,22 +350,52 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(label = { "基础表格" }, active = { ctx.activeExample == "基础表格" }) {
-                            ctx.selectExample("基础表格")
+                        ToggleChip(label = { "基础样式" }, active = { ctx.activeExample == "基础样式" }, theme = { ctx.currentTheme() }, emphasis = true) {
+                            ctx.selectExample("基础样式")
                         }
-                        ToggleChip(label = { "宽表滚动" }, active = { ctx.activeExample == "宽表滚动" }) {
-                            ctx.selectExample("宽表滚动")
+                        ToggleChip(label = { "双向滚动" }, active = { ctx.activeExample == "双向滚动" }, theme = { ctx.currentTheme() }, emphasis = true) {
+                            ctx.selectExample("双向滚动")
                         }
-                        ToggleChip(label = { "Renderer 插槽" }, active = { ctx.activeExample == "Renderer 插槽" }) {
-                            ctx.selectExample("Renderer 插槽")
+                        ToggleChip(label = { "主题定制" }, active = { ctx.activeExample == "主题定制" }, theme = { ctx.currentTheme() }, emphasis = true) {
+                            ctx.selectExample("主题定制")
                         }
-                        ToggleChip(label = { "Mobile List" }, active = { ctx.activeExample == "Mobile List" }) {
-                            ctx.selectExample("Mobile List")
+                        ToggleChip(label = { "自定义渲染" }, active = { ctx.activeExample == "自定义渲染" }, theme = { ctx.currentTheme() }, emphasis = true) {
+                            ctx.selectExample("自定义渲染")
                         }
-                        ToggleChip(label = { "无数据" }, active = { ctx.activeExample == "无数据" }) {
+                    }
+                    Text {
+                        attr {
+                            text("主题预设")
+                            fontSize(12f)
+                            color(Color(ctx.currentTheme().cellTextSecondary))
+                            marginTop(4f)
+                            marginBottom(6f)
+                        }
+                    }
+                    View {
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); alignItemsCenter() }
+                        ToggleChip(label = { "浅色" }, active = { ctx.themeMode is DemoThemeMode.Light }, theme = { ctx.currentTheme() }) {
+                            ctx.selectTheme(DemoThemeMode.Light)
+                        }
+                        ToggleChip(label = { "深色" }, active = { ctx.themeMode is DemoThemeMode.Dark }, theme = { ctx.currentTheme() }) {
+                            ctx.selectTheme(DemoThemeMode.Dark)
+                        }
+                        ToggleChip(label = { "蓝色" }, active = { ctx.themeMode is DemoThemeMode.Blue }, theme = { ctx.currentTheme() }) {
+                            ctx.selectTheme(DemoThemeMode.Blue)
+                        }
+                    }
+                }
+
+                ConfigGroup("补充示例", theme = { ctx.currentTheme() }) {
+                    View {
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
+                        ToggleChip(label = { "List 模式" }, active = { ctx.activeExample == "List 模式" }, theme = { ctx.currentTheme() }) {
+                            ctx.selectExample("List 模式")
+                        }
+                        ToggleChip(label = { "无数据" }, active = { ctx.activeExample == "无数据" }, theme = { ctx.currentTheme() }, emphasis = true) {
                             ctx.selectExample("无数据")
                         }
-                        ToggleChip(label = { "加载中" }, active = { ctx.activeExample == "加载中" }) {
+                        ToggleChip(label = { "加载中" }, active = { ctx.activeExample == "加载中" }, theme = { ctx.currentTheme() }, emphasis = true) {
                             ctx.selectExample("加载中")
                         }
                     }
@@ -290,73 +408,58 @@ internal class TableBasicDemoPage : BasePager() {
                             flexDirectionRow()
                         }
                         vfor({ ctx.activeColumns }) { col ->
-                            ToggleChip(label = { "列:${col.title}" }, active = { ctx.selectedColumn === col }) {
+                            ToggleChip(label = { col.title }, active = { ctx.selectedColumn === col }, theme = { ctx.currentTheme() }) {
                                 ctx.selectedColumn = col
                             }
                         }
                     }
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(label = { "左对齐" }, active = { ctx.selectedColumn.alignment is ColumnAlignment.Start }) {
+                        ToggleChip(label = { "左对齐" }, active = { ctx.selectedColumn.alignment is ColumnAlignment.Start }, theme = { ctx.currentTheme() }) {
                             ctx.selectedColumn.alignment = ColumnAlignment.Start
                         }
-                        ToggleChip(label = { "居中" }, active = { ctx.selectedColumn.alignment is ColumnAlignment.Center }) {
+                        ToggleChip(label = { "居中" }, active = { ctx.selectedColumn.alignment is ColumnAlignment.Center }, theme = { ctx.currentTheme() }) {
                             ctx.selectedColumn.alignment = ColumnAlignment.Center
                         }
-                        ToggleChip(label = { "右对齐" }, active = { ctx.selectedColumn.alignment is ColumnAlignment.End }) {
+                        ToggleChip(label = { "右对齐" }, active = { ctx.selectedColumn.alignment is ColumnAlignment.End }, theme = { ctx.currentTheme() }) {
                             ctx.selectedColumn.alignment = ColumnAlignment.End
                         }
                     }
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(label = { "内边距:${if (ctx.compactPadding) "紧凑" else "标准"}" }, active = { ctx.compactPadding }) {
+                        ToggleChip(label = { "内边距 ${if (ctx.compactPadding) "紧凑" else "标准"}" }, active = { ctx.compactPadding }, theme = { ctx.currentTheme() }) {
                             ctx.compactPadding = !ctx.compactPadding
                         }
-                        ToggleChip(label = { "行高:${if (ctx.fixedRowHeight) "固定48" else "自适应"}" }, active = { ctx.fixedRowHeight }) {
+                        ToggleChip(label = { "行高 ${if (ctx.fixedRowHeight) "固定 48" else "自适应"}" }, active = { ctx.fixedRowHeight }, theme = { ctx.currentTheme() }) {
                             ctx.fixedRowHeight = !ctx.fixedRowHeight
+                        }
+                    }
+                    Text {
+                        attr {
+                            text("排序：点击姓名或年龄表头切换升序、降序、取消；当前 ${ctx.sortDescription()}")
+                            fontSize(12f)
+                            color(Color(ctx.currentTheme().cellTextSecondary))
+                            marginBottom(6f)
+                        }
+                    }
+                    View {
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
+                        ToggleChip(label = { "固定表头 ${if (ctx.fixedHeaderOn) "开" else "关"}" }, active = { ctx.fixedHeaderOn }, theme = { ctx.currentTheme() }) {
+                            ctx.fixedHeaderOn = !ctx.fixedHeaderOn
                         }
                     }
                 }
 
-                ConfigGroup("外观", theme = { ctx.currentTheme() }) {
-                    Text {
-                        attr {
-                            text("主题")
-                            fontSize(12f)
-                            color(Color(ctx.currentTheme().cellTextSecondary))
-                            marginBottom(6f)
-                        }
-                    }
+                ConfigGroup("表格样式", theme = { ctx.currentTheme() }) {
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); alignItemsCenter() }
-                        ToggleChip(label = { "浅色" }, active = { ctx.themeMode is DemoThemeMode.Light }) {
-                            ctx.themeMode = DemoThemeMode.Light
-                        }
-                        ToggleChip(label = { "深色" }, active = { ctx.themeMode is DemoThemeMode.Dark }) {
-                            ctx.themeMode = DemoThemeMode.Dark
-                        }
-                        ToggleChip(label = { "蓝色" }, active = { ctx.themeMode is DemoThemeMode.Blue }) {
-                            ctx.themeMode = DemoThemeMode.Blue
-                        }
-                    }
-                    Text {
-                        attr {
-                            text("表格外观")
-                            fontSize(12f)
-                            color(Color(ctx.currentTheme().cellTextSecondary))
-                            marginTop(4f)
-                            marginBottom(6f)
-                        }
-                    }
-                    View {
-                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); alignItemsCenter() }
-                        ToggleChip(label = { "斑马纹:${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }) {
+                        ToggleChip(label = { "斑马纹 ${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }, theme = { ctx.currentTheme() }) {
                             ctx.zebraOn = !ctx.zebraOn
                         }
-                        ToggleChip(label = { "边框:${if (ctx.borderedOn) "开" else "关"}" }, active = { ctx.borderedOn }) {
+                        ToggleChip(label = { "网格边框 ${if (ctx.borderedOn) "开" else "关"}" }, active = { ctx.borderedOn }, theme = { ctx.currentTheme() }) {
                             ctx.borderedOn = !ctx.borderedOn
                         }
-                        ToggleChip(label = { "表头:${if (ctx.compactHeader) "紧凑" else "标准"}" }, active = { ctx.compactHeader }) {
+                        ToggleChip(label = { "表头 ${if (ctx.compactHeader) "紧凑" else "标准"}" }, active = { ctx.compactHeader }, theme = { ctx.currentTheme() }) {
                             ctx.compactHeader = !ctx.compactHeader
                         }
                     }
@@ -364,16 +467,45 @@ internal class TableBasicDemoPage : BasePager() {
 
                 ConfigGroup("扩展能力", theme = { ctx.currentTheme() }) {
                     View {
-                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(
-                            label = { "状态渲染:${if (ctx.customStatusRendererOn) "自定义" else "默认"}" },
-                            active = { ctx.customStatusRendererOn },
-                        ) {
-                            ctx.customStatusRendererOn = !ctx.customStatusRendererOn
-                            ctx.syncActiveColumns()
-                            ctx.selectedColumn = ctx.ageColumn
+                        attr {
+                            minHeight(44f)
+                            flexDirectionRow()
+                            alignItemsCenter()
+                            marginBottom(8f)
                         }
-                        ToggleChip(label = { "溢出提示:${if (ctx.overflowTipOn) "开" else "关"}" }, active = { ctx.overflowTipOn }) {
+                        View {
+                            attr { flex(1f); marginRight(12f) }
+                            Text {
+                                attr {
+                                    text("状态标签 renderer")
+                                    fontSize(13f)
+                                    color(Color(ctx.currentTheme().cellText))
+                                }
+                            }
+                            Text {
+                                attr {
+                                    text(if (ctx.customStatusRendererOn) "开启：Demo 绘制彩色标签" else "关闭：Table 渲染普通文本")
+                                    fontSize(11f)
+                                    color(Color(ctx.currentTheme().cellTextSecondary))
+                                    marginTop(3f)
+                                }
+                            }
+                        }
+                        Switch {
+                            attr {
+                                size(40f, 24f)
+                                isOn(ctx.customStatusRendererOn)
+                                onColor(Color(ctx.currentTheme().actionText))
+                                unOnColor(Color(ctx.currentTheme().gridLine))
+                            }
+                            event {
+                                switchOnChanged { enabled -> ctx.selectStatusRenderer(enabled) }
+                            }
+                        }
+                    }
+                    View {
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
+                        ToggleChip(label = { "溢出提示 ${if (ctx.overflowTipOn) "开" else "关"}" }, active = { ctx.overflowTipOn }, theme = { ctx.currentTheme() }) {
                             ctx.overflowTipOn = !ctx.overflowTipOn
                             ctx.hideOverflowTip()
                         }
@@ -394,17 +526,22 @@ internal class TableBasicDemoPage : BasePager() {
                     attr {
                         flex(1f) // 让 TableView（ComposeView）撑满父容器，内部 List 的 flex 才能拿到高度
                         columns = ctx.activeColumns
-                        data = ctx.currentData()
+                        rowKey = { user -> user.id }
                         zebraStripe = ctx.zebraOn
                         bordered = ctx.borderedOn
                         cellPaddingH = if (ctx.compactPadding) 8f else 12f
                         cellPaddingV = if (ctx.compactPadding) 6f else 10f
                         rowHeight = if (ctx.fixedRowHeight) 48f else 0f
+                        data = ctx.currentData()
+                        sortState = ctx.sortState
+                        autoIndexColumn = false
+                        fixedHeader = ctx.fixedHeaderOn
+                        fixedColumnCount = 0
                         themeColors = ctx.currentTheme()
-                        mobileMode = ctx.mobileMode
-                        mobilePrimaryColumnKey = "name"
-                        mobileStatusColumnKey = "status"
-                        mobileStatusTagStyleByText = ctx.statusTagStyleByText(ctx.currentTheme())
+                        displayMode = ctx.displayMode
+                        listPrimaryColumnKey = "name"
+                        listStatusColumnKey = "status"
+                        listStatusTagStyleByText = ctx.statusTagStyleByText(ctx.currentTheme())
                         loading = ctx.tableState == "加载"
                         emptyText = "暂无员工数据"
                         loadingText = "正在加载员工数据"
@@ -430,6 +567,10 @@ internal class TableBasicDemoPage : BasePager() {
                             ctx.showOverflowTip(info)
                         }
                         overflowTipDismiss = {
+                            ctx.hideOverflowTip()
+                        }
+                        sortChange = { state ->
+                            ctx.sortState = state
                             ctx.hideOverflowTip()
                         }
                     }
@@ -482,10 +623,342 @@ internal class TableBasicDemoPage : BasePager() {
         }
     }
 
+    private fun renderShowcaseHeader(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr {
+                paddingLeft(16f)
+                paddingRight(16f)
+                paddingTop(ctx.pagerData.statusBarHeight + 12f)
+                paddingBottom(10f)
+            }
+            Text {
+                attr {
+                    text("KuiklyTable Showcase")
+                    fontSize(20f)
+                    fontWeightSemiBold()
+                    color(Color(ctx.currentTheme().cellText))
+                }
+            }
+            Text {
+                attr {
+                    text("按场景查看用法；完整运行时配置集中在 Playground")
+                    fontSize(12f)
+                    color(Color(ctx.currentTheme().cellTextSecondary))
+                    marginTop(4f)
+                }
+            }
+        }
+    }
+
+    private fun renderSectionNavigation(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.Scroller {
+            attr {
+                height(48f)
+                flexDirectionRow()
+                paddingLeft(16f)
+                paddingRight(8f)
+            }
+            listOf("基础", "滚动", "主题", "自定义", "状态", "模式", "Playground").forEach { section ->
+                ShowcaseTab(section, active = { ctx.activeSection == section }, theme = { ctx.currentTheme() }) {
+                    ctx.activeSection = section
+                    ctx.hideOverflowTip()
+                }
+            }
+        }
+    }
+
+    private fun renderBasicSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.Scroller {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
+            SectionIntro("基础表格", "多个固定示例直接对照，不需要记忆切换前后的样式。", { ctx.currentTheme() })
+            ExampleCard("默认样式", "3 列 × 4 行，使用默认文本、水平分隔线和自适应行高。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, ctx.basicColumns, ctx.users.take(4), height = 248f, zebra = false, theme = ctx.currentTheme())
+            }
+            ExampleCard("边框与斑马纹", "同一份数据开启完整网格和斑马纹。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, ctx.basicColumns, ctx.users.take(4), height = 248f, bordered = true, zebra = true, theme = ctx.currentTheme())
+            }
+            ExampleCard("列对齐与单列撑满", "该列配置 width=180，但作为唯一列时会使用 Table 全宽；选择对齐方式观察实时变化。", { ctx.currentTheme() }) {
+                View {
+                    attr { flexDirectionRow(); marginBottom(8f) }
+                    listOf("左对齐", "居中", "右对齐").forEach { alignment ->
+                        SegmentOption(alignment, active = {
+                            when (alignment) {
+                                "居中" -> ctx.alignmentColumn.alignment is ColumnAlignment.Center
+                                "右对齐" -> ctx.alignmentColumn.alignment is ColumnAlignment.End
+                                else -> ctx.alignmentColumn.alignment is ColumnAlignment.Start
+                            }
+                        }, theme = { ctx.currentTheme() }) {
+                            ctx.alignmentColumn.alignment = when (alignment) {
+                                "居中" -> ColumnAlignment.Center
+                                "右对齐" -> ColumnAlignment.End
+                                else -> ColumnAlignment.Start
+                            }
+                        }
+                    }
+                }
+                ctx.renderTablePreview(this, listOf(ctx.alignmentColumn), ctx.users.take(3), height = 210f, bordered = true, zebra = false, theme = ctx.currentTheme())
+            }
+            ExampleCard("普通列与排序列", "姓名是普通列；点击年龄表头依次切换未排序、升序、降序。当前：${ctx.sortingDemoDescription()}", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(
+                    this,
+                    ctx.sortingColumns,
+                    ctx.users.take(5),
+                    height = 286f,
+                    zebra = false,
+                    theme = ctx.currentTheme(),
+                    controlledSortState = ctx.sortingDemoSortState,
+                    onSortChange = { state -> ctx.sortingDemoSortState = state },
+                )
+            }
+        }
+    }
+
+    private fun renderScrollSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
+            SectionIntro("双向滚动", "5 列 × 20 行。横向滚动时表头同步，纵向滚动验证固定表头。", { ctx.currentTheme() })
+            SettingSwitch("固定表头", if (ctx.fixedHeaderOn) "表头固定在列表上方" else "表头随内容滚动", ctx.fixedHeaderOn, { ctx.currentTheme() }) {
+                ctx.fixedHeaderOn = it
+            }
+            View {
+                attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
+                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn), ctx.users, height = null, fixedHeader = ctx.fixedHeaderOn, theme = ctx.currentTheme())
+            }
+        }
+    }
+
+    private fun renderThemeSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.Scroller {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
+            SectionIntro("主题定制", "相同结构使用三套语义色，直接比较而不是切换整页主题。", { ctx.currentTheme() })
+            ExampleCard("Light", "默认浅色语义角色。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(3), 210f, theme = TableThemeColors.Light)
+            }
+            ExampleCard("Dark", "暗色背景、文字和分隔线保持可读。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(3), 210f, theme = TableThemeColors.Dark)
+            }
+            ExampleCard("Blue", "展示使用方整体覆盖语义色。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(3), 210f, theme = TableThemeColors.Blue)
+            }
+        }
+    }
+
+    private fun renderRendererSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.Scroller {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
+            SectionIntro("自定义 renderer", "上方是不传 renderer 的默认文本；下方标签、头像和 Switch 都由 Demo 使用方代码绘制。", { ctx.currentTheme() })
+            ExampleCard("默认文本 fallback", "状态列未配置 cellRenderer。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.statusTextColumn, ctx.ageColumn), ctx.users.take(3), 210f, theme = ctx.currentTheme())
+            }
+            ExampleCard("使用方 renderer", "cellRenderer 嵌入头像、彩色状态标签和可交互 Switch。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, listOf(ctx.avatarColumn, ctx.nameColumn, ctx.statusRendererColumn, ctx.notifyColumn), ctx.users.take(3), 210f, theme = ctx.currentTheme())
+            }
+        }
+    }
+
+    private fun renderStateSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
+            SectionIntro("状态反馈", "同一个 Table 实例切换正常、加载和空数据路径。", { ctx.currentTheme() })
+            View {
+                attr { flexDirectionRow(); marginBottom(10f) }
+                listOf("正常", "加载中", "无数据").forEach { state ->
+                    SegmentOption(state, active = { ctx.tableStateLabel() == state }, theme = { ctx.currentTheme() }) {
+                        ctx.tableState = when (state) {
+                            "加载中" -> "加载"
+                            "无数据" -> "空"
+                            else -> "正常"
+                        }
+                    }
+                }
+            }
+            View {
+                attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
+                ctx.renderTablePreview(this, ctx.columns3, if (ctx.tableState == "空") emptyList() else ctx.users.take(6), null, loading = ctx.tableState == "加载", theme = ctx.currentTheme())
+            }
+        }
+    }
+
+    private fun renderMobileSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.Scroller {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
+            SectionIntro("Table / List 模式", "相同数据分别使用 Table 模式和 List 模式展示。", { ctx.currentTheme() })
+            ExampleCard("Table", "适合横向对比和报表。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.statusTextColumn, ctx.ageColumn), ctx.users.take(3), 210f, theme = ctx.currentTheme())
+            }
+            ExampleCard("List 模式", "显式选择 List 模式，不按列数自动切换。", { ctx.currentTheme() }) {
+                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.ageColumn, ctx.cityColumn, ctx.statusTextColumn), ctx.users.take(3), 286f, displayMode = TableDisplayMode.List, theme = ctx.currentTheme())
+            }
+        }
+    }
+
+    private fun renderPlaygroundSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr { flex(1f) }
+            Scroller {
+                attr { height(250f); marginLeft(16f); marginRight(16f); marginBottom(10f) }
+                ConfigGroup("列与对齐", first = true, theme = { ctx.currentTheme() }) {
+                    Scroller {
+                        attr { height(44f); flexDirectionRow() }
+                        vfor({ ctx.activeColumns }) { col ->
+                            ToggleChip(label = { col.title }, active = { ctx.selectedColumn === col }, theme = { ctx.currentTheme() }) { ctx.selectedColumn = col }
+                        }
+                    }
+                    View {
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
+                        listOf("左对齐", "居中", "右对齐").forEach { alignment ->
+                            ToggleChip(label = { alignment }, active = {
+                                when (alignment) {
+                                    "居中" -> ctx.selectedColumn.alignment is ColumnAlignment.Center
+                                    "右对齐" -> ctx.selectedColumn.alignment is ColumnAlignment.End
+                                    else -> ctx.selectedColumn.alignment is ColumnAlignment.Start
+                                }
+                            }, theme = { ctx.currentTheme() }) {
+                                ctx.selectedColumn.alignment = when (alignment) {
+                                    "居中" -> ColumnAlignment.Center
+                                    "右对齐" -> ColumnAlignment.End
+                                    else -> ColumnAlignment.Start
+                                }
+                            }
+                        }
+                    }
+                }
+                ConfigGroup("外观", theme = { ctx.currentTheme() }) {
+                    SettingSwitch("斑马纹", "交替显示行背景", ctx.zebraOn, { ctx.currentTheme() }) { ctx.zebraOn = it }
+                    SettingSwitch("完整网格", "显示外框和竖向分隔线", ctx.borderedOn, { ctx.currentTheme() }) { ctx.borderedOn = it }
+                    SettingSwitch("固定 48dp 行高", "关闭后由内容和内边距决定", ctx.fixedRowHeight, { ctx.currentTheme() }) { ctx.fixedRowHeight = it }
+                    SettingSwitch("紧凑内边距", "减小单元格水平和垂直留白", ctx.compactPadding, { ctx.currentTheme() }) { ctx.compactPadding = it }
+                }
+                ConfigGroup("Renderer 与提示", theme = { ctx.currentTheme() }) {
+                    SettingSwitch("状态标签 renderer", if (ctx.customStatusRendererOn) "Demo 绘制彩色标签" else "Table 使用默认文本", ctx.customStatusRendererOn, { ctx.currentTheme() }) {
+                        ctx.customStatusRendererOn = it
+                        ctx.rendererExampleColumns = true
+                        ctx.syncActiveColumns()
+                    }
+                    SettingSwitch("溢出提示", "截断默认文本可点击查看全文", ctx.overflowTipOn, { ctx.currentTheme() }) {
+                        ctx.overflowTipOn = it
+                        ctx.hideOverflowTip()
+                    }
+                }
+            }
+            View {
+                attr { flex(1f); marginLeft(16f); marginRight(16f); marginBottom(16f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
+                ctx.renderTablePreview(this, ctx.activeColumns, ctx.users, null, ctx.borderedOn, ctx.zebraOn, ctx.fixedRowHeight, ctx.fixedHeaderOn, ctx.currentTheme(), TableDisplayMode.Table, false, ctx.overflowTipOn)
+            }
+        }
+    }
+
+    private fun renderTablePreview(
+        container: ViewContainer<*, *>,
+        columns: List<ColumnModel<User>>,
+        data: List<User>,
+        height: Float?,
+        bordered: Boolean = false,
+        zebra: Boolean = true,
+        fixedRowHeight: Boolean = false,
+        fixedHeader: Boolean = true,
+        theme: TableThemeColors,
+        displayMode: TableDisplayMode = TableDisplayMode.Table,
+        loading: Boolean = false,
+        overflowEnabled: Boolean = false,
+        controlledSortState: TableSortState = sortState,
+        onSortChange: (TableSortState) -> Unit = { state -> sortState = state },
+    ) {
+        val ctx = this
+        container.TableView<User> {
+            attr {
+                if (height == null) flex(1f) else height(height)
+                this.columns.addAll(columns)
+                this.data = data
+                rowKey = { user -> user.id }
+                zebraStripe = zebra
+                this.bordered = bordered
+                cellPaddingH = if (ctx.compactPadding) 8f else 12f
+                cellPaddingV = if (ctx.compactPadding) 6f else 10f
+                rowHeight = if (fixedRowHeight) 48f else 0f
+                sortState = controlledSortState
+                autoIndexColumn = false
+                this.fixedHeader = fixedHeader
+                fixedColumnCount = 0
+                themeColors = theme
+                this.displayMode = displayMode
+                listPrimaryColumnKey = "name"
+                listStatusColumnKey = "status"
+                listStatusTagStyleByText = ctx.statusTagStyleByText(theme)
+                this.loading = loading
+                emptyText = "暂无员工数据"
+                loadingText = "正在加载员工数据"
+                enableOverflowCellClick = overflowEnabled
+                headerStyle = if (ctx.compactHeader) TableHeaderStyle(13f, TableHeaderFontWeight.Bold, 8f, 6f, 40f, 2f) else TableHeaderStyle.Default
+            }
+            event {
+                rowClick = { user -> ctx.bridgeModule.toast("点击了: ${user.name}") }
+                overflowCellClick = { info -> ctx.showOverflowTip(info) }
+                overflowTipDismiss = { ctx.hideOverflowTip() }
+                sortChange = onSortChange
+            }
+        }
+    }
+
+    private fun tableStateLabel(): String = when (tableState) {
+        "加载" -> "加载中"
+        "空" -> "无数据"
+        else -> "正常"
+    }
+
+    private fun renderOverflowTip(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr {
+                absolutePositionAllZero()
+                zIndex(30)
+                visibility(ctx.overflowTipVisible && ctx.overflowTipOn)
+                touchEnable(ctx.overflowTipVisible && ctx.overflowTipOn)
+            }
+            event { click { ctx.hideOverflowTip() } }
+            View {
+                attr {
+                    absolutePosition(left = ctx.overflowTipLeft, top = ctx.overflowTipTop)
+                    width(ctx.overflowTipWidth())
+                    padding(8f)
+                    paddingLeft(12f)
+                    paddingRight(12f)
+                    borderRadius(8f)
+                    backgroundColor(Color(0xEE222222))
+                }
+                Text { attr { text(ctx.overflowTipText); fontSize(13f); color(Color.WHITE) } }
+            }
+        }
+    }
+
     private fun currentTheme(): TableThemeColors = when (themeMode) {
         is DemoThemeMode.Dark -> TableThemeColors.Dark
         is DemoThemeMode.Blue -> TableThemeColors.Blue
         is DemoThemeMode.Light -> TableThemeColors.Light
+    }
+
+    private fun sortDescription(): String = when (sortState.direction) {
+        is TableSortDirection.None -> "未排序"
+        is TableSortDirection.Ascending -> "${sortColumnTitle()}升序"
+        is TableSortDirection.Descending -> "${sortColumnTitle()}降序"
+    }
+
+    private fun sortColumnTitle(): String =
+        activeColumns.firstOrNull { it.key == sortState.columnKey }?.title ?: ""
+
+    private fun sortingDemoDescription(): String = when (sortingDemoSortState.direction) {
+        is TableSortDirection.None -> "未排序"
+        is TableSortDirection.Ascending -> "年龄升序"
+        is TableSortDirection.Descending -> "年龄降序"
     }
 
     private fun selectExample(example: String) {
@@ -495,20 +968,51 @@ internal class TableBasicDemoPage : BasePager() {
             "加载中" -> "加载"
             else -> "正常"
         }
-        mobileMode = if (example == "Mobile List") TableMobileMode.List else TableMobileMode.Table
-        wideTable = example != "基础表格"
-        rendererExampleColumns = example == "Renderer 插槽"
-        customStatusRendererOn = example == "Renderer 插槽" || example == "Mobile List"
+        displayMode = if (example == "List 模式") TableDisplayMode.List else TableDisplayMode.Table
+        wideTable = example != "基础样式"
+        rendererExampleColumns = example == "自定义渲染"
+        customStatusRendererOn = example == "自定义渲染" || example == "List 模式"
+        if (example == "主题定制") {
+            themeMode = DemoThemeMode.Blue
+        }
+        if (example == "基础样式") {
+            borderedOn = true
+        }
+        selectedColumn = ageColumn
+        syncActiveColumns()
+        hideOverflowTip()
+    }
+
+    private fun selectTheme(theme: DemoThemeMode) {
+        themeMode = theme
+        activeExample = "主题定制"
+        tableState = "正常"
+        displayMode = TableDisplayMode.Table
+        wideTable = true
+        rendererExampleColumns = false
+        selectedColumn = ageColumn
+        syncActiveColumns()
+        hideOverflowTip()
+    }
+
+    private fun selectStatusRenderer(custom: Boolean) {
+        activeExample = "自定义渲染"
+        tableState = "正常"
+        displayMode = TableDisplayMode.Table
+        wideTable = true
+        rendererExampleColumns = true
+        customStatusRendererOn = custom
         selectedColumn = ageColumn
         syncActiveColumns()
         hideOverflowTip()
     }
 
     private fun exampleDescription(): String = when (activeExample) {
-        "基础表格" -> "3 列默认文本，验证基础渲染与默认 fallback"
-        "宽表滚动" -> "5 列宽表，验证横向滚动与固定表头"
-        "Renderer 插槽" -> "7 列示例，验证自定义单元格和交互子组件"
-        "Mobile List" -> "显式 List 模式，验证移动端 grouped list 转译"
+        "基础样式" -> "验证多行多列、行列边框、内边距和任意列对齐"
+        "双向滚动" -> "5 列 × 20 行数据，验证横纵滚动和固定表头"
+        "主题定制" -> "验证表头、边框、行背景等语义颜色可整体覆盖"
+        "自定义渲染" -> "验证单元格和表头 renderer 可嵌入 KuiklyUI 子组件"
+        "List 模式" -> "显式 List 模式，验证 grouped list 展示"
         "无数据" -> "保留当前展示模式，在内容区显示无数据占位"
         "加载中" -> "保留旧内容并显示加载遮罩，期间禁止交互"
         else -> "选择一个场景查看对应能力"
@@ -532,9 +1036,9 @@ internal class TableBasicDemoPage : BasePager() {
             rendererExampleColumns -> listOf(
                 avatarColumn,
                 nameColumn,
+                currentStatusColumn(),
                 ageColumn,
                 wideEmailColumn,
-                currentStatusColumn(),
                 cityColumn,
                 notifyColumn,
             )
@@ -542,8 +1046,7 @@ internal class TableBasicDemoPage : BasePager() {
             else -> columns3
         }
 
-    private fun currentData(): List<User> =
-        if (tableState == "空") emptyList() else users
+    private fun currentData(): List<User> = if (tableState == "空") emptyList() else users
 
     private fun notifyEnabled(user: User): Boolean =
         notifyStateById[user.id] ?: (user.name.hashCode() % 2 == 0)
@@ -553,8 +1056,7 @@ internal class TableBasicDemoPage : BasePager() {
     }
 
     private fun syncActiveColumns() {
-        activeColumns.clear()
-        activeColumns.addAll(currentColumns())
+        activeColumns = ObservableList(currentColumns().toMutableList())
     }
 
     private fun hideOverflowTip() {
@@ -606,6 +1108,147 @@ private sealed class DemoThemeMode {
     object Blue : DemoThemeMode()
 }
 
+private fun ViewContainer<*, *>.ShowcaseTab(
+    label: String,
+    active: () -> Boolean,
+    theme: () -> TableThemeColors,
+    onClick: () -> Unit,
+) {
+    View {
+        attr {
+            height(40f)
+            paddingLeft(14f)
+            paddingRight(14f)
+            marginRight(8f)
+            borderRadius(20f)
+            allCenter()
+            backgroundColor(Color(if (active()) theme().actionText else theme().cardBackground))
+            border(Border(1f, BorderStyle.SOLID, Color(if (active()) theme().actionText else theme().cardBorder)))
+        }
+        Text {
+            attr {
+                text(label)
+                fontSize(13f)
+                color(Color(if (active()) theme().actionTextOnFill else theme().cellText))
+            }
+        }
+        event { click { onClick() } }
+    }
+}
+
+private fun ViewContainer<*, *>.SectionIntro(
+    title: String,
+    description: String,
+    theme: () -> TableThemeColors,
+) {
+    Text {
+        attr {
+            text(title)
+            fontSize(18f)
+            fontWeightSemiBold()
+            color(Color(theme().cellText))
+            marginTop(12f)
+        }
+    }
+    Text {
+        attr {
+            text(description)
+            fontSize(12f)
+            color(Color(theme().cellTextSecondary))
+            marginTop(4f)
+            marginBottom(12f)
+        }
+    }
+}
+
+private fun ViewContainer<*, *>.ExampleCard(
+    title: String,
+    description: String,
+    theme: () -> TableThemeColors,
+    content: ViewBuilder,
+) {
+    View {
+        attr {
+            backgroundColor(Color(theme().cardBackground))
+            borderRadius(12f)
+            border(Border(1f, BorderStyle.SOLID, Color(theme().cardBorder)))
+            padding(10f)
+            marginBottom(12f)
+        }
+        Text {
+            attr {
+                text(title)
+                fontSize(14f)
+                fontWeightSemiBold()
+                color(Color(theme().cellText))
+            }
+        }
+        Text {
+            attr {
+                text(description)
+                fontSize(11f)
+                color(Color(theme().cellTextSecondary))
+                marginTop(3f)
+                marginBottom(8f)
+            }
+        }
+        View {
+            attr { borderRadius(8f); overflow(true) }
+            content()
+        }
+    }
+}
+
+private fun ViewContainer<*, *>.SettingSwitch(
+    title: String,
+    description: String,
+    checked: Boolean,
+    theme: () -> TableThemeColors,
+    onChange: (Boolean) -> Unit,
+) {
+    View {
+        attr {
+            minHeight(52f)
+            flexDirectionRow()
+            alignItemsCenter()
+            marginBottom(6f)
+        }
+        View {
+            attr { flex(1f); marginRight(12f) }
+            Text { attr { text(title); fontSize(13f); color(Color(theme().cellText)) } }
+            Text { attr { text(description); fontSize(11f); color(Color(theme().cellTextSecondary)); marginTop(2f) } }
+        }
+        Switch {
+            attr {
+                size(40f, 24f)
+                isOn(checked)
+                onColor(Color(theme().actionText))
+                unOnColor(Color(theme().gridLine))
+            }
+            event { switchOnChanged { onChange(it) } }
+        }
+    }
+}
+
+private fun ViewContainer<*, *>.SegmentOption(
+    label: String,
+    active: () -> Boolean,
+    theme: () -> TableThemeColors,
+    onClick: () -> Unit,
+) {
+    View {
+        attr {
+            flex(1f)
+            height(40f)
+            allCenter()
+            backgroundColor(Color(if (active()) theme().actionText else theme().cardBackground))
+            border(Border(1f, BorderStyle.SOLID, Color(theme().cardBorder)))
+        }
+        Text { attr { text(label); fontSize(12f); color(Color(if (active()) theme().actionTextOnFill else theme().cellText)) } }
+        event { click { onClick() } }
+    }
+}
+
 /**
  * 可点击的配置选项（chip 样式），顶层扩展函数。
  * label / active 传 lambda（在 attr 块内调用），保证响应式更新。
@@ -613,27 +1256,44 @@ private sealed class DemoThemeMode {
 private fun ViewContainer<*, *>.ToggleChip(
     label: () -> String,
     active: () -> Boolean,
+    theme: () -> TableThemeColors,
+    emphasis: Boolean = false,
     onClick: () -> Unit,
 ) {
     View {
         attr {
+            height(44f)
             alignItemsCenter()
             justifyContentCenter()
             paddingLeft(12f)
             paddingRight(12f)
-            paddingTop(7f)
-            paddingBottom(7f)
             marginRight(8f)
             marginBottom(8f)
-            borderRadius(16f)
-            backgroundColor(Color(if (active()) 0xFFEAF4FF else 0xFFFFFFFF))
-            border(Border(1f, BorderStyle.SOLID, Color(if (active()) 0xFF2E77E5 else 0xFFE1E6EF)))
+            borderRadius(if (emphasis) 8f else 16f)
+            backgroundColor(
+                Color(
+                    if (active()) {
+                        if (emphasis) theme().actionText else theme().rowBackgroundAlt
+                    } else {
+                        theme().cardBackground
+                    },
+                ),
+            )
+            border(Border(1f, BorderStyle.SOLID, Color(if (active()) theme().actionText else theme().cardBorder)))
         }
         Text {
             attr {
                 text(label())
                 fontSize(12f)
-                color(Color(if (active()) 0xFF2E77E5 else 0xFF4B5563))
+                color(
+                    Color(
+                        if (active()) {
+                            if (emphasis) theme().actionTextOnFill else theme().actionText
+                        } else {
+                            theme().cellText
+                        },
+                    ),
+                )
             }
         }
         event {

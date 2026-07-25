@@ -14,7 +14,7 @@ class TableThemeColors(
     val headerText: Long = 0xFF333333,
     /** 单元格主文本 */
     val cellText: Long = 0xFF333333,
-    /** 单元格次要文本 / Mobile List 标签 */
+    /** 单元格次要文本 / List 模式标签 */
     val cellTextSecondary: Long = 0xFF999999,
     /** 网格线 / 边框 */
     val gridLine: Long = 0xFFE6E6E6,
@@ -22,9 +22,9 @@ class TableThemeColors(
     val rowBackground: Long = 0xFFFFFFFF,
     /** 斑马纹行背景 */
     val rowBackgroundAlt: Long = 0xFFFAFAFA,
-    /** Mobile List 卡片背景 */
+    /** List 模式卡片背景 */
     val cardBackground: Long = 0xFFFFFFFF,
-    /** Mobile List 卡片边框 */
+    /** List 模式卡片边框 */
     val cardBorder: Long = 0xFFE6E6E6,
     /** 成功状态标签背景（在职/正常） */
     val statusTagBackground: Long = 0xFFE8F5E9,
@@ -109,7 +109,7 @@ class TableThemeColors(
     }
 }
 
-/** Mobile List 状态标签色板。 */
+/** List 模式状态标签色板。 */
 class TableStatusTagStyle(
     val background: Long,
     val text: Long,
@@ -143,7 +143,7 @@ class TableStatusTagStyle(
     }
 }
 
-/** Mobile List 状态标签预设，业务可通过 resolver 自行决定状态文本对应的语义。 */
+/** List 模式状态标签预设，业务可通过 resolver 自行决定状态文本对应的语义。 */
 sealed class TableStatusTagPreset {
     object Success : TableStatusTagPreset()
     object Warning : TableStatusTagPreset()
