@@ -50,8 +50,6 @@ class TableThemeColors(
     val stateOverlayBackground: Long = 0x00FFFFFF,
     /** 状态层正文 */
     val stateText: Long = 0xFF666666,
-    /** 错误状态文字 */
-    val errorText: Long = 0xFFFF5967,
     /** 状态层主操作 */
     val actionText: Long = 0xFF2E77E5,
     /** 状态层主操作填充上的文字 */
@@ -84,9 +82,29 @@ class TableThemeColors(
             statusTagInfoText = 0xFF90CAF9,
             stateOverlayBackground = 0x001C1B1F,
             stateText = 0xFFCAC4D0,
-            errorText = 0xFFF2B8B5,
             actionText = 0xFF90CAF9,
             actionTextOnFill = 0xFF10223A,
+        )
+
+        /** 蓝色示例主题，用于演示完整语义色覆盖。 */
+        val Blue = TableThemeColors(
+            headerBackground = 0xFF0D47A1,
+            headerText = 0xFFFFFFFF,
+            cellText = 0xFF12304A,
+            cellTextSecondary = 0xFF55758F,
+            gridLine = 0xFF90CAF9,
+            rowBackground = 0xFFEAF4FF,
+            rowBackgroundAlt = 0xFFDCEEFF,
+            cardBackground = 0xFFF4F9FF,
+            cardBorder = 0xFF90CAF9,
+            statusTagBackground = 0xFFC8E6C9,
+            statusTagText = 0xFF2E7D32,
+            statusTagBackgroundAlt = 0xFFFFE0B2,
+            statusTagTextAlt = 0xFFE65100,
+            stateOverlayBackground = 0x00EAF4FF,
+            stateText = 0xFF365A75,
+            actionText = 0xFF0D47A1,
+            actionTextOnFill = 0xFFFFFFFF,
         )
     }
 }

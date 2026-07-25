@@ -38,7 +38,7 @@ KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使�
 - 滚动：单个横向 `Scroller` 包裹表头和纵向 `List`，保证横向滚动时表头和内容同步；纵向滚动时表头固定。
 - 主题：内置 Light / Dark 预设，并支持通过 `TableThemeColors` 覆盖语义色。
 - 自定义渲染：支持数据单元格 `cellRenderer` 和表头 `headerRenderer`；Table 只提供渲染插槽，头像、状态标签和 Switch 均为 Demo 使用方示例。
-- 状态层：支持 Empty / Loading / Error，错误态可触发 retry 回调。
+- 状态层：支持默认、加载中、无数据三种表格展示状态；错误和重试由业务页面自行管理。
 - 移动端模式：由使用方显式选择 `TableMobileMode.Table` 或 `TableMobileMode.List`；不按列数自动切换。
 - 溢出提示：默认文本单元格被截断时可触发 `overflowCellClick`，由使用方决定展示 tooltip / popover / sheet。
 
@@ -81,12 +81,8 @@ Mobile List 不再按列数自动触发。Demo 中点击 `模式:List` 可切换
 | --- | --- |
 | <img src="assets/table_st4_mobile_list.png" alt="Mobile List" width="320"> | <img src="assets/table_st4_empty.png" alt="Empty 状态层" width="320"> |
 
-| Loading 状态 | Error 状态（重试入口） |
-| --- | --- |
-| <img src="assets/table_st4_loading.png" alt="Loading 状态层" width="320"> | <img src="assets/table_st4_error.png" alt="Error 状态层" width="320"> |
-
 <div align="center">
-  <img src="assets/table_st4_retry.gif" alt="Error 状态点击重试恢复" width="360">
+  <img src="assets/table_st4_loading.png" alt="Loading 状态层" width="320">
 </div>
 
 ### 溢出提示
@@ -99,12 +95,12 @@ Mobile List 不再按列数自动触发。Demo 中点击 `模式:List` 可切换
 
 ## Demo 配置面板
 
-`shared` 模块内置演示页 `table_basic`，Android 宿主启动后默认进入该页面。配置面板分为四组：
+`shared` 模块内置演示页 `table_basic`，Android 宿主启动后默认进入该页面。配置面板采用“场景优先、细项配置其次”的组织方式：
 
-- **布局**：3 列 / 5 列横向滚动 / 7 列 renderer 验证切换，任意列对齐方式，内边距与行高。
-- **样式**：斑马纹、边框、主题、表头紧凑模式。
-- **渲染**：状态列自定义 renderer 开关、溢出提示开关。
-- **模式与状态**：显式 MobileMode（Table / List）、状态层（正常 / 空 / 加载 / 错误）。
+- **演示场景**：基础表格、宽表滚动、Renderer 插槽、Mobile List、无数据、加载中，一键切换到可验收状态。
+- **列与布局**：选择任意列并切换左/中/右对齐，调整内边距和行高。
+- **外观**：斑马纹、边框、主题、表头紧凑模式。
+- **扩展能力**：状态列 renderer 默认/自定义 fallback、溢出提示开关。
 
 所有看起来可点击的配置项都会改变可观察状态或触发明确业务动作。
 
@@ -164,7 +160,6 @@ TableView<User> {
     }
     event {
         rowClick = { user -> /* 行点击 */ }
-        retry = { /* 重新加载 */ }
     }
 }
 ```
@@ -196,10 +191,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `mobileStatusTagStyleByText` | `Map<String, TableStatusTagStyle>` | `emptyMap()` | Mobile List 状态文本到具体标签色的业务映射，优先级高于语义预设 |
 | `mobileStatusTagStyleResolver` | `((T, String, TableThemeColors) -> TableStatusTagStyle)?` | `null` | Mobile List 状态标签样式解析器；未配置时使用 success / warning / danger / neutral / info 预设 |
 | `loading` | `Boolean` | `false` | Loading 状态；保留旧内容并降低透明度 |
-| `errorText` | `String?` | `null` | Error 状态文案；非 null 时显示错误层 |
 | `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
 | `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
-| `retryText` | `String` | `"重试"` | Error 状态重试按钮文案 |
 | `enableOverflowCellClick` | `Boolean` | `true` | 是否为截断的默认文本单元格启用溢出点击事件 |
 
 ### ColumnModel
@@ -229,7 +222,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 - [x] 边框、内边距、行高配置
 - [x] 主题预设与自定义单元格 renderer
 - [x] renderer 验证示例（头像、状态标签、Switch 由 Demo 使用方实现）
-- [x] 空 / 加载 / 错误状态层
+- [x] 默认 / 加载中 / 无数据状态层
 - [x] 显式 Mobile Table / Mobile List 模式
 - [x] 截断单元格溢出提示事件
 - [ ] 行选择（Checkbox / 单选）

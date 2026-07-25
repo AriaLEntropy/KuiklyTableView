@@ -2,6 +2,7 @@ package com.arialentropy.kuiklytable
 
 import com.tencent.kuikly.core.base.*
 import com.tencent.kuikly.core.directives.vforIndex
+import com.tencent.kuikly.core.directives.vif
 import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.*
 import com.tencent.kuikly.core.views.*
@@ -38,7 +39,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     attr {
                         absolutePositionAllZero()
                         opacity(if (tableAttr.loading) 0.4f else 1f)
-                        touchEnable(!tableAttr.loading && tableAttr.errorText == null)
+                        touchEnable(!tableAttr.loading)
                     }
 
                     View {
@@ -178,12 +179,17 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 scroll { ctx.event.overflowTipDismiss?.invoke() }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
             }
-            tableAttr.data.forEachIndexed { index, item ->
-                ctx.renderTableRow(this, item, index)
-                View {
-                    attr {
-                        height(1f)
-                        backgroundColor(Color(tableAttr.themeColors.gridLine))
+            vif({ tableAttr.data.isEmpty() }) {
+                ctx.renderEmptyPlaceholder(this, width = ctx.contentWidth())
+            }
+            vif({ tableAttr.data.isNotEmpty() }) {
+                tableAttr.data.forEachIndexed { index, item ->
+                    ctx.renderTableRow(this, item, index)
+                    View {
+                        attr {
+                            height(1f)
+                            backgroundColor(Color(tableAttr.themeColors.gridLine))
+                        }
                     }
                 }
             }
@@ -311,23 +317,28 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 scroll { ctx.event.overflowTipDismiss?.invoke() }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
             }
-            View {
-                attr {
-                    marginTop(8f)
-                    marginLeft(8f)
-                    marginRight(8f)
-                    marginBottom(8f)
-                    borderRadius(8f)
-                    backgroundColor(Color(tableAttr.themeColors.cardBackground))
-                }
-                tableAttr.data.forEachIndexed { index, item ->
-                    ctx.renderMobileCard(this, item, index == tableAttr.data.lastIndex)
+            vif({ tableAttr.data.isEmpty() }) {
+                ctx.renderEmptyPlaceholder(this)
+            }
+            vif({ tableAttr.data.isNotEmpty() }) {
+                View {
+                    attr {
+                        marginTop(8f)
+                        marginLeft(8f)
+                        marginRight(8f)
+                        marginBottom(8f)
+                        borderRadius(8f)
+                        backgroundColor(Color(tableAttr.themeColors.cardBackground))
+                    }
+                    tableAttr.data.forEachIndexed { index, item ->
+                        ctx.renderMobileRow(this, item, index == tableAttr.data.lastIndex)
+                    }
                 }
             }
         }
     }
 
-    private fun renderMobileCard(container: ViewContainer<*, *>, item: T, isLast: Boolean) {
+    private fun renderMobileRow(container: ViewContainer<*, *>, item: T, isLast: Boolean) {
         val ctx = this
         val tableAttr = attr
         val primaryColumn = primaryMobileColumn() ?: return
@@ -404,6 +415,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             container.View {
                 attr {
                     height(1f)
+                    marginLeft(16f)
                     backgroundColor(Color(tableAttr.themeColors.gridLine))
                 }
             }
@@ -485,13 +497,11 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             }
             event {
                 click {
-                    // Consume state-layer taps so Loading/Empty/Error never leak rowClick to rows below.
+                    // Consume state-layer taps so Loading/Empty never leak rowClick to rows below.
                 }
             }
 
             ctx.renderLoadingState(this)
-            ctx.renderEmptyState(this)
-            ctx.renderErrorState(this)
         }
     }
 
@@ -519,14 +529,14 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
-    private fun renderEmptyState(container: ViewContainer<*, *>) {
-        val ctx = this
+    private fun renderEmptyPlaceholder(container: ViewContainer<*, *>, width: Float? = null) {
         val tableAttr = attr
         container.View {
             attr {
-                absolutePositionAllZero()
+                width?.let { width(it) }
+                height(180f)
                 allCenter()
-                visibility(ctx.shouldShowEmptyState())
+                backgroundColor(Color(tableAttr.themeColors.rowBackground))
             }
             Text {
                 attr {
@@ -541,60 +551,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     text(tableAttr.emptyText)
                     fontSize(14f)
                     color(Color(tableAttr.themeColors.stateText))
-                }
-            }
-        }
-    }
-
-    private fun renderErrorState(container: ViewContainer<*, *>) {
-        val ctx = this
-        val tableAttr = attr
-        container.View {
-            attr {
-                absolutePositionAllZero()
-                allCenter()
-                visibility(ctx.shouldShowErrorState())
-            }
-            Text {
-                attr {
-                    text("!")
-                    fontSize(28f)
-                    fontWeightBold()
-                    color(Color(tableAttr.themeColors.errorText))
-                    marginBottom(8f)
-                }
-            }
-            Text {
-                attr {
-                    text(tableAttr.errorText ?: "")
-                    fontSize(14f)
-                    color(Color(tableAttr.themeColors.stateText))
-                    marginBottom(12f)
-                }
-            }
-            View {
-                attr {
-                    visibility(ctx.event.retry != null)
-                    touchEnable(ctx.event.retry != null)
-                    paddingLeft(16f)
-                    paddingRight(16f)
-                    paddingTop(8f)
-                    paddingBottom(8f)
-                    borderRadius(16f)
-                    backgroundColor(Color(tableAttr.themeColors.actionText))
-                }
-                Text {
-                    attr {
-                        text(tableAttr.retryText)
-                        fontSize(13f)
-                        fontWeightMedium()
-                        color(Color(tableAttr.themeColors.actionTextOnFill))
-                    }
-                }
-                event {
-                    click {
-                        ctx.event.retry?.invoke()
-                    }
                 }
             }
         }
@@ -706,16 +662,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
 
     private fun hasStateLayer(): Boolean =
-        attr.loading || attr.errorText != null || attr.data.isEmpty()
-
-    private fun shouldShowEmptyState(): Boolean =
-        !attr.loading && attr.errorText == null && attr.data.isEmpty()
-
-    private fun shouldShowErrorState(): Boolean =
-        !attr.loading && attr.errorText != null
+        attr.loading
 
     private fun stateLayerBackground(): Long =
-        if (attr.loading) attr.themeColors.stateOverlayBackground else attr.themeColors.rowBackground
+        attr.themeColors.stateOverlayBackground
 
     private fun primaryMobileColumn(): ColumnModel<T>? =
         attr.mobilePrimaryColumnKey?.let { key ->
@@ -831,17 +781,11 @@ class TableAttr<T> : ComposeAttr() {
     /** Loading 状态；为 true 时保留旧内容并降低透明度。 */
     var loading: Boolean by observable(false)
 
-    /** Error 状态文案；非 null 时显示错误层。 */
-    var errorText: String? by observable(null)
-
     /** Empty 状态文案。 */
     var emptyText: String by observable("暂无数据")
 
     /** Loading 状态文案。 */
     var loadingText: String by observable("加载中…")
-
-    /** Retry 按钮文案。 */
-    var retryText: String by observable("重试")
 
     /** 是否启用默认文本单元格的溢出点击事件；自定义 renderer 不受此开关接管。 */
     var enableOverflowCellClick: Boolean by observable(true)
@@ -853,9 +797,6 @@ class TableAttr<T> : ComposeAttr() {
 class TableEvent<T> : ComposeEvent() {
     /** 行点击回调 */
     var rowClick: ((T) -> Unit)? = null
-
-    /** 错误状态重试回调 */
-    var retry: (() -> Unit)? = null
 
     /** 默认文本单元格被判断为溢出时触发；具体 tip/popover/sheet 由使用方决定。 */
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
