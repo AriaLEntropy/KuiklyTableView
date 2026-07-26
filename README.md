@@ -75,54 +75,25 @@ TableView
 
 ## 效果预览
 
-### 基础展示
+以下截图来自当前 `table_basic` 分章节 showcase，统一展示同一版页面结构与组件样式。
 
-列定义、行列渲染、斑马纹、列对齐、文字截断。五列模式支持横向滚动，表体纵向滚动时表头保持固定。
+### 静态预览
 
-<div align="center">
-  <img src="assets/table_st2_default.png" alt="五列宽表默认展示" width="420">
-  <img src="assets/table_st2_horizontal_scroll.gif" alt="横向滚动" width="420">
-</div>
+| **基础表格** | **双向滚动** |
+| :---: | :---: |
+| <img src="assets/table_showcase_basic.png" alt="基础表格默认样式、边框与斑马纹对照" width="420"> | <img src="assets/table_showcase_scroll.png" alt="宽表横向滚动到状态列并保持表头固定" width="420"> |
+| **主题定制** | **自定义 Renderer** |
+| <img src="assets/table_showcase_theme.png" alt="Light 与 Dark 主题对照" width="420"> | <img src="assets/table_showcase_renderer.png" alt="默认文本与头像、状态标签、Switch 自定义 renderer 对照" width="420"> |
+| **状态反馈** | **Table / List 模式** |
+| <img src="assets/table_showcase_state.png" alt="无数据状态反馈" width="420"> | <img src="assets/table_showcase_mode.png" alt="相同数据的 Table 与 List 模式对照" width="420"> |
 
-### 主题与自定义渲染
+宽表可横向浏览完整列并独立纵向滚动；主题示例直接对照 Light / Dark / Blue 语义色；Renderer 示例同时保留未配置时的默认文本 fallback。状态页支持正常、加载中、无数据三态，模式页由使用方显式选择 Table 或 List，不按列数自动切换。
 
-内置浅色 / 深色 / 蓝色三套主题预设，支持通过 `TableThemeColors` 覆盖任意语义色。状态列使用自定义 `cellRenderer` 渲染彩色标签。
+### 交互演示
 
-| 浅色主题 | 深色主题 | 蓝色主题 |
-| --- | --- | --- |
-| <img src="assets/table_st3_light.png" alt="浅色主题与自定义状态列" width="260"> | <img src="assets/table_st3_dark.png" alt="深色主题" width="260"> | <img src="assets/table_st3_blue.png" alt="蓝色主题" width="260"> |
-
-<div align="center">
-  <img src="assets/table_st3_custom_renderer_scroll.gif" alt="自定义状态列横向滚动" width="480">
-</div>
-
-### 自定义 Renderer 验证
-
-7 列模式用于验证 `cellRenderer` 可承载 KuiklyUI 子组件。表格不内置头像、状态标签或 Switch 业务列，这些内容都由使用方在 renderer 中自行实现。
-
-| 左侧：renderer 示例 + 姓名 + 年龄 + 邮箱 + 状态 | 横滑右侧：状态 + 城市 + renderer 示例 |
-| --- | --- |
-| <img src="assets/table_st6_rich_left.png" alt="自定义 renderer 左侧示例" width="320"> | <img src="assets/table_st6_rich_right.png" alt="自定义 renderer 右侧横滑示例" width="320"> |
-
-### 显式 List 模式
-
-List 模式不再按列数自动触发。Demo 中选择 `List 模式` 可切换为 grouped list 形态；选择 `Table 模式` 可回到表格形态。
-
-| List 模式 | Empty 状态 |
-| --- | --- |
-| <img src="assets/table_st4_mobile_list.png" alt="List 模式" width="320"> | <img src="assets/table_st4_empty.png" alt="Empty 状态层" width="320"> |
-
-<div align="center">
-  <img src="assets/table_st4_loading.png" alt="Loading 状态层" width="320">
-</div>
-
-### 溢出提示
-
-被截断的默认文本单元格支持点击触发溢出事件，Demo 使用该事件展示 title-like 全文提示。
-
-<div align="center">
-  <img src="assets/table_st5_overflow_popup.gif" alt="截断单元格点击显示溢出提示" width="360">
-</div>
+| **横纵双向滚动** | **正常 / 加载中 / 无数据** |
+| :---: | :---: |
+| <img src="assets/table_showcase_scroll_demo.gif" alt="宽表横向浏览完整列并纵向滚动数据" width="420"> | <img src="assets/table_showcase_state_demo.gif" alt="表格在正常、加载中和无数据状态之间切换" width="420"> |
 
 ## Showcase 与 Playground
 
@@ -132,7 +103,7 @@ List 模式不再按列数自动触发。Demo 中选择 `List 模式` 可切换�
 - **滚动**：5 列 × 20 行宽表，验证横纵滚动和固定表头开关。
 - **主题**：Light、Dark、Blue 三个小表格直接对照。
 - **自定义**：默认文本 fallback 与使用方 renderer 表格直接对照；头像、标签和 Switch 都由 Demo 代码实现。
-- **状态**：同一 Table 在正常、加载中和无数据之间切换。
+- **状态**：同一组 Table 配置在正常、加载中和无数据之间切换。
 - **模式**：相同数据的 Table 模式与 grouped List 模式对照。
 - **Playground**：集中调整列对齐、斑马纹、网格、行高、内边距、renderer 和溢出提示。
 
