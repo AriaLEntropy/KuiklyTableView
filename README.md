@@ -81,7 +81,7 @@ TableView
 
 | **基础表格** | **双向滚动** |
 | :---: | :---: |
-| <img src="assets/table_showcase_basic.png" alt="基础表格默认样式、边框与斑马纹对照" width="420"> | <img src="assets/table_showcase_scroll.png" alt="宽表横向滚动到状态列并保持表头固定" width="420"> |
+| <img src="assets/table_showcase_basic.png" alt="基础表格默认样式、边框与斑马纹对照" width="420"> | <img src="assets/table_showcase_scroll.png" alt="宽表从完整列起点展示固定表头" width="420"> |
 | **主题定制** | **自定义 Renderer** |
 | <img src="assets/table_showcase_theme.png" alt="Light 与 Dark 主题对照" width="420"> | <img src="assets/table_showcase_renderer.png" alt="默认文本与头像、状态标签、Switch 自定义 renderer 对照" width="420"> |
 | **状态反馈** | **Table / List 模式** |
@@ -94,6 +94,8 @@ TableView
 | **横纵双向滚动** | **正常 / 加载中 / 无数据** |
 | :---: | :---: |
 | <img src="assets/table_showcase_scroll_demo.gif" alt="宽表横向浏览完整列并纵向滚动数据" width="420"> | <img src="assets/table_showcase_state_demo.gif" alt="表格在正常、加载中和无数据状态之间切换" width="420"> |
+
+排序示例已在基础章节提供普通列/可排序列对照；未排序、升序、降序三态的独立录屏仍待补充，暂不以静态箭头替代交互证据。
 
 ## Showcase 与 Playground
 
@@ -197,7 +199,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | --- | --- | --- | --- |
 | `columns` | `ObservableList<ColumnModel<T>>` | 空列表 | 列定义列表 |
 | `data` | `List<T>` | `emptyList()` | 数据源 |
-| `rowKey` | `((T) -> Any)?` | `null` | 稳定业务行标识；建议使用 String/Int/Long。未配置时暂以源数据索引 fallback；经典 `vfor` 暂无 key selector |
+| `rowKey` | `((T) -> Any)?` | `null` | 当前数据集中唯一、数据更新前后稳定的业务行标识；建议使用 String/Int/Long。未配置时暂以源数据索引 fallback；经典 `vfor` 暂无 key selector，不宣称控制底层节点复用 |
 | `zebraStripe` | `Boolean` | `true` | 是否启用斑马纹 |
 | `bordered` | `Boolean` | `false` | 是否显示外框和竖向分隔线；水平分隔线始终显示 |
 | `cellPaddingH` | `Float` | `12f` | 单元格水平内边距 |
@@ -246,6 +248,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 ## Roadmap
 
+当前 KuiklyTable Basic：
+
 - [x] 列定义、行列渲染、列对齐、斑马纹、文字截断
 - [x] 横向滚动 + 纵向滚动 + 固定表头
 - [x] 边框、内边距、行高配置
@@ -254,14 +258,19 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 - [x] 默认 / 加载中 / 无数据状态层
 - [x] 显式 Table / List 模式
 - [x] 截断单元格溢出提示事件
-- [ ] 行选择（Checkbox / 单选）
 - [x] 单列排序
 - [ ] 自动序号列（暂不纳入当前 Demo）
-- [ ] 筛选
-- [ ] 分页
 - [x] 可配置固定表头
 - [ ] 左侧固定列（双 List 纵向同步待重新设计）
-- [ ] 大数据虚拟滚动（实验实现已移除，后续按独立可见窗口方案重新设计）
+- [ ] 大数据可见窗口渲染（旧实验已移除，后续重新设计）
+- [ ] 自定义 Empty / Loading renderer
+- [ ] 轻量加载更多回调
+- [ ] 对外滚动控制 API
+- [ ] 布局与数据管线单元测试
+- [ ] `rowKey` API 约束文档化
+- [ ] 尺寸预设（可选）
+
+行选择、过滤、分页、编辑等数据交互后续归入独立的 `KuiklyDataTable`；树形数据归入 `KuiklyTreeTable`。这些能力不计入当前 Basic 完成度。
 
 ## License
 
