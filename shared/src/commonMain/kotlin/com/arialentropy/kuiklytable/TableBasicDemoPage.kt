@@ -766,7 +766,7 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.View {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
-            SectionIntro("状态反馈", "同一个 Table 实例切换正常、加载和空数据路径。", { ctx.currentTheme() })
+            SectionIntro("状态反馈", "同一组 Table 配置切换正常、加载和空数据路径。", { ctx.currentTheme() })
             View {
                 attr { flexDirectionRow(); marginBottom(10f) }
                 listOf("正常", "加载中", "无数据").forEach { state ->
@@ -781,7 +781,15 @@ internal class TableBasicDemoPage : BasePager() {
             }
             View {
                 attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
-                ctx.renderTablePreview(this, ctx.columns3, if (ctx.tableState == "空") emptyList() else ctx.users.take(6), null, loading = ctx.tableState == "加载", theme = ctx.currentTheme())
+                vif({ ctx.tableState == "正常" }) {
+                    ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, theme = ctx.currentTheme())
+                }
+                vif({ ctx.tableState == "加载" }) {
+                    ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, loading = true, theme = ctx.currentTheme())
+                }
+                vif({ ctx.tableState == "空" }) {
+                    ctx.renderTablePreview(this, ctx.columns3, emptyList(), null, theme = ctx.currentTheme())
+                }
             }
         }
     }
