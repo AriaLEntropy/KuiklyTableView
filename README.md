@@ -199,7 +199,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | --- | --- | --- | --- |
 | `columns` | `ObservableList<ColumnModel<T>>` | 空列表 | 列定义列表 |
 | `data` | `List<T>` | `emptyList()` | 数据源 |
-| `rowKey` | `((T) -> Any)?` | `null` | 当前数据集中唯一、数据更新前后稳定的业务行标识；建议使用 String/Int/Long。未配置时暂以源数据索引 fallback；经典 `vfor` 暂无 key selector，不宣称控制底层节点复用 |
+| `rowKey` | `((T) -> Any)?` | `null` | 当前数据集中唯一、同一业务行在数据更新前后稳定的业务行标识；建议使用 String/Int/Long。未配置时使用源数据索引 fallback。重复 key 不支持，组件不会自动去重、改写或修复。该 key 用于派生行身份和后续行状态关联；经典 `vfor` 暂无 key selector，不宣称控制底层节点复用 |
 | `zebraStripe` | `Boolean` | `true` | 是否启用斑马纹 |
 | `bordered` | `Boolean` | `false` | 是否显示外框和竖向分隔线；水平分隔线始终显示 |
 | `cellPaddingH` | `Float` | `12f` | 单元格水平内边距 |
@@ -266,8 +266,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 - [ ] 自定义 Empty / Loading renderer
 - [ ] 轻量加载更多回调
 - [ ] 对外滚动控制 API
-- [ ] 布局与数据管线单元测试
-- [ ] `rowKey` API 约束文档化
+- [x] 布局与数据管线单元测试
+- [x] `rowKey` API 约束文档化
 - [ ] 尺寸预设（可选）
 
 行选择、过滤、分页、编辑等数据交互后续归入独立的 `KuiklyDataTable`；树形数据归入 `KuiklyTreeTable`。这些能力不计入当前 Basic 完成度。

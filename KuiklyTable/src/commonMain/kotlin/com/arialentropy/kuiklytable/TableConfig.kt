@@ -9,6 +9,15 @@ import com.tencent.kuikly.core.reactive.handler.observableList
 class TableAttr<T> : ComposeAttr() {
     var columns: ObservableList<ColumnModel<T>> by observableList()
     var data: List<T> by observable(emptyList())
+    /**
+     * Stable business identity for a source row.
+     *
+     * The value must be unique within the current [data] list and stable for the same
+     * business row across data updates. When omitted, the source index is used as a
+     * fallback key. Duplicate keys are unsupported; the table does not de-duplicate,
+     * rewrite, or repair them. The key is used by the table's derived row model and
+     * future row-scoped state, but it does not change classic vfor/vforIndex node diffing.
+     */
     var rowKey: ((T) -> Any)? by observable(null)
     var zebraStripe: Boolean by observable(true)
     var bordered: Boolean by observable(false)
