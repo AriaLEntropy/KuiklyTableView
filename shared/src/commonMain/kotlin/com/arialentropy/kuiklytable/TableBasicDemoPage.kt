@@ -286,6 +286,8 @@ internal class TableBasicDemoPage : BasePager() {
     private var overflowTipTop by observable(220f)
     private var overflowTipArrowLeft by observable(40f)
     private var scrollDemoTable: TableView<User>? = null
+    private var scrollDemoLimit by observable(12)
+    private var scrollDemoLoadingMore by observable(false)
     private var activeExample by observable("双向滚动")
     private var activeSection by observable("基础")
 
@@ -726,7 +728,7 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.View {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
-            SectionIntro("双向滚动", "5 列 × 20 行。横向滚动时表头同步，纵向滚动验证固定表头。", { ctx.currentTheme() })
+            SectionIntro("双向滚动", "5 列 × 20 行。横向滚动时表头同步，纵向滚动验证固定表头、滚动控制和轻量加载更多。", { ctx.currentTheme() })
             SettingSwitch("固定表头", if (ctx.fixedHeaderOn) "表头固定在列表上方" else "表头随内容滚动", ctx.fixedHeaderOn, { ctx.currentTheme() }) {
                 ctx.fixedHeaderOn = it
             }
@@ -738,17 +740,25 @@ internal class TableBasicDemoPage : BasePager() {
                 SegmentOption("滚到第16行", active = { false }, theme = { ctx.currentTheme() }) {
                     ctx.scrollDemoTable?.scrollToRow(15, animated = true)
                 }
+                SegmentOption("重置加载", active = { false }, theme = { ctx.currentTheme() }) {
+                    ctx.scrollDemoLimit = 12
+                    ctx.scrollDemoLoadingMore = false
+                    ctx.scrollDemoTable?.scrollToTop(animated = true)
+                }
             }
             View {
                 attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
                 ctx.renderTablePreview(
                     this,
                     listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
-                    ctx.users,
+                    ctx.users.take(ctx.scrollDemoLimit),
                     height = null,
                     fixedHeader = ctx.fixedHeaderOn,
                     fixedRowHeight = true,
                     theme = ctx.currentTheme(),
+                    hasMore = ctx.scrollDemoLimit < ctx.users.size,
+                    loadingMore = ctx.scrollDemoLoadingMore,
+                    onLoadMore = { ctx.loadMoreScrollRows() },
                     tableRef = { ctx.scrollDemoTable = it },
                 )
             }
@@ -911,6 +921,9 @@ internal class TableBasicDemoPage : BasePager() {
         controlledSortState: TableSortState = sortState,
         onSortChange: (TableSortState) -> Unit = { state -> sortState = state },
         customStateRenderer: Boolean = false,
+        hasMore: Boolean = false,
+        loadingMore: Boolean = false,
+        onLoadMore: (() -> Unit)? = null,
         tableRef: ((TableView<User>) -> Unit)? = null,
     ) {
         val ctx = this
@@ -942,6 +955,9 @@ internal class TableBasicDemoPage : BasePager() {
                     emptyRenderer = { ctx.renderCustomEmptyState(this) }
                     loadingRenderer = { ctx.renderCustomLoadingState(this) }
                 }
+                this.hasMore = hasMore
+                this.loadingMore = loadingMore
+                loadMoreThresholdRows = 3
                 enableOverflowCellClick = overflowEnabled
                 headerStyle = if (ctx.compactHeader) TableHeaderStyle(13f, TableHeaderFontWeight.Bold, 8f, 6f, 40f, 2f) else TableHeaderStyle.Default
             }
@@ -950,8 +966,16 @@ internal class TableBasicDemoPage : BasePager() {
                 overflowCellClick = { info -> ctx.showOverflowTip(info) }
                 overflowTipDismiss = { ctx.hideOverflowTip() }
                 sortChange = onSortChange
+                loadMore = { onLoadMore?.invoke() }
             }
         }
+    }
+
+    private fun loadMoreScrollRows() {
+        if (scrollDemoLoadingMore || scrollDemoLimit >= users.size) return
+        scrollDemoLoadingMore = true
+        scrollDemoLimit = min(scrollDemoLimit + 4, users.size)
+        scrollDemoLoadingMore = false
     }
 
     private fun tableStateLabel(): String = when (tableState) {

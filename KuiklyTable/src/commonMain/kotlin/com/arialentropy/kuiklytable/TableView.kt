@@ -27,6 +27,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     private var syncedVerticalOffset = Float.NaN
     private var mainBodyList: ListView<*, *>? = null
     private var fixedBodyList: ListView<*, *>? = null
+    private var lastLoadMoreTriggerRowCount: Int? = null
 
     override fun createAttr(): TableAttr<T> = TableAttr()
 
@@ -222,6 +223,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             event {
                 scroll { params ->
                     ctx.event.overflowTipDismiss?.invoke()
+                    if (region != TableColumnRegion.Fixed) ctx.maybeTriggerLoadMore(params)
                     if (region != TableColumnRegion.All &&
                         !ctx.syncingVerticalScroll &&
                         (ctx.syncedVerticalOffset.isNaN() || kotlin.math.abs(ctx.syncedVerticalOffset - params.offsetY) > 0.5f)
@@ -252,6 +254,9 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         ctx.renderBodyDivider(this)
                     }
                 }
+                if (region != TableColumnRegion.Fixed) {
+                    ctx.renderLoadMoreFooter(this, width = layout.contentWidth)
+                }
             }
         }
     }
@@ -273,6 +278,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     }
 
     private fun syncDisplayRows(rows: List<TableDisplayRow<T>>) {
+        val previousRows = displayRows.toList()
         if (displayRows.size != rows.size || displayRows.indices.any { currentIndex ->
                 val current = displayRows[currentIndex]
                 val next = rows[currentIndex]
@@ -280,6 +286,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             }
         ) {
             displayRows = ObservableList(rows.toMutableList())
+            syncLoadMoreTriggerState(previousRows, rows)
         }
     }
 
@@ -329,7 +336,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 backgroundColor(Color(tableAttr.themeColors.rowBackgroundAlt))
             }
             event {
-                scroll { ctx.event.overflowTipDismiss?.invoke() }
+                scroll { params ->
+                    ctx.event.overflowTipDismiss?.invoke()
+                    ctx.maybeTriggerLoadMore(params)
+                }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
             }
             vif({ ctx.displayRows.isEmpty() }) {
@@ -351,6 +361,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         }
                     }
                 }
+                ctx.renderLoadMoreFooter(this)
             }
         }
     }
@@ -510,6 +521,48 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     private fun stateLayerBackground(): Long =
         attr.themeColors.stateOverlayBackground
 
+    private fun maybeTriggerLoadMore(params: ScrollParams) {
+        if (!attr.hasMore || attr.loadingMore || displayRows.isEmpty() || event.loadMore == null) {
+            if (!attr.hasMore) lastLoadMoreTriggerRowCount = null
+            return
+        }
+        if (lastLoadMoreTriggerRowCount == displayRows.size) return
+        val remaining = params.contentHeight - params.offsetY - params.viewHeight
+        val threshold = estimatedRowScrollHeight() * max(attr.loadMoreThresholdRows, 0)
+        if (remaining <= threshold) {
+            lastLoadMoreTriggerRowCount = displayRows.size
+            event.loadMore?.invoke()
+        }
+    }
+
+    private fun renderLoadMoreFooter(container: ViewContainer<*, *>, width: Float? = null) {
+        val tableAttr = attr
+        container.View {
+            attr {
+                width?.let { width(it) }
+                height(if (tableAttr.hasMore || tableAttr.loadingMore) LOAD_MORE_FOOTER_HEIGHT else 0f)
+                allCenter()
+                backgroundColor(Color(tableAttr.themeColors.rowBackground))
+                visibility(tableAttr.hasMore || tableAttr.loadingMore)
+            }
+            if (tableAttr.loadingMore) {
+                ActivityIndicator {
+                    attr {
+                        isGrayStyle(true)
+                        marginRight(6f)
+                    }
+                }
+            }
+            Text {
+                attr {
+                    text(if (tableAttr.loadingMore) "加载更多中…" else "继续向下滚动加载更多")
+                    fontSize(12f)
+                    color(Color(tableAttr.themeColors.cellTextSecondary))
+                }
+            }
+        }
+    }
+
     private fun estimatedRowScrollHeight(): Float = when {
         attr.displayMode is TableDisplayMode.List -> LIST_ROW_HEIGHT_ESTIMATE
         effectiveRowHeight() > 0f -> effectiveRowHeight() + BODY_DIVIDER_HEIGHT
@@ -521,6 +574,12 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         mainBodyList?.setContentOffset(0f, targetOffset, animated)
         fixedBodyList?.setContentOffset(0f, targetOffset, animated)
         syncedVerticalOffset = targetOffset
+    }
+
+    private fun syncLoadMoreTriggerState(previousRows: List<TableDisplayRow<T>>, nextRows: List<TableDisplayRow<T>>) {
+        if (previousRows.size != nextRows.size || previousRows.map { it.key } != nextRows.map { it.key }) {
+            lastLoadMoreTriggerRowCount = null
+        }
     }
 
     private fun primaryMobileColumn(): ColumnModel<T>? =
@@ -536,6 +595,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     companion object {
         private const val DEFAULT_ROW_HEIGHT_ESTIMATE = 48f
         private const val BODY_DIVIDER_HEIGHT = 1f
+        private const val LOAD_MORE_FOOTER_HEIGHT = 44f
         private const val LIST_ROW_HEIGHT_ESTIMATE = 74f
     }
 }

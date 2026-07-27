@@ -46,6 +46,9 @@ class TableAttr<T> : ComposeAttr() {
     var emptyRenderer: (ViewContainer<*, *>.() -> Unit)? by observable(null)
     /** Custom Loading state content. When null, the built-in indicator and [loadingText] are used. */
     var loadingRenderer: (ViewContainer<*, *>.() -> Unit)? by observable(null)
+    var hasMore: Boolean by observable(false)
+    var loadingMore: Boolean by observable(false)
+    var loadMoreThresholdRows: Int by observable(3)
     var enableOverflowCellClick: Boolean by observable(true)
 }
 
@@ -54,4 +57,5 @@ class TableEvent<T> : ComposeEvent() {
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
     var overflowTipDismiss: (() -> Unit)? = null
     var sortChange: ((TableSortState) -> Unit)? = null
+    var loadMore: (() -> Unit)? = null
 }

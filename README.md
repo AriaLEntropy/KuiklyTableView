@@ -230,7 +230,16 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
 | `emptyRenderer` | `ViewContainer<*, *>.() -> Unit` | `null` | 自定义 Empty 状态内容；未配置时保留默认空态图形和 `emptyText` |
 | `loadingRenderer` | `ViewContainer<*, *>.() -> Unit` | `null` | 自定义 Loading 状态内容；未配置时保留默认加载指示和 `loadingText` |
+| `hasMore` | `Boolean` | `false` | 是否还有更多数据；为 `true` 时接近底部可触发 `loadMore` |
+| `loadingMore` | `Boolean` | `false` | 是否正在加载更多；为 `true` 时显示底部加载反馈并抑制重复触发 |
+| `loadMoreThresholdRows` | `Int` | `3` | 距底部约 N 行时触发加载更多；负数按 0 行处理 |
 | `enableOverflowCellClick` | `Boolean` | `true` | 是否为截断的默认文本单元格启用溢出点击事件 |
+
+### TableEvent
+
+| 事件 | 说明 |
+| --- | --- |
+| `loadMore` | `hasMore=true` 且接近底部时触发；组件不管理页码、网络请求或业务数据追加 |
 
 ### ColumnModel
 
