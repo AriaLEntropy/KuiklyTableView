@@ -38,6 +38,7 @@ KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使�
 - 基础展示：表头、数据行、斑马纹、默认水平分隔线、可选完整网格边框、行高和内边距配置。
 - 滚动：单个横向 `Scroller` 包裹表头和纵向 `List`，保证横向滚动时表头和内容同步；纵向滚动时表头固定。
 - 容器：Table Root 接收外部宽高或 flex，内部 Viewport 按组件实际 frame 解析列宽，不使用整个页面宽度替代组件宽度。
+- 宽度：`tableWidth` 默认为 `null`，沿父容器横向撑满，相当于 100% 宽度；配置数值后使用显式宽度。
 - 数据浏览：可排序列支持表头升序、降序、取消三态切换。
 - 固定能力：表头可配置固定或随内容滚动；固定列仍在重新验证，不进入当前 Demo。
 - 主题：内置 Light / Dark 预设，并支持通过 `TableThemeColors` 覆盖语义色。
@@ -100,6 +101,8 @@ TableView
 | <img src="assets/table_showcase_scroll_control_demo.gif" alt="滚动到第 16 行并回到顶部" width="420"> | <img src="assets/table_showcase_load_more_demo.gif" alt="触底追加数据并展示加载更多反馈" width="420"> |
 
 排序示例在基础章节提供普通列/可排序列对照；状态、滚动控制和加载更多示例分别验证默认 fallback、自定义 renderer、程序化滚动和业务层追加数据路径。
+
+固定列专项验证 GIF：`assets/table_showcase_fixed_column_demo.gif`。该能力仍属于 KuiklyTable 后续能力，当前 Demo 默认关闭固定列，GIF 仅用于记录专项验证结果。
 
 ## Showcase 与 Playground
 
@@ -171,6 +174,7 @@ TableView<User> {
             )
         )
         data = users
+        tableWidth = null // 默认沿父容器使用 100% 宽度
         rowKey = { user -> user.id }
         zebraStripe = true
         bordered = false

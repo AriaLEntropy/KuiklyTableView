@@ -23,8 +23,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private var displayRows: ObservableList<TableDisplayRow<T>> by observableList()
     private var viewportWidth by observable(0f)
-    private var syncingVerticalScroll = false
-    private var syncedVerticalOffset = Float.NaN
+    private var pendingScrollableOffset = Float.NaN
+    private var pendingFixedOffset = Float.NaN
     private var mainBodyList: ListView<*, *>? = null
     private var fixedBodyList: ListView<*, *>? = null
     private var lastLoadMoreTriggerRowCount: Int? = null
@@ -69,6 +69,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             View {
                 attr {
                     flex(1f)
+                    tableAttr.tableWidth?.let { width(it) } ?: alignSelfStretch()
                     positionRelative()
                     overflow(true)
                     backgroundColor(Color(tableAttr.themeColors.rowBackground))
@@ -163,7 +164,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         region: TableColumnRegion = TableColumnRegion.All,
     ) {
         val ctx = this
-        val tableAttr = attr
         val visibleColumns = layout.columnsFor(region)
         if (region == TableColumnRegion.Scrollable && layout.fixed.isNotEmpty()) {
             container.View {
@@ -224,15 +224,19 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 scroll { params ->
                     ctx.event.overflowTipDismiss?.invoke()
                     if (region != TableColumnRegion.Fixed) ctx.maybeTriggerLoadMore(params)
-                    if (region != TableColumnRegion.All &&
-                        !ctx.syncingVerticalScroll &&
-                        (ctx.syncedVerticalOffset.isNaN() || kotlin.math.abs(ctx.syncedVerticalOffset - params.offsetY) > 0.5f)
-                    ) {
-                        ctx.syncingVerticalScroll = true
-                        ctx.syncedVerticalOffset = params.offsetY
-                        val target = if (region == TableColumnRegion.Fixed) ctx.mainBodyList else ctx.fixedBodyList
+                    if (region != TableColumnRegion.All && !ctx.consumePendingSync(region, params.offsetY)) {
+                        val targetRegion = if (region == TableColumnRegion.Fixed) {
+                            TableColumnRegion.Scrollable
+                        } else {
+                            TableColumnRegion.Fixed
+                        }
+                        ctx.setPendingSync(targetRegion, params.offsetY)
+                        val target = if (targetRegion == TableColumnRegion.Fixed) {
+                            ctx.fixedBodyList
+                        } else {
+                            ctx.mainBodyList
+                        }
                         target?.setContentOffset(0f, params.offsetY)
-                        ctx.syncingVerticalScroll = false
                     }
                 }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
@@ -252,10 +256,14 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     View {
                         ctx.renderTableRowComponent(this, row, layout, region)
                         ctx.renderBodyDivider(this)
+                        if (row.displayIndex == ctx.displayRows.lastIndex) {
+                            ctx.renderLoadMoreFooter(
+                                this,
+                                width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
+                                visible = region != TableColumnRegion.Fixed,
+                            )
+                        }
                     }
-                }
-                if (region != TableColumnRegion.Fixed) {
-                    ctx.renderLoadMoreFooter(this, width = layout.contentWidth)
                 }
             }
         }
@@ -358,10 +366,12 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     vforIndex({ ctx.displayRows }) { row, index, count ->
                         View {
                             ctx.renderMobileRowComponent(this, row, index == count - 1)
+                            if (index == count - 1) {
+                                ctx.renderLoadMoreFooter(this)
+                            }
                         }
                     }
                 }
-                ctx.renderLoadMoreFooter(this)
             }
         }
     }
@@ -535,7 +545,11 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
-    private fun renderLoadMoreFooter(container: ViewContainer<*, *>, width: Float? = null) {
+    private fun renderLoadMoreFooter(
+        container: ViewContainer<*, *>,
+        width: Float? = null,
+        visible: Boolean = true,
+    ) {
         val tableAttr = attr
         container.View {
             attr {
@@ -543,7 +557,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 height(if (tableAttr.hasMore || tableAttr.loadingMore) LOAD_MORE_FOOTER_HEIGHT else 0f)
                 allCenter()
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
-                visibility(tableAttr.hasMore || tableAttr.loadingMore)
+                visibility(visible && (tableAttr.hasMore || tableAttr.loadingMore))
             }
             if (tableAttr.loadingMore) {
                 ActivityIndicator {
@@ -571,9 +585,32 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private fun setVerticalContentOffset(offsetY: Float, animated: Boolean) {
         val targetOffset = max(offsetY, 0f)
+        setPendingSync(TableColumnRegion.Scrollable, targetOffset)
         mainBodyList?.setContentOffset(0f, targetOffset, animated)
+        setPendingSync(TableColumnRegion.Fixed, targetOffset)
         fixedBodyList?.setContentOffset(0f, targetOffset, animated)
-        syncedVerticalOffset = targetOffset
+    }
+
+    private fun consumePendingSync(region: TableColumnRegion, offsetY: Float): Boolean {
+        val pendingOffset = when (region) {
+            TableColumnRegion.Fixed -> pendingFixedOffset
+            TableColumnRegion.Scrollable -> pendingScrollableOffset
+            TableColumnRegion.All -> Float.NaN
+        }
+        if (pendingOffset.isNaN()) return false
+        val matches = kotlin.math.abs(pendingOffset - offsetY) <= SCROLL_SYNC_TOLERANCE
+        if (matches) {
+            setPendingSync(region, Float.NaN)
+        }
+        return matches
+    }
+
+    private fun setPendingSync(region: TableColumnRegion, offsetY: Float) {
+        when (region) {
+            TableColumnRegion.Fixed -> pendingFixedOffset = offsetY
+            TableColumnRegion.Scrollable -> pendingScrollableOffset = offsetY
+            TableColumnRegion.All -> Unit
+        }
     }
 
     private fun syncLoadMoreTriggerState(previousRows: List<TableDisplayRow<T>>, nextRows: List<TableDisplayRow<T>>) {
@@ -597,6 +634,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         private const val BODY_DIVIDER_HEIGHT = 1f
         private const val LOAD_MORE_FOOTER_HEIGHT = 44f
         private const val LIST_ROW_HEIGHT_ESTIMATE = 74f
+        private const val SCROLL_SYNC_TOLERANCE = 1f
     }
 }
 

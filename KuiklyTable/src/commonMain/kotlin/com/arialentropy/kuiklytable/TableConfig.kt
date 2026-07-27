@@ -11,6 +11,10 @@ class TableAttr<T> : ComposeAttr() {
     var columns: ObservableList<ColumnModel<T>> by observableList()
     var data: List<T> by observable(emptyList())
     /**
+     * Table 根容器宽度。为 null 时沿父容器横向撑满，相当于 100% 宽度；配置数值时使用显式宽度。
+     */
+    var tableWidth: Float? by observable(null)
+    /**
      * 源数据行的稳定业务标识。
      *
      * 该值必须在当前 [data] 列表内唯一，并且同一业务行在数据更新前后保持稳定。

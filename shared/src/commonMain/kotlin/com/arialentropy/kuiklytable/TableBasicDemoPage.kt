@@ -471,43 +471,6 @@ internal class TableBasicDemoPage : BasePager() {
 
                 ConfigGroup("扩展能力", theme = { ctx.currentTheme() }) {
                     View {
-                        attr {
-                            minHeight(44f)
-                            flexDirectionRow()
-                            alignItemsCenter()
-                            marginBottom(8f)
-                        }
-                        View {
-                            attr { flex(1f); marginRight(12f) }
-                            Text {
-                                attr {
-                                    text("状态标签 renderer")
-                                    fontSize(13f)
-                                    color(Color(ctx.currentTheme().cellText))
-                                }
-                            }
-                            Text {
-                                attr {
-                                    text(if (ctx.customStatusRendererOn) "开启：Demo 绘制彩色标签" else "关闭：Table 渲染普通文本")
-                                    fontSize(11f)
-                                    color(Color(ctx.currentTheme().cellTextSecondary))
-                                    marginTop(3f)
-                                }
-                            }
-                        }
-                        Switch {
-                            attr {
-                                size(40f, 24f)
-                                isOn(ctx.customStatusRendererOn)
-                                onColor(Color(ctx.currentTheme().actionText))
-                                unOnColor(Color(ctx.currentTheme().gridLine))
-                            }
-                            event {
-                                switchOnChanged { enabled -> ctx.selectStatusRenderer(enabled) }
-                            }
-                        }
-                    }
-                    View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
                         ToggleChip(label = { "溢出提示 ${if (ctx.overflowTipOn) "开" else "关"}" }, active = { ctx.overflowTipOn }, theme = { ctx.currentTheme() }) {
                             ctx.overflowTipOn = !ctx.overflowTipOn
@@ -787,6 +750,14 @@ internal class TableBasicDemoPage : BasePager() {
         container.Scroller {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
             SectionIntro("自定义 renderer", "上方是不传 renderer 的默认文本；下方标签、头像和 Switch 都由 Demo 使用方代码绘制。", { ctx.currentTheme() })
+            ConfigGroup("状态 renderer fallback", theme = { ctx.currentTheme() }) {
+                SettingSwitch(
+                    "Empty / Loading renderer",
+                    if (ctx.customStateRendererOn) "Demo 使用方绘制自定义状态内容" else "Table 使用默认状态内容",
+                    ctx.customStateRendererOn,
+                    { ctx.currentTheme() },
+                ) { ctx.customStateRendererOn = it }
+            }
             ExampleCard("默认文本 fallback", "状态列未配置 cellRenderer。", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.statusTextColumn, ctx.ageColumn), ctx.users.take(3), 210f, theme = ctx.currentTheme())
             }
@@ -800,7 +771,7 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.View {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
-            SectionIntro("状态反馈", "同一组 Table 配置切换正常、加载和空数据路径，并验证默认状态层与自定义 renderer fallback。", { ctx.currentTheme() })
+            SectionIntro("状态反馈", "同一组 Table 配置切换正常、加载和空数据路径，并验证默认状态层。", { ctx.currentTheme() })
             View {
                 attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(10f) }
                 listOf("正常", "加载中", "无数据").forEach { state ->
@@ -811,12 +782,6 @@ internal class TableBasicDemoPage : BasePager() {
                             else -> "正常"
                         }
                     }
-                }
-                SegmentOption("默认状态层", active = { !ctx.customStateRendererOn }, theme = { ctx.currentTheme() }) {
-                    ctx.customStateRendererOn = false
-                }
-                SegmentOption("自定义 renderer", active = { ctx.customStateRendererOn }, theme = { ctx.currentTheme() }) {
-                    ctx.customStateRendererOn = true
                 }
             }
             View {
@@ -888,9 +853,7 @@ internal class TableBasicDemoPage : BasePager() {
                 }
                 ConfigGroup("Renderer 与提示", theme = { ctx.currentTheme() }) {
                     SettingSwitch("状态标签 renderer", if (ctx.customStatusRendererOn) "Demo 绘制彩色标签" else "Table 使用默认文本", ctx.customStatusRendererOn, { ctx.currentTheme() }) {
-                        ctx.customStatusRendererOn = it
-                        ctx.rendererExampleColumns = true
-                        ctx.syncActiveColumns()
+                        ctx.selectStatusRenderer(it)
                     }
                     SettingSwitch("溢出提示", "截断默认文本可点击查看全文", ctx.overflowTipOn, { ctx.currentTheme() }) {
                         ctx.overflowTipOn = it
@@ -930,6 +893,7 @@ internal class TableBasicDemoPage : BasePager() {
         container.TableView<User> {
             tableRef?.invoke(this)
             attr {
+                flex(1f)
                 if (height == null) flex(1f) else height(height)
                 this.columns.addAll(columns)
                 this.data = data
@@ -1320,7 +1284,7 @@ private fun ViewContainer<*, *>.ExampleCard(
             }
         }
         View {
-            attr { borderRadius(8f); overflow(true) }
+            attr { flex(1f); alignSelfStretch(); borderRadius(8f); overflow(true) }
             content()
         }
     }
