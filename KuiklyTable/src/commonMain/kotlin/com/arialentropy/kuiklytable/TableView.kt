@@ -406,17 +406,21 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 allCenter()
                 visibility(tableAttr.loading)
             }
-            ActivityIndicator {
-                attr {
-                    isGrayStyle(true)
-                    marginBottom(10f)
+            if (tableAttr.loadingRenderer != null) {
+                tableAttr.loadingRenderer?.invoke(this)
+            } else {
+                ActivityIndicator {
+                    attr {
+                        isGrayStyle(true)
+                        marginBottom(10f)
+                    }
                 }
-            }
-            Text {
-                attr {
-                    text(tableAttr.loadingText)
-                    fontSize(14f)
-                    color(Color(tableAttr.themeColors.stateText))
+                Text {
+                    attr {
+                        text(tableAttr.loadingText)
+                        fontSize(14f)
+                        color(Color(tableAttr.themeColors.stateText))
+                    }
                 }
             }
         }
@@ -431,19 +435,23 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 allCenter()
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
             }
-            Text {
-                attr {
-                    text("—")
-                    fontSize(36f)
-                    color(Color(tableAttr.themeColors.cellTextSecondary))
-                    marginBottom(8f)
+            if (tableAttr.emptyRenderer != null) {
+                tableAttr.emptyRenderer?.invoke(this)
+            } else {
+                Text {
+                    attr {
+                        text("—")
+                        fontSize(36f)
+                        color(Color(tableAttr.themeColors.cellTextSecondary))
+                        marginBottom(8f)
+                    }
                 }
-            }
-            Text {
-                attr {
-                    text(tableAttr.emptyText)
-                    fontSize(14f)
-                    color(Color(tableAttr.themeColors.stateText))
+                Text {
+                    attr {
+                        text(tableAttr.emptyText)
+                        fontSize(14f)
+                        color(Color(tableAttr.themeColors.stateText))
+                    }
                 }
             }
         }

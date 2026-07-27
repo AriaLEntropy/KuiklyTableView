@@ -2,6 +2,7 @@ package com.arialentropy.kuiklytable
 
 import com.tencent.kuikly.core.base.ComposeAttr
 import com.tencent.kuikly.core.base.ComposeEvent
+import com.tencent.kuikly.core.base.ViewContainer
 import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.observable
 import com.tencent.kuikly.core.reactive.handler.observableList
@@ -41,6 +42,10 @@ class TableAttr<T> : ComposeAttr() {
     var loading: Boolean by observable(false)
     var emptyText: String by observable("暂无数据")
     var loadingText: String by observable("加载中…")
+    /** Custom Empty state content. When null, the built-in empty icon and [emptyText] are used. */
+    var emptyRenderer: (ViewContainer<*, *>.() -> Unit)? by observable(null)
+    /** Custom Loading state content. When null, the built-in indicator and [loadingText] are used. */
+    var loadingRenderer: (ViewContainer<*, *>.() -> Unit)? by observable(null)
     var enableOverflowCellClick: Boolean by observable(true)
 }
 

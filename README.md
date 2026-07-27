@@ -221,6 +221,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `loading` | `Boolean` | `false` | Loading 状态；保留旧内容并降低透明度 |
 | `emptyText` | `String` | `"暂无数据"` | Empty 状态文案 |
 | `loadingText` | `String` | `"加载中…"` | Loading 状态文案 |
+| `emptyRenderer` | `ViewContainer<*, *>.() -> Unit` | `null` | 自定义 Empty 状态内容；未配置时保留默认空态图形和 `emptyText` |
+| `loadingRenderer` | `ViewContainer<*, *>.() -> Unit` | `null` | 自定义 Loading 状态内容；未配置时保留默认加载指示和 `loadingText` |
 | `enableOverflowCellClick` | `Boolean` | `true` | 是否为截断的默认文本单元格启用溢出点击事件 |
 
 ### ColumnModel

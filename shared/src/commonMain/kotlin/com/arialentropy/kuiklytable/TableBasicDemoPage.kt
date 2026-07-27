@@ -277,6 +277,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var customStatusRendererOn by observable(true)
     private var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     private var tableState by observable("正常")
+    private var customStateRendererOn by observable(false)
     private var overflowTipOn by observable(true)
     private var notifyStateById: Map<Int, Boolean> by observable(users.associate { it.id to (it.name.hashCode() % 2 == 0) })
     private var overflowTipVisible by observable(false)
@@ -545,6 +546,10 @@ internal class TableBasicDemoPage : BasePager() {
                         loading = ctx.tableState == "加载"
                         emptyText = "暂无员工数据"
                         loadingText = "正在加载员工数据"
+                        if (ctx.customStateRendererOn) {
+                            emptyRenderer = { ctx.renderCustomEmptyState(this) }
+                            loadingRenderer = { ctx.renderCustomLoadingState(this) }
+                        }
                         enableOverflowCellClick = ctx.overflowTipOn
                         headerStyle = if (ctx.compactHeader) {
                             TableHeaderStyle(
@@ -766,9 +771,9 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.View {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
-            SectionIntro("状态反馈", "同一组 Table 配置切换正常、加载和空数据路径。", { ctx.currentTheme() })
+            SectionIntro("状态反馈", "同一组 Table 配置切换正常、加载和空数据路径，并验证默认状态层与自定义 renderer fallback。", { ctx.currentTheme() })
             View {
-                attr { flexDirectionRow(); marginBottom(10f) }
+                attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(10f) }
                 listOf("正常", "加载中", "无数据").forEach { state ->
                     SegmentOption(state, active = { ctx.tableStateLabel() == state }, theme = { ctx.currentTheme() }) {
                         ctx.tableState = when (state) {
@@ -778,6 +783,12 @@ internal class TableBasicDemoPage : BasePager() {
                         }
                     }
                 }
+                SegmentOption("默认状态层", active = { !ctx.customStateRendererOn }, theme = { ctx.currentTheme() }) {
+                    ctx.customStateRendererOn = false
+                }
+                SegmentOption("自定义 renderer", active = { ctx.customStateRendererOn }, theme = { ctx.currentTheme() }) {
+                    ctx.customStateRendererOn = true
+                }
             }
             View {
                 attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
@@ -785,10 +796,10 @@ internal class TableBasicDemoPage : BasePager() {
                     ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, theme = ctx.currentTheme())
                 }
                 vif({ ctx.tableState == "加载" }) {
-                    ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, loading = true, theme = ctx.currentTheme())
+                    ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, loading = true, theme = ctx.currentTheme(), customStateRenderer = ctx.customStateRendererOn)
                 }
                 vif({ ctx.tableState == "空" }) {
-                    ctx.renderTablePreview(this, ctx.columns3, emptyList(), null, theme = ctx.currentTheme())
+                    ctx.renderTablePreview(this, ctx.columns3, emptyList(), null, theme = ctx.currentTheme(), customStateRenderer = ctx.customStateRendererOn)
                 }
             }
         }
@@ -880,6 +891,7 @@ internal class TableBasicDemoPage : BasePager() {
         overflowEnabled: Boolean = false,
         controlledSortState: TableSortState = sortState,
         onSortChange: (TableSortState) -> Unit = { state -> sortState = state },
+        customStateRenderer: Boolean = false,
     ) {
         val ctx = this
         container.TableView<User> {
@@ -905,6 +917,10 @@ internal class TableBasicDemoPage : BasePager() {
                 this.loading = loading
                 emptyText = "暂无员工数据"
                 loadingText = "正在加载员工数据"
+                if (customStateRenderer) {
+                    emptyRenderer = { ctx.renderCustomEmptyState(this) }
+                    loadingRenderer = { ctx.renderCustomLoadingState(this) }
+                }
                 enableOverflowCellClick = overflowEnabled
                 headerStyle = if (ctx.compactHeader) TableHeaderStyle(13f, TableHeaderFontWeight.Bold, 8f, 6f, 40f, 2f) else TableHeaderStyle.Default
             }
@@ -921,6 +937,64 @@ internal class TableBasicDemoPage : BasePager() {
         "加载" -> "加载中"
         "空" -> "无数据"
         else -> "正常"
+    }
+
+    private fun renderCustomEmptyState(container: ViewContainer<*, *>) {
+        val theme = currentTheme()
+        container.View {
+            attr {
+                allCenter()
+                padding(16f)
+            }
+            Text {
+                attr {
+                    text("暂无可展示员工")
+                    fontSize(16f)
+                    fontWeightSemiBold()
+                    color(Color(theme.actionText))
+                    marginBottom(6f)
+                }
+            }
+            Text {
+                attr {
+                    text("这是使用方 emptyRenderer，自定义空态内容")
+                    fontSize(12f)
+                    color(Color(theme.cellTextSecondary))
+                }
+            }
+        }
+    }
+
+    private fun renderCustomLoadingState(container: ViewContainer<*, *>) {
+        val theme = currentTheme()
+        container.View {
+            attr {
+                allCenter()
+                padding(16f)
+            }
+            ActivityIndicator {
+                attr {
+                    isGrayStyle(false)
+                    marginBottom(8f)
+                }
+            }
+            Text {
+                attr {
+                    text("自定义加载中")
+                    fontSize(16f)
+                    fontWeightSemiBold()
+                    color(Color(theme.actionText))
+                    marginBottom(6f)
+                }
+            }
+            Text {
+                attr {
+                    text("这是使用方 loadingRenderer")
+                    fontSize(12f)
+                    color(Color(theme.cellTextSecondary))
+                }
+            }
+        }
     }
 
     private fun renderOverflowTip(container: ViewContainer<*, *>) {
