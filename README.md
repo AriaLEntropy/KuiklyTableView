@@ -94,8 +94,12 @@ TableView
 | **横纵双向滚动** | **正常 / 加载中 / 无数据** |
 | :---: | :---: |
 | <img src="assets/table_showcase_scroll_demo.gif" alt="宽表横向浏览完整列并纵向滚动数据" width="420"> | <img src="assets/table_showcase_state_demo.gif" alt="表格在正常、加载中和无数据状态之间切换" width="420"> |
+| **排序三态** | **状态 Renderer** |
+| <img src="assets/table_showcase_sort_demo.gif" alt="普通列与可排序列对照，年龄列三态排序" width="420"> | <img src="assets/table_showcase_state_renderer_demo.gif" alt="默认状态层与自定义 Empty / Loading renderer 对照" width="420"> |
+| **滚动控制** | **加载更多** |
+| <img src="assets/table_showcase_scroll_control_demo.gif" alt="滚动到第 16 行并回到顶部" width="420"> | <img src="assets/table_showcase_load_more_demo.gif" alt="触底追加数据并展示加载更多反馈" width="420"> |
 
-排序示例已在基础章节提供普通列/可排序列对照；未排序、升序、降序三态的独立录屏仍待补充，暂不以静态箭头替代交互证据。
+排序示例在基础章节提供普通列/可排序列对照；状态、滚动控制和加载更多示例分别验证默认 fallback、自定义 renderer、程序化滚动和业务层追加数据路径。
 
 ## Showcase 与 Playground
 
