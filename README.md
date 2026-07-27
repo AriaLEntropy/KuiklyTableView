@@ -1,8 +1,8 @@
 # KuiklyTable
 
-本仓库是 KuiklyUI 表格组件活动的独立仓库作答。仓库本身就是交付物，包含表格组件实现、showcase 验证页面、跨端宿主工程和截图/GIF 验收材料。
+本仓库是 KuiklyUI 犀牛鸟Issue表格组件活动的独立仓库作答。包含表格组件实现、showcase 验证页面、跨端宿主工程和截图/GIF 验收材料。
 
-KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使用 `View`、`Text`、`Scroller`、`List` 等基础组件组合渲染，不依赖平台原生 Table 控件。当前重点是 Simple Table 展示能力和 Data Table Basic 交互能力的逐步验证。
+KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使用 `View`、`Text`、`Scroller`、`List` 等基础组件组合渲染。当前重点是 Simple Table 展示能力和 Data Table Basic 交互能力的逐步验证。
 
 ## 快速运行
 
