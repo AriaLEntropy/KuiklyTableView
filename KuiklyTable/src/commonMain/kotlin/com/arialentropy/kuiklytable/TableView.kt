@@ -414,7 +414,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             }
             event {
                 click {
-                    // Consume state-layer taps so Loading/Empty never leak rowClick to rows below.
+                    // 消费状态层点击，避免 Loading/Empty 点击透传到底部行。
                 }
             }
 

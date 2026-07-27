@@ -608,7 +608,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                     event {
                         click {
-                            // Consume taps inside the title-like tip.
+                            // 消费全文提示内部点击，避免透传关闭浮层。
                         }
                     }
                     Text {

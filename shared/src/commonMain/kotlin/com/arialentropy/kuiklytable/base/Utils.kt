@@ -11,7 +11,7 @@ internal object Utils : BaseObject() {
     }
 
     fun logToNative(pagerId: String, content: String) {
-        // logToNaive
+        // 输出到 Native 日志
         bridgeModule(pagerId).log(content)
     }
 

@@ -11,13 +11,12 @@ class TableAttr<T> : ComposeAttr() {
     var columns: ObservableList<ColumnModel<T>> by observableList()
     var data: List<T> by observable(emptyList())
     /**
-     * Stable business identity for a source row.
+     * 源数据行的稳定业务标识。
      *
-     * The value must be unique within the current [data] list and stable for the same
-     * business row across data updates. When omitted, the source index is used as a
-     * fallback key. Duplicate keys are unsupported; the table does not de-duplicate,
-     * rewrite, or repair them. The key is used by the table's derived row model and
-     * future row-scoped state, but it does not change classic vfor/vforIndex node diffing.
+     * 该值必须在当前 [data] 列表内唯一，并且同一业务行在数据更新前后保持稳定。
+     * 未配置时使用源数据索引作为 fallback key。重复 key 不受支持，组件不会自动去重、
+     * 改写或修复。该 key 用于表格内部派生行身份和后续行级状态关联，
+     * 但不改变经典 vfor/vforIndex 的底层节点 diff 行为。
      */
     var rowKey: ((T) -> Any)? by observable(null)
     var zebraStripe: Boolean by observable(true)
@@ -42,9 +41,9 @@ class TableAttr<T> : ComposeAttr() {
     var loading: Boolean by observable(false)
     var emptyText: String by observable("暂无数据")
     var loadingText: String by observable("加载中…")
-    /** Custom Empty state content. When null, the built-in empty icon and [emptyText] are used. */
+    /** 自定义 Empty 状态内容；为 null 时使用内置空态图形和 [emptyText]。 */
     var emptyRenderer: (ViewContainer<*, *>.() -> Unit)? by observable(null)
-    /** Custom Loading state content. When null, the built-in indicator and [loadingText] are used. */
+    /** 自定义 Loading 状态内容；为 null 时使用内置加载指示和 [loadingText]。 */
     var loadingRenderer: (ViewContainer<*, *>.() -> Unit)? by observable(null)
     var hasMore: Boolean by observable(false)
     var loadingMore: Boolean by observable(false)

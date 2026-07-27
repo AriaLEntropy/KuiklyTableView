@@ -121,7 +121,7 @@ internal class BridgeModule : Module() {
         val methodArgs = JSONObject()
         methodArgs.put("eventCode", eventCode)
         methodArgs.put("data", data)
-        // methodArgs.put("realtime", 1)
+        // 如需实时上报，可补充 realtime 参数。
         callNativeMethod(REPORT_DT, methodArgs, null)
     }
 

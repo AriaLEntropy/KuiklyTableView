@@ -247,7 +247,7 @@ internal class RouterNavigationBar : ComposeView<RouterNavigationBarAttr, Compos
                     paddingTop(ctx.pagerData.statusBarHeight)
                     backgroundColor(Color.WHITE)
                 }
-                // nav bar
+                // 导航栏
                 View {
                     attr {
                         height(44f)
