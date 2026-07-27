@@ -32,6 +32,16 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     override fun createEvent(): TableEvent<T> = TableEvent()
 
+    fun scrollToTop(animated: Boolean = false) {
+        setVerticalContentOffset(0f, animated)
+    }
+
+    fun scrollToRow(index: Int, animated: Boolean = false) {
+        if (index < 0 || displayRows.isEmpty()) return
+        val targetIndex = index.coerceAtMost(displayRows.lastIndex)
+        setVerticalContentOffset(targetIndex * estimatedRowScrollHeight(), animated)
+    }
+
     override fun created() {
         bindValueChange(
             valueBlock = {
@@ -204,6 +214,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             val listView = this
             if (region == TableColumnRegion.Scrollable) ctx.mainBodyList = listView
             if (region == TableColumnRegion.Fixed) ctx.fixedBodyList = listView
+            if (region == TableColumnRegion.All) ctx.mainBodyList = listView
             attr {
                 flex(1f)
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
@@ -311,6 +322,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         val ctx = this
         val tableAttr = attr
         container.List {
+            val listView = this
+            ctx.mainBodyList = listView
             attr {
                 flex(1f)
                 backgroundColor(Color(tableAttr.themeColors.rowBackgroundAlt))
@@ -497,6 +510,19 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     private fun stateLayerBackground(): Long =
         attr.themeColors.stateOverlayBackground
 
+    private fun estimatedRowScrollHeight(): Float = when {
+        attr.displayMode is TableDisplayMode.List -> LIST_ROW_HEIGHT_ESTIMATE
+        effectiveRowHeight() > 0f -> effectiveRowHeight() + BODY_DIVIDER_HEIGHT
+        else -> DEFAULT_ROW_HEIGHT_ESTIMATE + BODY_DIVIDER_HEIGHT
+    }
+
+    private fun setVerticalContentOffset(offsetY: Float, animated: Boolean) {
+        val targetOffset = max(offsetY, 0f)
+        mainBodyList?.setContentOffset(0f, targetOffset, animated)
+        fixedBodyList?.setContentOffset(0f, targetOffset, animated)
+        syncedVerticalOffset = targetOffset
+    }
+
     private fun primaryMobileColumn(): ColumnModel<T>? =
         attr.listPrimaryColumnKey?.let { key ->
             attr.columns.firstOrNull { it.key == key }
@@ -509,6 +535,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     companion object {
         private const val DEFAULT_ROW_HEIGHT_ESTIMATE = 48f
+        private const val BODY_DIVIDER_HEIGHT = 1f
+        private const val LIST_ROW_HEIGHT_ESTIMATE = 74f
     }
 }
 

@@ -285,6 +285,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var overflowTipLeft by observable(24f)
     private var overflowTipTop by observable(220f)
     private var overflowTipArrowLeft by observable(40f)
+    private var scrollDemoTable: TableView<User>? = null
     private var activeExample by observable("双向滚动")
     private var activeSection by observable("基础")
 
@@ -730,8 +731,26 @@ internal class TableBasicDemoPage : BasePager() {
                 ctx.fixedHeaderOn = it
             }
             View {
+                attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(10f) }
+                SegmentOption("回到顶部", active = { false }, theme = { ctx.currentTheme() }) {
+                    ctx.scrollDemoTable?.scrollToTop(animated = true)
+                }
+                SegmentOption("滚到第16行", active = { false }, theme = { ctx.currentTheme() }) {
+                    ctx.scrollDemoTable?.scrollToRow(15, animated = true)
+                }
+            }
+            View {
                 attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
-                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn), ctx.users, height = null, fixedHeader = ctx.fixedHeaderOn, theme = ctx.currentTheme())
+                ctx.renderTablePreview(
+                    this,
+                    listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
+                    ctx.users,
+                    height = null,
+                    fixedHeader = ctx.fixedHeaderOn,
+                    fixedRowHeight = true,
+                    theme = ctx.currentTheme(),
+                    tableRef = { ctx.scrollDemoTable = it },
+                )
             }
         }
     }
@@ -892,9 +911,11 @@ internal class TableBasicDemoPage : BasePager() {
         controlledSortState: TableSortState = sortState,
         onSortChange: (TableSortState) -> Unit = { state -> sortState = state },
         customStateRenderer: Boolean = false,
+        tableRef: ((TableView<User>) -> Unit)? = null,
     ) {
         val ctx = this
         container.TableView<User> {
+            tableRef?.invoke(this)
             attr {
                 if (height == null) flex(1f) else height(height)
                 this.columns.addAll(columns)

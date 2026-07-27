@@ -193,6 +193,13 @@ TableView<User> {
 fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 ```
 
+程序化滚动控制可通过持有 `TableView` 实例调用：
+
+| 方法 | 说明 |
+| --- | --- |
+| `scrollToTop(animated: Boolean = false)` | 滚动到当前 Table/List 内容顶部 |
+| `scrollToRow(index: Int, animated: Boolean = false)` | 滚动到指定展示行；越界 index 会就近处理，动态行高和 List 模式使用估算高度 |
+
 ### TableAttr
 
 | 属性 | 类型 | 默认值 | 说明 |
