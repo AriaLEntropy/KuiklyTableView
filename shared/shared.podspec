@@ -3,7 +3,7 @@ Pod::Spec.new do |spec|
     spec.version                  = '1.0'
     spec.homepage                 = 'https://github.com/AriaLEntropy/KuiklyTableView'
     spec.source                   = { :http=> ''}
-    spec.authors                  = 'AriaLEntropy'
+    spec.authors                  = ''
     spec.license                  = 'MIT'
     spec.summary                  = 'Demo host module for KuiklyTable.'
     spec.vendored_frameworks      = 'build/cocoapods/framework/shared.framework'
