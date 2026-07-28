@@ -101,8 +101,10 @@ TableView
 | <img src="assets/table_showcase_scroll_control_demo.gif" alt="滚动到第 16 行并回到顶部" width="420"> | <img src="assets/table_showcase_load_more_demo.gif" alt="触底追加数据并展示加载更多反馈" width="420"> |
 | **主题语义色** | **自定义 Renderer** |
 | <img src="assets/table_showcase_theme_demo.gif" alt="Light、Dark、Blue 主题语义色对照" width="420"> | <img src="assets/table_showcase_renderer_demo.gif" alt="默认文本与使用方自定义 renderer 对照" width="420"> |
+| **外框三态** |  |
+| <img src="assets/table_showcase_border_demo.gif" alt="无外框、主题默认外框和自定义外框三态切换" width="420"> |  |
 
-排序示例在基础章节提供普通列/可排序列对照；状态、滚动控制和加载更多示例分别验证默认 fallback、自定义 renderer、程序化滚动和业务层追加数据路径。
+排序示例在基础章节提供普通列/可排序列对照；外框示例验证无外框、主题默认外框和自定义外框三态；状态、滚动控制和加载更多示例分别验证默认 fallback、自定义 renderer、程序化滚动和业务层追加数据路径。
 
 固定列专项验证 GIF：`assets/table_showcase_fixed_column_demo.gif`。该能力仍属于 KuiklyTable 后续能力，当前 Demo 默认关闭固定列，GIF 仅用于记录专项验证结果。
 
