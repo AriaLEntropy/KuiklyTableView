@@ -37,12 +37,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         setVerticalContentOffset(0f, animated)
     }
 
-    fun scrollToRow(index: Int, animated: Boolean = false) {
-        if (index < 0 || displayRows.isEmpty()) return
-        val targetIndex = index.coerceAtMost(displayRows.lastIndex)
-        setVerticalContentOffset(targetIndex * estimatedRowScrollHeight(), animated)
-    }
-
     override fun created() {
         bindValueChange(
             valueBlock = {
@@ -72,9 +66,21 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     tableAttr.tableWidth?.let { width(it) } ?: alignSelfStretch()
                     positionRelative()
                     overflow(true)
-                    tableAttr.cornerRadius.takeIf { it > 0f }?.let { borderRadius(it) }
-                    tableAttr.borderMode.borderSpec(tableAttr.themeColors)?.let { border(it) }
-                    backgroundColor(Color(tableAttr.themeColors.rowBackground))
+                    // 必须每次都写入，条件跳过会导致 None/0 无法清掉上一帧的边框与圆角
+                    borderRadius(tableAttr.cornerRadius.coerceAtLeast(0f))
+                    border(
+                        tableAttr.borderMode.borderSpec(tableAttr.themeColors)
+                            ?: Border(0f, BorderStyle.SOLID, Color(0x00000000)),
+                    )
+                    backgroundColor(
+                        Color(
+                            if (ctx.shouldRenderMobileList()) {
+                                tableAttr.themeColors.cardBackground
+                            } else {
+                                tableAttr.themeColors.rowBackground
+                            },
+                        ),
+                    )
                 }
 
                 View {
@@ -83,27 +89,13 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         opacity(if (tableAttr.loading) 0.4f else 1f)
                         touchEnable(!tableAttr.loading)
                     }
-
-                    View {
-                        attr {
-                            absolutePositionAllZero()
-                            visibility(!ctx.shouldRenderMobileList())
-                            touchEnable(!ctx.shouldRenderMobileList())
-                        }
-                        vif({ ctx.viewportWidth > 0f }) {
-                            ctx.renderTableLayout(this)
-                        }
+                    // 互斥创建：两套布局若同时挂载，后执行的 List 会覆盖 mainBodyList，
+                    // 导致 scrollToTop 作用到隐藏列表上。
+                    vif({ ctx.viewportWidth > 0f && !ctx.shouldRenderMobileList() }) {
+                        ctx.renderTableLayout(this)
                     }
-
-                    View {
-                        attr {
-                            absolutePositionAllZero()
-                            visibility(ctx.shouldRenderMobileList())
-                            touchEnable(ctx.shouldRenderMobileList())
-                        }
-                        vif({ ctx.viewportWidth > 0f }) {
-                            ctx.renderMobileListLayout(this)
-                        }
+                    vif({ ctx.viewportWidth > 0f && ctx.shouldRenderMobileList() }) {
+                        ctx.renderMobileListLayout(this)
                     }
                 }
 
@@ -340,7 +332,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             ctx.mainBodyList = listView
             attr {
                 flex(1f)
-                backgroundColor(Color(tableAttr.themeColors.rowBackgroundAlt))
+                // 外框与圆角由 Table 根容器统一绘制，List 内容不再套一层卡片。
+                backgroundColor(Color(tableAttr.themeColors.cardBackground))
             }
             event {
                 scroll { params ->
@@ -353,21 +346,11 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 ctx.renderEmptyPlaceholder(this)
             }
             vif({ ctx.displayRows.isNotEmpty() }) {
-                View {
-                    attr {
-                        marginTop(8f)
-                        marginLeft(8f)
-                        marginRight(8f)
-                        marginBottom(8f)
-                        borderRadius(8f)
-                        backgroundColor(Color(tableAttr.themeColors.cardBackground))
-                    }
-                    vforIndex({ ctx.displayRows }) { row, index, count ->
-                        View {
-                            ctx.renderMobileRowComponent(this, row, index == count - 1)
-                            if (index == count - 1) {
-                                ctx.renderLoadMoreFooter(this)
-                            }
+                vforIndex({ ctx.displayRows }) { row, index, count ->
+                    View {
+                        ctx.renderMobileRowComponent(this, row, index == count - 1)
+                        if (index == count - 1) {
+                            ctx.renderLoadMoreFooter(this)
                         }
                     }
                 }
@@ -404,6 +387,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 attr {
                     height(1f)
                     marginLeft(16f)
+                    marginRight(16f)
                     backgroundColor(Color(tableAttr.themeColors.gridLine))
                 }
             }

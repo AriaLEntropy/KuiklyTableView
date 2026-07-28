@@ -24,10 +24,19 @@ class TableAttr<T> : ComposeAttr() {
      */
     var rowKey: ((T) -> Any)? by observable(null)
     var zebraStripe: Boolean by observable(true)
-    /** Table 根容器外框；Default 使用 [themeColors.gridLine]。 */
-    var borderMode: TableBorderMode by observable(TableBorderMode.None)
-    /** Table 根容器圆角，单位为 dp。 */
-    var cornerRadius: Float by observable(0f)
+    /**
+     * Table 根容器外框。
+     *
+     * 默认 [TableBorderMode.Default]：1dp，颜色取 [themeColors.gridLine]。
+     * [TableBorderMode.None] 关闭外框和列间竖线；[TableBorderMode.Custom] 指定颜色与宽度。
+     */
+    var borderMode: TableBorderMode by observable(TableBorderMode.Default)
+    /**
+     * Table 根容器圆角，单位为 dp。
+     *
+     * 默认 [TableCornerRadius.Default]（8dp）；设为 [TableCornerRadius.None]（0）关闭圆角。
+     */
+    var cornerRadius: Float by observable(TableCornerRadius.Default)
     var cellPaddingH: Float by observable(12f)
     var cellPaddingV: Float by observable(10f)
     var rowHeight: Float by observable(0f)

@@ -105,7 +105,7 @@ internal class TableHeaderRowAttr<T> : ComposeAttr() {
     var columns: List<TableResolvedColumn<T>> by observable(emptyList())
     var sortState: TableSortState by observable(TableSortState())
     var indexColumnTitle: String by observable("序号")
-    var borderMode: TableBorderMode by observable(TableBorderMode.None)
+    var borderMode: TableBorderMode by observable(TableBorderMode.Default)
     var themeColors: TableThemeColors by observable(TableThemeColors())
     var headerStyle: TableHeaderStyle by observable(TableHeaderStyle.Default)
 }
