@@ -72,6 +72,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     tableAttr.tableWidth?.let { width(it) } ?: alignSelfStretch()
                     positionRelative()
                     overflow(true)
+                    tableAttr.cornerRadius.takeIf { it > 0f }?.let { borderRadius(it) }
+                    tableAttr.borderMode.borderSpec(tableAttr.themeColors)?.let { border(it) }
                     backgroundColor(Color(tableAttr.themeColors.rowBackground))
                 }
 
@@ -118,9 +120,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             attr {
                 flex(1f)
                 positionRelative()
-                if (tableAttr.bordered) {
-                    border(Border(1f, BorderStyle.SOLID, Color(tableAttr.themeColors.gridLine)))
-                }
             }
             Scroller {
                 attr {
@@ -189,7 +188,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         target.columns = columns
         target.sortState = attr.sortState
         target.indexColumnTitle = attr.indexColumnTitle
-        target.bordered = attr.bordered
+        target.borderMode = attr.borderMode
         target.themeColors = attr.themeColors
         target.headerStyle = attr.headerStyle
     }
@@ -319,7 +318,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     columns = visibleColumns
                     rowHeight = ctx.effectiveRowHeight()
                     zebraStripe = ctx.attr.zebraStripe
-                    bordered = ctx.attr.bordered
+                    borderMode = ctx.attr.borderMode
                     cellPaddingH = ctx.attr.cellPaddingH
                     cellPaddingV = ctx.attr.cellPaddingV
                     themeColors = ctx.attr.themeColors

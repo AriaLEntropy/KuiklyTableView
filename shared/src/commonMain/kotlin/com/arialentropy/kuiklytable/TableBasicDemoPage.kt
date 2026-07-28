@@ -266,7 +266,7 @@ internal class TableBasicDemoPage : BasePager() {
     private var activeColumns: ObservableList<ColumnModel<User>> by observableList()
     private var selectedColumn by observable<ColumnModel<User>>(ageColumn)
     private var zebraOn by observable(true)             // 斑马纹
-    private var borderedOn by observable(false)         // 列边框
+    private var tableBorderMode: TableBorderMode by observable(TableBorderMode.None)
     private var compactPadding by observable(false)     // 紧凑内边距
     private var fixedRowHeight by observable(false)     // 固定行高
     private var fixedHeaderOn by observable(true)
@@ -460,8 +460,14 @@ internal class TableBasicDemoPage : BasePager() {
                         ToggleChip(label = { "斑马纹 ${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }, theme = { ctx.currentTheme() }) {
                             ctx.zebraOn = !ctx.zebraOn
                         }
-                        ToggleChip(label = { "网格边框 ${if (ctx.borderedOn) "开" else "关"}" }, active = { ctx.borderedOn }, theme = { ctx.currentTheme() }) {
-                            ctx.borderedOn = !ctx.borderedOn
+                        listOf("无外框", "默认外框", "自定义外框").forEach { mode ->
+                            ToggleChip(label = { mode }, active = { ctx.tableBorderModeLabel() == mode }, theme = { ctx.currentTheme() }) {
+                                ctx.tableBorderMode = when (mode) {
+                                    "默认外框" -> TableBorderMode.Default
+                                    "自定义外框" -> TableBorderMode.Custom(0xFF2E77E5, 2f)
+                                    else -> TableBorderMode.None
+                                }
+                            }
                         }
                         ToggleChip(label = { "表头 ${if (ctx.compactHeader) "紧凑" else "标准"}" }, active = { ctx.compactHeader }, theme = { ctx.currentTheme() }) {
                             ctx.compactHeader = !ctx.compactHeader
@@ -495,7 +501,8 @@ internal class TableBasicDemoPage : BasePager() {
                         columns = ctx.activeColumns
                         rowKey = { user -> user.id }
                         zebraStripe = ctx.zebraOn
-                        bordered = ctx.borderedOn
+                        borderMode = ctx.tableBorderMode
+                        cornerRadius = if (ctx.tableBorderMode is TableBorderMode.None) 0f else 8f
                         cellPaddingH = if (ctx.compactPadding) 8f else 12f
                         cellPaddingV = if (ctx.compactPadding) 6f else 10f
                         rowHeight = if (ctx.fixedRowHeight) 48f else 0f
@@ -648,8 +655,20 @@ internal class TableBasicDemoPage : BasePager() {
             ExampleCard("默认样式", "3 列 × 4 行，使用默认文本、水平分隔线和自适应行高。", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(this, ctx.basicColumns, ctx.users.take(4), height = 248f, zebra = false, theme = ctx.currentTheme())
             }
-            ExampleCard("边框与斑马纹", "同一份数据开启完整网格和斑马纹。", { ctx.currentTheme() }) {
-                ctx.renderTablePreview(this, ctx.basicColumns, ctx.users.take(4), height = 248f, bordered = true, zebra = true, theme = ctx.currentTheme())
+            ExampleCard("外框、圆角与斑马纹", "切换无外框、主题默认外框和 2dp 蓝色自定义外框；外框开启时圆角为 8dp。", { ctx.currentTheme() }) {
+                View {
+                    attr { flexDirectionRow(); marginBottom(8f) }
+                    listOf("无外框", "默认外框", "自定义外框").forEach { mode ->
+                        SegmentOption(mode, active = { ctx.tableBorderModeLabel() == mode }, theme = { ctx.currentTheme() }) {
+                            ctx.tableBorderMode = when (mode) {
+                                "默认外框" -> TableBorderMode.Default
+                                "自定义外框" -> TableBorderMode.Custom(0xFF2E77E5, 2f)
+                                else -> TableBorderMode.None
+                            }
+                        }
+                    }
+                }
+                ctx.renderTablePreview(this, ctx.basicColumns, ctx.users.take(4), height = 248f, borderMode = ctx.tableBorderMode, zebra = true, theme = ctx.currentTheme())
             }
             ExampleCard("列对齐与单列撑满", "该列配置 width=180，但作为唯一列时会使用 Table 全宽；选择对齐方式观察实时变化。", { ctx.currentTheme() }) {
                 View {
@@ -670,7 +689,7 @@ internal class TableBasicDemoPage : BasePager() {
                         }
                     }
                 }
-                ctx.renderTablePreview(this, listOf(ctx.alignmentColumn), ctx.users.take(3), height = 210f, bordered = true, zebra = false, theme = ctx.currentTheme())
+                ctx.renderTablePreview(this, listOf(ctx.alignmentColumn), ctx.users.take(3), height = 210f, borderMode = TableBorderMode.Default, zebra = false, theme = ctx.currentTheme())
             }
             ExampleCard("普通列与排序列", "姓名是普通列；点击年龄表头依次切换未排序、升序、降序。当前：${ctx.sortingDemoDescription()}", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(
@@ -709,22 +728,20 @@ internal class TableBasicDemoPage : BasePager() {
                     ctx.scrollDemoTable?.scrollToTop(animated = true)
                 }
             }
-            View {
-                attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
-                ctx.renderTablePreview(
-                    this,
-                    listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
-                    ctx.users.take(ctx.scrollDemoLimit),
-                    height = null,
-                    fixedHeader = ctx.fixedHeaderOn,
-                    fixedRowHeight = true,
-                    theme = ctx.currentTheme(),
-                    hasMore = ctx.scrollDemoLimit < ctx.users.size,
-                    loadingMore = ctx.scrollDemoLoadingMore,
-                    onLoadMore = { ctx.loadMoreScrollRows() },
-                    tableRef = { ctx.scrollDemoTable = it },
-                )
-            }
+            ctx.renderTablePreview(
+                container,
+                listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
+                ctx.users.take(ctx.scrollDemoLimit),
+                height = null,
+                borderMode = TableBorderMode.Default,
+                fixedHeader = ctx.fixedHeaderOn,
+                fixedRowHeight = true,
+                theme = ctx.currentTheme(),
+                hasMore = ctx.scrollDemoLimit < ctx.users.size,
+                loadingMore = ctx.scrollDemoLoadingMore,
+                onLoadMore = { ctx.loadMoreScrollRows() },
+                tableRef = { ctx.scrollDemoTable = it },
+            )
         }
     }
 
@@ -784,17 +801,14 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
             }
-            View {
-                attr { flex(1f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
-                vif({ ctx.tableState == "正常" }) {
-                    ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, theme = ctx.currentTheme())
-                }
-                vif({ ctx.tableState == "加载" }) {
-                    ctx.renderTablePreview(this, ctx.columns3, ctx.users.take(6), null, loading = true, theme = ctx.currentTheme(), customStateRenderer = ctx.customStateRendererOn)
-                }
-                vif({ ctx.tableState == "空" }) {
-                    ctx.renderTablePreview(this, ctx.columns3, emptyList(), null, theme = ctx.currentTheme(), customStateRenderer = ctx.customStateRendererOn)
-                }
+            vif({ ctx.tableState == "正常" }) {
+                ctx.renderTablePreview(container, ctx.columns3, ctx.users.take(6), null, theme = ctx.currentTheme())
+            }
+            vif({ ctx.tableState == "加载" }) {
+                ctx.renderTablePreview(container, ctx.columns3, ctx.users.take(6), null, loading = true, theme = ctx.currentTheme(), customStateRenderer = ctx.customStateRendererOn)
+            }
+            vif({ ctx.tableState == "空" }) {
+                ctx.renderTablePreview(container, ctx.columns3, emptyList(), null, theme = ctx.currentTheme(), customStateRenderer = ctx.customStateRendererOn)
             }
         }
     }
@@ -847,7 +861,9 @@ internal class TableBasicDemoPage : BasePager() {
                 }
                 ConfigGroup("外观", theme = { ctx.currentTheme() }) {
                     SettingSwitch("斑马纹", "交替显示行背景", ctx.zebraOn, { ctx.currentTheme() }) { ctx.zebraOn = it }
-                    SettingSwitch("完整网格", "显示外框和竖向分隔线", ctx.borderedOn, { ctx.currentTheme() }) { ctx.borderedOn = it }
+                    SettingSwitch("默认外框", "使用主题色显示外框和竖向分隔线", ctx.tableBorderMode is TableBorderMode.Default, { ctx.currentTheme() }) {
+                        ctx.tableBorderMode = if (it) TableBorderMode.Default else TableBorderMode.None
+                    }
                     SettingSwitch("固定 48dp 行高", "关闭后由内容和内边距决定", ctx.fixedRowHeight, { ctx.currentTheme() }) { ctx.fixedRowHeight = it }
                     SettingSwitch("紧凑内边距", "减小单元格水平和垂直留白", ctx.compactPadding, { ctx.currentTheme() }) { ctx.compactPadding = it }
                 }
@@ -861,10 +877,7 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                 }
             }
-            View {
-                attr { flex(1f); marginLeft(16f); marginRight(16f); marginBottom(16f); borderRadius(12f); overflow(true); border(Border(1f, BorderStyle.SOLID, Color(ctx.currentTheme().cardBorder))) }
-                ctx.renderTablePreview(this, ctx.activeColumns, ctx.users, null, ctx.borderedOn, ctx.zebraOn, ctx.fixedRowHeight, ctx.fixedHeaderOn, ctx.currentTheme(), TableDisplayMode.Table, false, ctx.overflowTipOn)
-            }
+            ctx.renderTablePreview(container, ctx.activeColumns, ctx.users, null, ctx.tableBorderMode, ctx.zebraOn, ctx.fixedRowHeight, ctx.fixedHeaderOn, ctx.currentTheme(), TableDisplayMode.Table, false, ctx.overflowTipOn)
         }
     }
 
@@ -873,7 +886,7 @@ internal class TableBasicDemoPage : BasePager() {
         columns: List<ColumnModel<User>>,
         data: List<User>,
         height: Float?,
-        bordered: Boolean = false,
+        borderMode: TableBorderMode = TableBorderMode.None,
         zebra: Boolean = true,
         fixedRowHeight: Boolean = false,
         fixedHeader: Boolean = true,
@@ -894,12 +907,14 @@ internal class TableBasicDemoPage : BasePager() {
             tableRef?.invoke(this)
             attr {
                 flex(1f)
+                tableWidth = null
                 if (height == null) flex(1f) else height(height)
                 this.columns.addAll(columns)
                 this.data = data
                 rowKey = { user -> user.id }
                 zebraStripe = zebra
-                this.bordered = bordered
+                this.borderMode = borderMode
+                cornerRadius = if (borderMode is TableBorderMode.None) 0f else 8f
                 cellPaddingH = if (ctx.compactPadding) 8f else 12f
                 cellPaddingV = if (ctx.compactPadding) 6f else 10f
                 rowHeight = if (fixedRowHeight) 48f else 0f
@@ -1037,6 +1052,12 @@ internal class TableBasicDemoPage : BasePager() {
         is DemoThemeMode.Light -> TableThemeColors.Light
     }
 
+    private fun tableBorderModeLabel(): String = when (tableBorderMode) {
+        is TableBorderMode.None -> "无外框"
+        is TableBorderMode.Default -> "默认外框"
+        is TableBorderMode.Custom -> "自定义外框"
+    }
+
     private fun sortDescription(): String = when (sortState.direction) {
         is TableSortDirection.None -> "未排序"
         is TableSortDirection.Ascending -> "${sortColumnTitle()}升序"
@@ -1067,7 +1088,7 @@ internal class TableBasicDemoPage : BasePager() {
             themeMode = DemoThemeMode.Blue
         }
         if (example == "基础样式") {
-            borderedOn = true
+            tableBorderMode = TableBorderMode.Default
         }
         selectedColumn = ageColumn
         syncActiveColumns()
@@ -1259,13 +1280,7 @@ private fun ViewContainer<*, *>.ExampleCard(
     content: ViewBuilder,
 ) {
     View {
-        attr {
-            backgroundColor(Color(theme().cardBackground))
-            borderRadius(12f)
-            border(Border(1f, BorderStyle.SOLID, Color(theme().cardBorder)))
-            padding(10f)
-            marginBottom(12f)
-        }
+        attr { marginBottom(12f) }
         Text {
             attr {
                 text(title)
@@ -1284,7 +1299,7 @@ private fun ViewContainer<*, *>.ExampleCard(
             }
         }
         View {
-            attr { flex(1f); alignSelfStretch(); borderRadius(8f); overflow(true) }
+            attr { flex(1f); alignSelfStretch() }
             content()
         }
     }

@@ -35,7 +35,7 @@ KuiklyTable 基于 KuiklyUI ComposeView 路线实现，在 `commonMain` 内使�
 
 - 列定义：`ColumnModel` 支持 key、title、accessor、固定 `width`、弹性 `minWidth + flex` 和列对齐。
 - 数据模型：外部 `data` 保持调用方拥有且不被修改；Table 内部生成带 `rowKey`、原始位置和展示位置的派生行，Table / List 模式共用同一顺序。
-- 基础展示：表头、数据行、斑马纹、默认水平分隔线、可选完整网格边框、行高和内边距配置。
+- 基础展示：表头、数据行、斑马纹、默认水平分隔线，以及无/主题默认/自定义完整网格外框、圆角、行高和内边距配置。
 - 滚动：单个横向 `Scroller` 包裹表头和纵向 `List`，保证横向滚动时表头和内容同步；纵向滚动时表头固定。
 - 容器：Table Root 接收外部宽高或 flex，内部 Viewport 按组件实际 frame 解析列宽，不使用整个页面宽度替代组件宽度。
 - 宽度：`tableWidth` 默认为 `null`，沿父容器横向撑满，相当于 100% 宽度；配置数值后使用显式宽度。
@@ -99,6 +99,8 @@ TableView
 | <img src="assets/table_showcase_sort_demo.gif" alt="普通列与可排序列对照，年龄列三态排序" width="420"> | <img src="assets/table_showcase_state_renderer_demo.gif" alt="默认状态层与自定义 Empty / Loading renderer 对照" width="420"> |
 | **滚动控制** | **加载更多** |
 | <img src="assets/table_showcase_scroll_control_demo.gif" alt="滚动到第 16 行并回到顶部" width="420"> | <img src="assets/table_showcase_load_more_demo.gif" alt="触底追加数据并展示加载更多反馈" width="420"> |
+| **主题语义色** | **自定义 Renderer** |
+| <img src="assets/table_showcase_theme_demo.gif" alt="Light、Dark、Blue 主题语义色对照" width="420"> | <img src="assets/table_showcase_renderer_demo.gif" alt="默认文本与使用方自定义 renderer 对照" width="420"> |
 
 排序示例在基础章节提供普通列/可排序列对照；状态、滚动控制和加载更多示例分别验证默认 fallback、自定义 renderer、程序化滚动和业务层追加数据路径。
 
@@ -108,7 +110,7 @@ TableView
 
 `shared` 模块内置演示页 `table_basic`，Android 宿主启动后默认进入该页面。页面只挂载当前章节，避免所有示例同时创建：
 
-- **基础**：默认样式、边框/斑马纹、单列撑满与对齐单选，以及普通列/可排序列对照和排序三态。
+- **基础**：默认样式、无/默认/自定义外框与圆角、斑马纹、单列撑满与对齐单选，以及普通列/可排序列对照和排序三态。
 - **滚动**：5 列 × 20 行宽表，验证横纵滚动和固定表头开关。
 - **主题**：Light、Dark、Blue 三个小表格直接对照。
 - **自定义**：默认文本 fallback 与使用方 renderer 表格直接对照；头像、标签和 Switch 都由 Demo 代码实现。
@@ -177,7 +179,8 @@ TableView<User> {
         tableWidth = null // 默认沿父容器使用 100% 宽度
         rowKey = { user -> user.id }
         zebraStripe = true
-        bordered = false
+        borderMode = TableBorderMode.None
+        cornerRadius = 0f
         autoIndexColumn = false
         fixedHeader = true
         fixedColumnCount = 0
@@ -216,7 +219,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `data` | `List<T>` | `emptyList()` | 数据源 |
 | `rowKey` | `((T) -> Any)?` | `null` | 当前数据集中唯一、同一业务行在数据更新前后稳定的业务行标识；建议使用 String/Int/Long。未配置时使用源数据索引 fallback。重复 key 不支持，组件不会自动去重、改写或修复。该 key 用于派生行身份和后续行状态关联；经典 `vfor` 暂无 key selector，不宣称控制底层节点复用 |
 | `zebraStripe` | `Boolean` | `true` | 是否启用斑马纹 |
-| `bordered` | `Boolean` | `false` | 是否显示外框和竖向分隔线；水平分隔线始终显示 |
+| `borderMode` | `TableBorderMode` | `None` | `None` 无外框和竖向分隔线；`Default` 使用 `themeColors.gridLine`；`Custom(color, width)` 使用调用方颜色和宽度 |
+| `cornerRadius` | `Float` | `0f` | Table 根容器圆角，单位为 dp；List 模式 grouped 容器仍使用内部默认圆角 |
 | `cellPaddingH` | `Float` | `12f` | 单元格水平内边距 |
 | `cellPaddingV` | `Float` | `10f` | 单元格垂直内边距 |
 | `rowHeight` | `Float` | `0f` | 固定行高；`0f` 表示由内容自适应 |

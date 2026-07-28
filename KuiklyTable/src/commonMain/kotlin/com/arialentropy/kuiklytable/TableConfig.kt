@@ -24,7 +24,10 @@ class TableAttr<T> : ComposeAttr() {
      */
     var rowKey: ((T) -> Any)? by observable(null)
     var zebraStripe: Boolean by observable(true)
-    var bordered: Boolean by observable(false)
+    /** Table 根容器外框；Default 使用 [themeColors.gridLine]。 */
+    var borderMode: TableBorderMode by observable(TableBorderMode.None)
+    /** Table 根容器圆角，单位为 dp。 */
+    var cornerRadius: Float by observable(0f)
     var cellPaddingH: Float by observable(12f)
     var cellPaddingV: Float by observable(10f)
     var rowHeight: Float by observable(0f)

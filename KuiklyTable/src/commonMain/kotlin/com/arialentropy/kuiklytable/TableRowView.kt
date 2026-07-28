@@ -59,7 +59,7 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             }
             View {
                 attr {
-                    width(if (ctx.attr.bordered && !isLastColumn) 1f else 0f)
+                    width(if (ctx.attr.borderMode.hasVisibleLines() && !isLastColumn) 1f else 0f)
                     backgroundColor(Color(ctx.attr.themeColors.gridLine))
                 }
             }
@@ -129,7 +129,7 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             }
             View {
                 attr {
-                    width(if (ctx.attr.bordered && !isLastColumn) 1f else 0f)
+                    width(if (ctx.attr.borderMode.hasVisibleLines() && !isLastColumn) 1f else 0f)
                     backgroundColor(Color(ctx.attr.themeColors.gridLine))
                 }
             }
@@ -186,7 +186,7 @@ internal class TableRowAttr<T> : ComposeAttr() {
     var columns: List<TableResolvedColumn<T>> by observable(emptyList())
     var rowHeight: Float by observable(0f)
     var zebraStripe: Boolean by observable(true)
-    var bordered: Boolean by observable(false)
+    var borderMode: TableBorderMode by observable(TableBorderMode.None)
     var cellPaddingH: Float by observable(12f)
     var cellPaddingV: Float by observable(10f)
     var themeColors: TableThemeColors by observable(TableThemeColors())
