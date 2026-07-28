@@ -258,6 +258,18 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 ./gradlew :androidApp:compileDebugKotlin
 ```
 
+## 测试
+
+```bash
+./gradlew :KuiklyTable:allTests
+```
+
+`commonTest` 覆盖三个纯逻辑模块：
+
+- `TableDataPipelineTest` — 排序管线（升降序、自定义 comparator、rowKey 稳定性、源数据不可变）
+- `TableColumnLayoutResolverTest` — 列宽分配（固定宽 / minWidth+flex / 视口溢出）
+- `TableBorderTest` — 边框规格（Default / None / Custom 输出）
+
 ## 相关资源
 
 - [Kuikly 官方文档](https://kuikly.tds.qq.com/)
