@@ -961,7 +961,7 @@ internal class TableBasicDemoPage : BasePager() {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
             SectionIntro(
                 "大数据窗口渲染",
-                "固定使用 Windowed(40)，完整数据仍参与排序，挂载行节点保持有界。",
+                "固定使用 Windowed($LARGE_DATA_WINDOW)，完整数据仍参与排序，挂载行节点保持有界。",
                 { ctx.currentTheme() },
             )
             View {
@@ -1010,7 +1010,7 @@ internal class TableBasicDemoPage : BasePager() {
                 fixedRowHeight = { true },
                 theme = ctx.currentTheme(),
                 displayMode = { ctx.largeDisplayMode },
-                rowRenderMode = TableRowRenderMode.Windowed(160),
+                rowRenderMode = TableRowRenderMode.Windowed(LARGE_DATA_WINDOW),
                 controlledSortState = { ctx.largeSortState },
                 onSortChange = { state -> ctx.largeSortState = state },
                 loading = { ctx.largeState == "加载" },
@@ -1431,6 +1431,7 @@ internal class TableBasicDemoPage : BasePager() {
     }
 
     companion object {
+        private const val LARGE_DATA_WINDOW = 160
         private const val TABLE_LEFT = 16f
         private const val TABLE_TOP_ESTIMATE = 390f
         private const val TIP_SCREEN_MARGIN = 16f

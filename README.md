@@ -197,7 +197,7 @@ attr {
 
 `Windowed` 只限制已挂载的 UI/DSL 行节点；完整 `data` 和 `displayRows` 仍保留在内存中，排序仍处理完整数据。当前不支持同一挂载节点运行时切换渲染策略、动态行高、固定列组合或 `scrollToRow`。
 
-`maxRenderedRows` 需要覆盖一屏可见行并留出滚动缓冲；配置得小于一屏行数时，快速滚动可能出现暂时空白。默认值为 30，Showcase 的 48dp 固定行高场景使用 160。
+`maxRenderedRows` 按可见行数 × 3 估算（`vforLazy` 约留三分之一作前置缓冲）。配置得小于一屏行数时，快速滚动可能出现暂时空白。默认值为 60，Showcase 的 48dp 固定行高场景使用 160。
 
 ## API 参考
 

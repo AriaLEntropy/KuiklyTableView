@@ -244,6 +244,13 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 )
             }
             ctx.renderTableRowLoop(listView, layout, region)
+            // footer 必须是 List 的兄弟节点而非行节点的一部分：Windowed 模式下
+            // vforLazy 用挂载行的平均高度估算未挂载区域，把 footer 塞进末行会撑高该行。
+            ctx.renderLoadMoreFooter(
+                this,
+                width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
+                visible = region != TableColumnRegion.Fixed,
+            )
         }
     }
 
@@ -278,13 +285,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     ) {
         renderTableRowComponent(container, row, layout, region)
         renderBodyDivider(container)
-        if (row.displayIndex == displayRows.lastIndex) {
-            renderLoadMoreFooter(
-                container,
-                width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
-                visible = region != TableColumnRegion.Fixed,
-            )
-        }
     }
 
     private fun renderBodyDivider(container: ViewContainer<*, *>) {
@@ -374,6 +374,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 ctx.renderEmptyPlaceholder(this)
             }
             ctx.renderMobileRowLoop(listView)
+            ctx.renderLoadMoreFooter(this)
         }
     }
 
@@ -382,7 +383,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         when (val renderMode = attr.rowRenderMode) {
             is TableRowRenderMode.Standard -> {
                 listView.vforIndex({ displayRows }) { row, index, count ->
-                    View { ctx.renderMobileRowWrapper(this, row, index == count - 1) }
+                    View { ctx.renderMobileRowComponent(this, row, index == count - 1) }
                 }
             }
             is TableRowRenderMode.Windowed -> {
@@ -390,19 +391,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     "TableRowRenderMode.Windowed does not support fixed columns"
                 }
                 listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, index, count ->
-                    View { ctx.renderMobileRowWrapper(this, row, index == count - 1) }
+                    View { ctx.renderMobileRowComponent(this, row, index == count - 1) }
                 }
             }
         }
-    }
-
-    private fun renderMobileRowWrapper(
-        container: ViewContainer<*, *>,
-        row: TableDisplayRow<T>,
-        isLast: Boolean,
-    ) {
-        renderMobileRowComponent(container, row, isLast)
-        if (isLast) renderLoadMoreFooter(container)
     }
 
     private fun renderMobileRowComponent(container: ViewContainer<*, *>, row: TableDisplayRow<T>, isLast: Boolean) {
@@ -580,14 +572,16 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         width: Float? = null,
         visible: Boolean = true,
     ) {
+        val ctx = this
         val tableAttr = attr
         container.View {
             attr {
+                val active = ctx.displayRows.isNotEmpty() && (tableAttr.hasMore || tableAttr.loadingMore)
                 width?.let { width(it) }
-                height(if (tableAttr.hasMore || tableAttr.loadingMore) LOAD_MORE_FOOTER_HEIGHT else 0f)
+                height(if (active) LOAD_MORE_FOOTER_HEIGHT else 0f)
                 allCenter()
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
-                visibility(visible && (tableAttr.hasMore || tableAttr.loadingMore))
+                visibility(visible && active)
             }
             if (tableAttr.loadingMore) {
                 ActivityIndicator {
