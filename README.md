@@ -18,11 +18,15 @@
 | :---: |
 | <img src="assets/table_showcase_large_1k.png" alt="Windowed 大数据窗口渲染" width="280"> |
 
-交互录屏（滚动 / 排序 / 主题切换）：
+交互录屏（滚动 / 排序 / 主题切换 / 大数据虚拟滚动）：
 
 | 双向滚动 | 排序 | 主题 |
 | :---: | :---: | :---: |
 | <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_theme_demo.gif" alt="Light / Dark / Blue 主题" width="280"> |
+
+| 大数据虚拟滚动 |
+| :---: |
+| <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
 
 ## 功能特性
 
@@ -191,6 +195,7 @@ attr {
 `Standard` 是默认全量 DSL 行渲染。大数据场景可在创建 Table 时显式选择 `Windowed`，底层复用 Kuikly List 的懒循环能力：
 
 <p align="left">
+  <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280">
   <img src="assets/table_showcase_large_1k.png" alt="Windowed 大数据窗口渲染" width="280">
 </p>
 
