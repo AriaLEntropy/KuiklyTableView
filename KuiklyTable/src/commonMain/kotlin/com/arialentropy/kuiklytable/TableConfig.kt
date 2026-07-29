@@ -74,6 +74,7 @@ class TableAttr<T> : ComposeAttr() {
 
 class TableEvent<T> : ComposeEvent() {
     var rowClick: ((T) -> Unit)? = null
+    var cellClick: ((TableCellClickInfo<T>) -> Unit)? = null
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
     var overflowTipDismiss: (() -> Unit)? = null
     var sortChange: ((TableSortState) -> Unit)? = null

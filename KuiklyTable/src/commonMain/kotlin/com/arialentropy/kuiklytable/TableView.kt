@@ -346,6 +346,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
                 event {
                     rowClick = { ctx.event.rowClick?.invoke(it) }
+                    cellClick = { ctx.event.cellClick?.invoke(it) }
                     overflowCellClick = { ctx.event.overflowCellClick?.invoke(it) }
                 }
             }
@@ -418,6 +419,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             }
             event {
                 rowClick = { ctx.event.rowClick?.invoke(it) }
+                cellClick = { ctx.event.cellClick?.invoke(it) }
                 overflowCellClick = { ctx.event.overflowCellClick?.invoke(it) }
             }
         }

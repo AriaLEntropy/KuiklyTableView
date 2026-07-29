@@ -52,6 +52,23 @@ class TableOverflowCellInfo<T>(
     val estimatedCellHeight: Float,
 )
 
+class TableCellClickInfo<T>(
+    val rowIndex: Int,
+    val columnIndex: Int,
+    val columnKey: String,
+    val rowData: T,
+)
+
+/**
+ * Table 侧单元格点击分发结果。一次点击只走一条路径。
+ */
+sealed class TableCellClickAction<T> {
+    class Overflow<T>(val info: TableOverflowCellInfo<T>) : TableCellClickAction<T>()
+    class Cell<T>(val info: TableCellClickInfo<T>) : TableCellClickAction<T>()
+    class Row<T>(val rowData: T) : TableCellClickAction<T>()
+    class None<T> : TableCellClickAction<T>()
+}
+
 sealed class TableDisplayMode {
     object Table : TableDisplayMode()
     object List : TableDisplayMode()

@@ -31,7 +31,7 @@
 | 样式 | 默认 1dp 主题色外框与 8dp 圆角；斑马纹、对齐、行高、内边距可配 |
 | 主题 | Light / Dark 预设，`TableThemeColors` 语义色覆盖 |
 | 自定义渲染 | `cellRenderer` / `headerRenderer`；未配置回退默认文本 |
-| 交互 | 表头三态排序、行点击、截断单元格溢出点击、回顶 |
+| 交互 | 表头三态排序、行点击、单元格点击、截断溢出点击、回顶；列上 `enableRowClick` / `enableCellClick` 显式控制 |
 | 状态 | 加载中 / 空数据，支持自定义 Empty / Loading 内容 |
 | 展示模式 | 显式 `Table` 或 `List`（grouped） |
 | 数据加载 | `loadMore` 触底回调（分页与请求由业务层负责） |
@@ -103,6 +103,7 @@ TableView<User> {
     }
     event {
         rowClick = { user -> /* 行点击 */ }
+        cellClick = { info -> /* 单元格点击 */ }
         sortChange = { state -> /* 排序变化 */ }
     }
 }
@@ -110,7 +111,7 @@ TableView<User> {
 
 ### 自定义单元格
 
-未配置 `cellRenderer` 时用默认文本，点击走 `rowClick` 或截断溢出事件。配置后由业务自己画单元格内容；Table 不再在外层隐式触发 `rowClick`，按钮等控件自己处理点击和按压。
+未配置 `cellRenderer` 时用默认文本。单元格是否触发 `rowClick` / `cellClick` 由列上的 `enableRowClick`、`enableCellClick` 显式控制，与是否配置 renderer 无关。优先级：截断溢出提示 > `cellClick` > `rowClick`。操作列通常两开关都关，由 renderer 内 Button 自己处理点击和按压。
 
 ```kotlin
 ColumnModel<User>(
@@ -118,6 +119,8 @@ ColumnModel<User>(
     title = "状态",
     accessor = { it.status },
     width = 90f,
+    enableRowClick = true,
+    enableCellClick = false,
     cellRenderer = { user, _ ->
         // 使用方自行绘制彩色标签等业务内容
         View {
@@ -132,6 +135,18 @@ ColumnModel<User>(
                 }
             }
         }
+    },
+)
+
+ColumnModel<User>(
+    key = "action",
+    title = "操作",
+    accessor = { "查看" },
+    width = 92f,
+    enableRowClick = false,
+    enableCellClick = false,
+    cellRenderer = { user, _ ->
+        // Button 自行处理点击 / 按压 / 禁用
     },
 )
 ```
@@ -250,6 +265,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | 事件 | 说明 |
 | --- | --- |
 | `rowClick` | 行点击 |
+| `cellClick` | 单元格点击（含行列信息） |
 | `sortChange` | 排序状态变化 |
 | `overflowCellClick` | 截断单元格点击 |
 | `overflowTipDismiss` | 溢出提示关闭 |
@@ -270,6 +286,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `sortComparator` | `Comparator<T>?` | `null` | 自定义比较器 |
 | `cellRenderer` | DSL? | `null` | 自定义单元格 |
 | `headerRenderer` | DSL? | `null` | 自定义表头 |
+| `enableRowClick` | `Boolean` | `true` | 该列是否允许触发 `rowClick` |
+| `enableCellClick` | `Boolean` | `false` | 该列是否允许触发 `cellClick` |
 
 ## 示例工程
 

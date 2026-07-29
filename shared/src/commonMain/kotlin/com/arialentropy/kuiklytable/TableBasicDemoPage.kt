@@ -232,6 +232,8 @@ internal class TableBasicDemoPage : BasePager() {
         title = "操作",
         accessor = { "查看" },
         width = 92f,
+        enableRowClick = false,
+        enableCellClick = false,
         cellRenderer = { user, _ ->
             val disabled = user.status == "离职"
             val theme = this@TableBasicDemoPage.currentTheme()
@@ -283,6 +285,8 @@ internal class TableBasicDemoPage : BasePager() {
     private var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     private var tableState by observable("正常")
     private var customStateRendererOn by observable(false)
+    private var demoEnableRowClick by observable(true)
+    private var demoEnableCellClick by observable(false)
     private var overflowTipVisible by observable(false)
     private var overflowTipText by observable("")
     private var overflowTipLeft by observable(24f)
@@ -818,7 +822,7 @@ internal class TableBasicDemoPage : BasePager() {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
             SectionIntro(
                 "自定义 renderer",
-                "对照默认文本与使用方传入的 cellRenderer。彩色标签、头像等均为业务 View，Table 只提供插槽。",
+                "对照默认文本与使用方传入的 cellRenderer。点击由列上 enableRowClick / enableCellClick 显式控制，与是否配置 renderer 无关。",
                 { ctx.currentTheme() },
             )
             ExampleCard("默认文本", "未配置 cellRenderer，状态列以普通 Text 展示。", { ctx.currentTheme() }) {
@@ -842,14 +846,34 @@ internal class TableBasicDemoPage : BasePager() {
             }
             ExampleCard(
                 "传入业务 View",
-                "cellRenderer 传入头像、彩色标签和操作按钮；按钮自行处理按压、禁用和点击。",
+                "cellRenderer 传入头像、彩色标签和操作按钮；操作列关闭 row/cell 点击，按钮自行处理。",
                 { ctx.currentTheme() },
             ) {
+                SettingSwitch(
+                    "姓名列 enableRowClick",
+                    if (ctx.demoEnableRowClick) "开启：点姓名列走 rowClick" else "关闭：点姓名列不走行点击",
+                    ctx.demoEnableRowClick,
+                    { ctx.currentTheme() },
+                ) { enabled -> ctx.demoEnableRowClick = enabled }
+                SettingSwitch(
+                    "姓名列 enableCellClick",
+                    if (ctx.demoEnableCellClick) "开启：点姓名列优先走 cellClick" else "关闭：不单独发 cellClick",
+                    ctx.demoEnableCellClick,
+                    { ctx.currentTheme() },
+                ) { enabled -> ctx.demoEnableCellClick = enabled }
                 ctx.renderTablePreview(
                     this,
                     listOf(
                         ctx.avatarColumn,
-                        ColumnModel(key = "name", title = "姓名", accessor = { it.name }, minWidth = 72f, flex = 1f),
+                        ColumnModel(
+                            key = "name",
+                            title = "姓名",
+                            accessor = { it.name },
+                            minWidth = 72f,
+                            flex = 1f,
+                            enableRowClick = ctx.demoEnableRowClick,
+                            enableCellClick = ctx.demoEnableCellClick,
+                        ),
                         ctx.statusTagColumn,
                         ctx.actionColumn,
                     ),
@@ -1168,7 +1192,10 @@ internal class TableBasicDemoPage : BasePager() {
                 headerStyle = if (ctx.compactHeader) TableHeaderStyle(13f, TableHeaderFontWeight.Bold, 8f, 6f, 40f, 2f) else TableHeaderStyle.Default
             }
             event {
-                rowClick = { user -> ctx.bridgeModule.toast("点击了: ${user.name}") }
+                rowClick = { user -> ctx.bridgeModule.toast("行点击: ${user.name}") }
+                cellClick = { info ->
+                    ctx.bridgeModule.toast("单元格点击: ${info.columnKey} / ${info.rowData.name}")
+                }
                 overflowCellClick = { info -> ctx.showOverflowTip(info) }
                 overflowTipDismiss = { ctx.hideOverflowTip() }
                 sortChange = onSortChange

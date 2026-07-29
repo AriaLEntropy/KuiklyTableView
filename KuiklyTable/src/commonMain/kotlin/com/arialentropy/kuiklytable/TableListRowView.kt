@@ -67,7 +67,7 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
         val isDefaultText = column.cellRenderer == null
         val isTruncated = isDefaultText && isTextTruncated(text)
         val resolvedColumn = ctx.attr.layout?.dataColumn(columnIndex)
-        val info = if (isDefaultText && resolvedColumn != null) TableOverflowCellInfo(
+        val overflowInfo = if (isDefaultText && resolvedColumn != null) TableOverflowCellInfo(
             row.displayIndex,
             columnIndex,
             column.key,
@@ -79,9 +79,23 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
             resolvedColumn.width,
             DEFAULT_ROW_HEIGHT_ESTIMATE,
         ) else null
+        val cellInfo = TableCellClickInfo(
+            rowIndex = row.displayIndex,
+            columnIndex = columnIndex,
+            columnKey = column.key,
+            rowData = row.item,
+        )
+        val tableClickEnabled = column.enableRowClick || column.enableCellClick ||
+            (isTruncated && attr.enableOverflowCellClick)
         container.View {
             attr { flexDirectionRow(); alignItemsCenter(); paddingTop(4f); paddingBottom(4f) }
-            if (isDefaultText) event { click { ctx.handleFieldClick(row.item, info, isTruncated) } }
+            if (tableClickEnabled) {
+                event {
+                    click {
+                        ctx.dispatchFieldClick(column, row.item, overflowInfo, cellInfo, isTruncated)
+                    }
+                }
+            }
             Text {
                 attr {
                     width(FIELD_LABEL_WIDTH); text(column.title); fontSize(13f)
@@ -97,8 +111,41 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
                         is ColumnAlignment.Start -> textAlignLeft()
                     }
                 }
-                event { click { ctx.handleFieldClick(row.item, info, isTruncated) } }
+                if (tableClickEnabled) {
+                    event {
+                        click {
+                            ctx.dispatchFieldClick(column, row.item, overflowInfo, cellInfo, isTruncated)
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    private fun dispatchFieldClick(
+        column: ColumnModel<T>,
+        item: T,
+        overflowInfo: TableOverflowCellInfo<T>?,
+        cellInfo: TableCellClickInfo<T>,
+        isTruncated: Boolean,
+    ) {
+        when (
+            val action = resolveTableCellClickAction(
+                enableRowClick = column.enableRowClick,
+                enableCellClick = column.enableCellClick,
+                isTruncated = isTruncated && attr.enableOverflowCellClick,
+                hasOverflowListener = event.overflowCellClick != null,
+                hasCellClickListener = event.cellClick != null,
+                hasRowClickListener = event.rowClick != null,
+                overflowInfo = overflowInfo,
+                cellInfo = cellInfo,
+                rowData = item,
+            )
+        ) {
+            is TableCellClickAction.Overflow -> event.overflowCellClick?.invoke(action.info)
+            is TableCellClickAction.Cell -> event.cellClick?.invoke(action.info)
+            is TableCellClickAction.Row -> event.rowClick?.invoke(action.rowData)
+            is TableCellClickAction.None -> Unit
         }
     }
 
@@ -109,11 +156,6 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
             0f,
         )
         return estimatedTextWidth(text) > availableWidth
-    }
-
-    private fun handleFieldClick(item: T, info: TableOverflowCellInfo<T>?, isTruncated: Boolean) {
-        if (isTruncated && info != null && event.overflowCellClick != null) event.overflowCellClick?.invoke(info)
-        else event.rowClick?.invoke(item)
     }
 
     private fun resolveStatusStyle(item: T, text: String): TableStatusTagStyle =
@@ -154,6 +196,7 @@ internal class TableListRowAttr<T> : ComposeAttr() {
 
 internal class TableListRowEvent<T> : ComposeEvent() {
     var rowClick: ((T) -> Unit)? = null
+    var cellClick: ((TableCellClickInfo<T>) -> Unit)? = null
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
 }
 

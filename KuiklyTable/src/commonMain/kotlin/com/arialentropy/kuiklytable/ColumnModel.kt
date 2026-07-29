@@ -31,6 +31,8 @@ sealed class ColumnAlignment {
  * @param sortComparator 可选的业务值比较器；未配置时按 accessor 返回的字符串比较
  * @param cellRenderer 可选的单元格渲染器；未配置时使用默认 Text
  * @param headerRenderer 可选的表头渲染器；未配置时使用默认 Text
+ * @param enableRowClick 点击该列单元格时是否允许触发 Table 的 [TableEvent.rowClick]；与是否配置 cellRenderer 无关
+ * @param enableCellClick 点击该列单元格时是否允许触发 Table 的 [TableEvent.cellClick]；与是否配置 cellRenderer 无关
  */
 class ColumnModel<T>(
     val key: String,
@@ -44,6 +46,8 @@ class ColumnModel<T>(
     val sortComparator: Comparator<T>? = null,
     val cellRenderer: (ViewContainer<*, *>.(T, ColumnModel<T>) -> Unit)? = null,
     val headerRenderer: (ViewContainer<*, *>.(ColumnModel<T>) -> Unit)? = null,
+    val enableRowClick: Boolean = true,
+    val enableCellClick: Boolean = false,
 ) {
     var alignment: ColumnAlignment by observable(alignment)
 

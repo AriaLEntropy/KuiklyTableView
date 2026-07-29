@@ -77,14 +77,32 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
         val text = column.accessor(row.item)
         val isDefaultText = column.cellRenderer == null
         val isTruncated = isDefaultText && isTextTruncated(text, resolvedColumn.width)
-        val info = if (isDefaultText) createOverflowInfo(row, resolvedColumn, column, text, isTruncated) else null
+        val overflowInfo = if (isDefaultText) {
+            createOverflowInfo(row, resolvedColumn, column, text, isTruncated)
+        } else {
+            null
+        }
+        val cellInfo = TableCellClickInfo(
+            rowIndex = row.displayIndex,
+            columnIndex = resolvedColumn.dataIndex ?: 0,
+            columnKey = column.key,
+            rowData = row.item,
+        )
+        val tableClickEnabled = column.enableRowClick || column.enableCellClick ||
+            (isTruncated && attr.enableOverflowCellClick)
         container.View {
             attr {
                 width(resolvedColumn.width)
                 flexDirectionRow()
                 backgroundColor(Color(ctx.rowBackground(row.displayIndex)))
             }
-            if (isDefaultText) event { click { ctx.handleCellClick(row.item, info, isTruncated) } }
+            if (tableClickEnabled) {
+                event {
+                    click {
+                        ctx.dispatchCellClick(column, row.item, overflowInfo, cellInfo, isTruncated)
+                    }
+                }
+            }
             View {
                 attr {
                     flex(1f)
@@ -96,7 +114,13 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
                     paddingBottom(ctx.attr.cellPaddingV)
                     touchEnable(true)
                 }
-                if (isDefaultText) event { click { ctx.handleCellClick(row.item, info, isTruncated) } }
+                if (tableClickEnabled) {
+                    event {
+                        click {
+                            ctx.dispatchCellClick(column, row.item, overflowInfo, cellInfo, isTruncated)
+                        }
+                    }
+                }
                 if (column.cellRenderer != null) {
                     View {
                         attr { flex(1f); flexDirectionRow(); alignItemsCenter() }
@@ -118,7 +142,13 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
                                 is ColumnAlignment.Start -> textAlignLeft()
                             }
                         }
-                        event { click { ctx.handleCellClick(row.item, info, isTruncated) } }
+                        if (tableClickEnabled) {
+                            event {
+                                click {
+                                    ctx.dispatchCellClick(column, row.item, overflowInfo, cellInfo, isTruncated)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -128,6 +158,33 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
                     backgroundColor(Color(ctx.attr.themeColors.gridLine))
                 }
             }
+        }
+    }
+
+    private fun dispatchCellClick(
+        column: ColumnModel<T>,
+        item: T,
+        overflowInfo: TableOverflowCellInfo<T>?,
+        cellInfo: TableCellClickInfo<T>,
+        isTruncated: Boolean,
+    ) {
+        when (
+            val action = resolveTableCellClickAction(
+                enableRowClick = column.enableRowClick,
+                enableCellClick = column.enableCellClick,
+                isTruncated = isTruncated && attr.enableOverflowCellClick,
+                hasOverflowListener = event.overflowCellClick != null,
+                hasCellClickListener = event.cellClick != null,
+                hasRowClickListener = event.rowClick != null,
+                overflowInfo = overflowInfo,
+                cellInfo = cellInfo,
+                rowData = item,
+            )
+        ) {
+            is TableCellClickAction.Overflow -> event.overflowCellClick?.invoke(action.info)
+            is TableCellClickAction.Cell -> event.cellClick?.invoke(action.info)
+            is TableCellClickAction.Row -> event.rowClick?.invoke(action.rowData)
+            is TableCellClickAction.None -> Unit
         }
     }
 
@@ -155,11 +212,6 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
         resolvedColumn.width,
         if (attr.rowHeight > 0f) attr.rowHeight else DEFAULT_ROW_HEIGHT_ESTIMATE,
     )
-
-    private fun handleCellClick(item: T, info: TableOverflowCellInfo<T>?, isTruncated: Boolean) {
-        if (isTruncated && info != null && event.overflowCellClick != null) event.overflowCellClick?.invoke(info)
-        else event.rowClick?.invoke(item)
-    }
 
     private fun estimatedTextWidth(text: String): Float = text.sumOf { ch ->
         (if (ch.code > ASCII_MAX_CODE) DEFAULT_CELL_FONT_SIZE else DEFAULT_CELL_FONT_SIZE * ASCII_CHAR_WIDTH_RATIO).toDouble()
@@ -190,6 +242,7 @@ internal class TableRowAttr<T> : ComposeAttr() {
 
 internal class TableRowEvent<T> : ComposeEvent() {
     var rowClick: ((T) -> Unit)? = null
+    var cellClick: ((TableCellClickInfo<T>) -> Unit)? = null
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
 }
 
