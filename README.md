@@ -6,7 +6,7 @@
 
 ## 效果预览
 
-静态对照（一眼能看出差异）：
+静态对照：
 
 | 基础样式 | 主题三套 | 自定义 Renderer |
 | :---: | :---: | :---: |
@@ -16,7 +16,7 @@
 | :---: | :---: |
 | <img src="assets/table_showcase_state.png" alt="无数据状态" width="280"> | <img src="assets/table_showcase_mode.png" alt="Table 与 List 展示模式" width="280"> |
 
-交互录屏（静态看不出的能力）：
+交互录屏：
 
 | 双向滚动 | 排序三态 | 大数据虚拟滚动 |
 | :---: | :---: | :---: |
