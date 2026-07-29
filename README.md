@@ -14,6 +14,10 @@
 | :---: | :---: | :---: |
 | <img src="assets/table_showcase_renderer.png" alt="自定义单元格渲染" width="280"> | <img src="assets/table_showcase_state.png" alt="无数据状态" width="280"> | <img src="assets/table_showcase_mode.png" alt="Table 与 List 展示模式" width="280"> |
 
+| 大数据窗口渲染 |
+| :---: |
+| <img src="assets/table_showcase_large_1k.png" alt="Windowed 大数据窗口渲染" width="280"> |
+
 交互录屏（滚动 / 排序 / 主题切换）：
 
 | 双向滚动 | 排序 | 主题 |
@@ -185,6 +189,10 @@ attr {
 ### 大数据窗口渲染
 
 `Standard` 是默认全量 DSL 行渲染。大数据场景可在创建 Table 时显式选择 `Windowed`，底层复用 Kuikly List 的懒循环能力：
+
+<p align="left">
+  <img src="assets/table_showcase_large_1k.png" alt="Windowed 大数据窗口渲染" width="280">
+</p>
 
 ```kotlin
 attr {
