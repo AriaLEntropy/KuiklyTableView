@@ -1,8 +1,8 @@
 # KuiklyTable
 
-基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端声明式表格组件，支持 Android、iOS、鸿蒙。
+基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端表格组件，支持 Android、iOS、鸿蒙。
 
-通过 `TableView` + `ColumnModel` DSL 定义列与数据，开箱支持双向滚动、主题、自定义单元格渲染、排序与状态反馈。
+用 `TableView` + `ColumnModel` 定义列和数据，支持横纵滚动、主题、自定义单元格、排序和空态/加载态。
 
 ## 效果预览
 
@@ -110,7 +110,7 @@ TableView<User> {
 
 ### 自定义单元格
 
-未配置 `cellRenderer` 时使用默认 `Text`，点击仍走 `rowClick` 或截断文本事件。配置后由使用方传入任意业务 View；Table 不再给该 Cell 外层附加 `rowClick`，renderer 内的按钮等控件自行处理点击、按压和禁用反馈。
+未配置 `cellRenderer` 时用默认文本，点击走 `rowClick` 或截断溢出事件。配置后由业务自己画单元格内容；Table 不再在外层隐式触发 `rowClick`，按钮等控件自己处理点击和按压。
 
 ```kotlin
 ColumnModel<User>(
@@ -186,7 +186,7 @@ attr {
 
 ### 大数据窗口渲染
 
-`Standard` 是默认全量 DSL 行渲染。大数据场景可在创建 Table 时显式选择 `Windowed`，底层复用 Kuikly List 的懒循环能力：
+默认 `Standard` 会为每行创建 DSL 节点。数据量大时改用 `Windowed`，按窗口挂载行节点（基于 Kuikly `vforLazy`）：
 
 <p align="left">
   <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280">
@@ -201,9 +201,9 @@ attr {
 }
 ```
 
-`Windowed` 只限制已挂载的 UI/DSL 行节点；完整 `data` 和 `displayRows` 仍保留在内存中，排序仍处理完整数据。当前不支持同一挂载节点运行时切换渲染策略、动态行高、固定列组合或 `scrollToRow`。
+`Windowed` 只限制挂载的行节点，完整 `data` 仍在内存里，排序仍作用于全量数据。创建时选定模式后不要在同一 Table 上切换；暂不支持动态行高和固定列组合。
 
-`maxRenderedRows` 按可见行数 × 3 估算（`vforLazy` 约留三分之一作前置缓冲）。配置得小于一屏行数时，快速滚动可能出现暂时空白。默认值为 60，Showcase 的 48dp 固定行高场景使用 160。
+`maxRenderedRows` 建议按可见行数 × 3 估算。设太小，快速滚动可能出现短暂空白。默认 60。
 
 ## API 参考
 
@@ -273,11 +273,9 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 ## 示例工程
 
-本仓库自带可运行 Demo：
-
 1. Android Studio 打开本仓库
 2. 运行 `androidApp`
-3. 默认进入 `table_basic`，可浏览基础、滚动、主题、自定义渲染、状态、模式、大数据与 Playground
+3. 默认进入 `table_basic` Showcase
 
 ```bash
 ./gradlew :androidApp:compileDebugKotlin
@@ -289,13 +287,13 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 ./gradlew :KuiklyTable:allTests
 ```
 
-`commonTest` 覆盖纯逻辑模块与窗口配置约束：
+`commonTest` 覆盖：
 
-- `TableDataPipelineTest` — 排序管线（升降序、自定义 comparator、rowKey 稳定性、源数据不可变）
-- `TableColumnLayoutResolverTest` — 列宽分配（固定宽 / minWidth+flex / 视口溢出）
-- `TableBorderTest` — 边框规格（Default / None / Custom 输出）
-- `TableRowRenderModeTest` — Standard 默认值、Windowed 默认窗口与非法边界
-- `TableLoadMoreTriggerPolicyTest` — 同批数据排序不重复触发、追加与替换后解锁
+- `TableDataPipelineTest` — 排序管线
+- `TableColumnLayoutResolverTest` — 列宽分配
+- `TableBorderTest` — 边框规格
+- `TableRowRenderModeTest` — Standard / Windowed 配置
+- `TableLoadMoreTriggerPolicyTest` — 加载更多触发去重
 
 ## 相关资源
 
