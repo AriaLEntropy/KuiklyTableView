@@ -84,12 +84,7 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
                 flexDirectionRow()
                 backgroundColor(Color(ctx.rowBackground(row.displayIndex)))
             }
-            event {
-                click {
-                    if (isDefaultText) ctx.handleCellClick(row.item, info, isTruncated)
-                    else ctx.event.rowClick?.invoke(row.item)
-                }
-            }
+            if (isDefaultText) event { click { ctx.handleCellClick(row.item, info, isTruncated) } }
             View {
                 attr {
                     flex(1f)

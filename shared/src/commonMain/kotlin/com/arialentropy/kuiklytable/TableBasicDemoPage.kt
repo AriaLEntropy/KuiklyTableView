@@ -8,6 +8,7 @@ import com.tencent.kuikly.core.layout.FlexWrap
 import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.*
 import com.tencent.kuikly.core.views.*
+import com.tencent.kuikly.core.views.compose.Button
 import com.arialentropy.kuiklytable.base.BasePager
 import com.arialentropy.kuiklytable.base.bridgeModule
 import com.arialentropy.kuiklytable.base.setTimeout
@@ -38,7 +39,13 @@ internal class TableBasicDemoPage : BasePager() {
     )
 
     // 50 行数据，足够触发纵向滚动与加载更多
-    private val users = (1..50).map { i ->
+    private val users = (1..50).map(::createUser)
+    private val largeUsers by lazy { (1..5_000).map(::createUser) }
+    private val largeDataSets by lazy {
+        listOf(1_000, 3_000, 5_000).associateWith { count -> largeUsers.subList(0, count) }
+    }
+
+    private fun createUser(i: Int): User =
         User(
             id = i,
             name = "员工$i",
@@ -51,7 +58,6 @@ internal class TableBasicDemoPage : BasePager() {
             salary = "${10 + i}k",
             status = if (i % 3 == 0) "离职" else if (i % 2 == 0) "休假" else "在职",
         )
-    }
 
     // 年龄列：3 列和 8 列模式共用，对齐可配置（响应式）
     private val ageColumn = ColumnModel<User>(
@@ -220,6 +226,36 @@ internal class TableBasicDemoPage : BasePager() {
         },
     )
 
+    /** Demo 业务操作：点击、按压和禁用反馈均由 renderer 内的 Button 负责。 */
+    private val actionColumn = ColumnModel<User>(
+        key = "action",
+        title = "操作",
+        accessor = { "查看" },
+        width = 92f,
+        cellRenderer = { user, _ ->
+            val disabled = user.status == "离职"
+            val theme = this@TableBasicDemoPage.currentTheme()
+            Button {
+                attr {
+                    width(68f)
+                    height(44f)
+                    borderRadius(4f)
+                    backgroundColor(Color(if (disabled) theme.statusTagNeutralBackground else theme.actionText))
+                    touchEnable(!disabled)
+                    if (!disabled) highlightBackgroundColor(Color(0x33000000))
+                    titleAttr {
+                        text(if (disabled) "不可用" else "查看")
+                        fontSize(13f)
+                        color(Color(if (disabled) theme.statusTagNeutralText else theme.actionTextOnFill))
+                    }
+                }
+                event {
+                    click { this@TableBasicDemoPage.bridgeModule.toast("按钮操作: ${user.name}") }
+                }
+            }
+        },
+    )
+
     /** Playground 用列：含 cellRenderer 传入的头像与彩色状态标签。 */
     private val playgroundColumns = listOf(
         avatarColumn,
@@ -255,6 +291,12 @@ internal class TableBasicDemoPage : BasePager() {
     private var scrollDemoTableRef: ViewRef<TableView<User>>? = null
     private var scrollDemoLimit by observable(20)
     private var scrollDemoLoadingMore by observable(false)
+    private var largeDataCount by observable(1_000)
+    private var largeDisplayMode: TableDisplayMode by observable(TableDisplayMode.Table)
+    private var largeSortState by observable(TableSortState())
+    private var largeState by observable("正常")
+    private var largeLoadingMore by observable(false)
+    private var largeDataTableRef: ViewRef<TableView<User>>? = null
     private var activeExample by observable("双向滚动")
     private var activeSection by observable("基础")
 
@@ -276,6 +318,7 @@ internal class TableBasicDemoPage : BasePager() {
                 vif({ ctx.activeSection == "自定义" }) { ctx.renderRendererSection(this) }
                 vif({ ctx.activeSection == "状态" }) { ctx.renderStateSection(this) }
                 vif({ ctx.activeSection == "模式" }) { ctx.renderMobileSection(this) }
+                vif({ ctx.activeSection == "大数据" }) { ctx.renderLargeDataSection(this) }
                 vif({ ctx.activeSection == "Playground" }) { ctx.renderPlaygroundSection(this) }
             }
             ctx.renderOverflowTip(this)
@@ -604,7 +647,7 @@ internal class TableBasicDemoPage : BasePager() {
                 paddingLeft(16f)
                 paddingRight(8f)
             }
-            listOf("基础", "滚动", "主题", "自定义", "状态", "模式", "Playground").forEach { section ->
+            listOf("基础", "滚动", "主题", "自定义", "状态", "模式", "大数据", "Playground").forEach { section ->
                 ShowcaseTab(section, active = { ctx.activeSection == section }, theme = { ctx.currentTheme() }) {
                     ctx.activeSection = section
                     ctx.hideOverflowTip()
@@ -799,7 +842,7 @@ internal class TableBasicDemoPage : BasePager() {
             }
             ExampleCard(
                 "传入业务 View",
-                "cellRenderer 传入头像与彩色状态标签；内容由 Demo 绘制并传给 Table。",
+                "cellRenderer 传入头像、彩色标签和操作按钮；按钮自行处理按压、禁用和点击。",
                 { ctx.currentTheme() },
             ) {
                 ctx.renderTablePreview(
@@ -808,9 +851,10 @@ internal class TableBasicDemoPage : BasePager() {
                         ctx.avatarColumn,
                         ColumnModel(key = "name", title = "姓名", accessor = { it.name }, minWidth = 72f, flex = 1f),
                         ctx.statusTagColumn,
+                        ctx.actionColumn,
                     ),
                     { ctx.users.take(3) },
-                    210f,
+                    270f,
                     theme = ctx.currentTheme(),
                 )
             }
@@ -906,8 +950,75 @@ internal class TableBasicDemoPage : BasePager() {
                 )
             }
             ExampleCard("List 模式", "显式选择 List 模式，不按列数自动切换。", { ctx.currentTheme() }) {
-                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.ageColumn, ctx.cityColumn, ctx.statusTextColumn), { ctx.users.take(3) }, 286f, displayMode = TableDisplayMode.List, theme = ctx.currentTheme())
+                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.ageColumn, ctx.cityColumn, ctx.statusTextColumn), { ctx.users.take(3) }, 286f, displayMode = { TableDisplayMode.List }, theme = ctx.currentTheme())
             }
+        }
+    }
+
+    private fun renderLargeDataSection(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
+            SectionIntro(
+                "大数据窗口渲染",
+                "固定使用 Windowed(40)，完整数据仍参与排序，挂载行节点保持有界。",
+                { ctx.currentTheme() },
+            )
+            View {
+                attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(8f) }
+                listOf(1_000 to "1k", 3_000 to "3k", 5_000 to "5k").forEach { (count, label) ->
+                    SegmentOption(label, active = { ctx.largeDataCount == count }, theme = { ctx.currentTheme() }) {
+                        ctx.largeDataCount = count
+                        ctx.largeSortState = TableSortState()
+                        ctx.largeState = "正常"
+                        ctx.largeLoadingMore = false
+                        ctx.largeDataTableRef?.view?.scrollToTop()
+                    }
+                }
+                SegmentOption("Table", active = { ctx.largeDisplayMode is TableDisplayMode.Table }, theme = { ctx.currentTheme() }) {
+                    ctx.largeDisplayMode = TableDisplayMode.Table
+                }
+                SegmentOption("List", active = { ctx.largeDisplayMode is TableDisplayMode.List }, theme = { ctx.currentTheme() }) {
+                    ctx.largeDisplayMode = TableDisplayMode.List
+                }
+            }
+            View {
+                attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(8f) }
+                listOf("正常", "空", "加载").forEach { state ->
+                    SegmentOption(state, active = { ctx.largeState == state }, theme = { ctx.currentTheme() }) {
+                        ctx.largeState = state
+                        ctx.largeLoadingMore = false
+                        ctx.largeDataTableRef?.view?.scrollToTop()
+                    }
+                }
+            }
+            View {
+                attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(10f) }
+                SegmentOption("回到顶部", active = { false }, theme = { ctx.currentTheme() }) {
+                    ctx.largeDataTableRef?.view?.scrollToTop(animated = true)
+                }
+                SegmentOption("重置排序", active = { false }, theme = { ctx.currentTheme() }) {
+                    ctx.largeSortState = TableSortState()
+                    ctx.largeDataTableRef?.view?.scrollToTop(animated = true)
+                }
+            }
+            ctx.renderTablePreview(
+                this,
+                listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
+                { ctx.currentLargeData() },
+                height = null,
+                fixedRowHeight = { true },
+                theme = ctx.currentTheme(),
+                displayMode = { ctx.largeDisplayMode },
+                rowRenderMode = TableRowRenderMode.Windowed(160),
+                controlledSortState = { ctx.largeSortState },
+                onSortChange = { state -> ctx.largeSortState = state },
+                loading = { ctx.largeState == "加载" },
+                hasMore = { ctx.largeState == "正常" && ctx.largeDataCount < 5_000 },
+                loadingMore = { ctx.largeLoadingMore },
+                onLoadMore = { ctx.loadMoreLargeData() },
+                tableRef = { ctx.largeDataTableRef = it },
+            )
         }
     }
 
@@ -982,7 +1093,7 @@ internal class TableBasicDemoPage : BasePager() {
                 fixedRowHeight = { ctx.fixedRowHeight },
                 fixedHeader = { ctx.fixedHeaderOn },
                 theme = ctx.currentTheme(),
-                displayMode = TableDisplayMode.Table,
+                displayMode = { TableDisplayMode.Table },
             )
         }
     }
@@ -998,7 +1109,8 @@ internal class TableBasicDemoPage : BasePager() {
         fixedRowHeight: () -> Boolean = { false },
         fixedHeader: () -> Boolean = { true },
         theme: TableThemeColors,
-        displayMode: TableDisplayMode = TableDisplayMode.Table,
+        displayMode: () -> TableDisplayMode = { TableDisplayMode.Table },
+        rowRenderMode: TableRowRenderMode = TableRowRenderMode.Standard,
         loading: () -> Boolean = { false },
         overflowEnabled: () -> Boolean = { true },
         controlledSortState: () -> TableSortState = { sortState },
@@ -1019,7 +1131,7 @@ internal class TableBasicDemoPage : BasePager() {
                 flex(1f)
                 tableWidth = null
                 if (height == null) flex(1f) else height(height)
-                this.columns.addAll(columns)
+                this.columns = ObservableList(columns.toMutableList())
                 this.data = data()
                 rowKey = { user -> user.id }
                 // 在 attr 内读取 lambda，才能订阅页面 observable，切换外框/圆角等才会生效
@@ -1034,7 +1146,8 @@ internal class TableBasicDemoPage : BasePager() {
                 this.fixedHeader = fixedHeader()
                 fixedColumnCount = 0
                 themeColors = theme
-                this.displayMode = displayMode
+                this.displayMode = displayMode()
+                this.rowRenderMode = rowRenderMode
                 listPrimaryColumnKey = "name"
                 listStatusColumnKey = "status"
                 listStatusTagStyleByText = ctx.statusTagStyleByText(theme)
@@ -1072,6 +1185,19 @@ internal class TableBasicDemoPage : BasePager() {
             scrollDemoLimit = min(scrollDemoLimit + 8, users.size)
             scrollDemoLoadingMore = false
             bridgeModule.toast("已加载至 $scrollDemoLimit / ${users.size} 行")
+        }
+    }
+
+    private fun loadMoreLargeData() {
+        if (largeLoadingMore || largeState != "正常" || largeDataCount >= 5_000) return
+        largeLoadingMore = true
+        setTimeout(120) {
+            largeDataCount = when (largeDataCount) {
+                1_000 -> 3_000
+                else -> 5_000
+            }
+            largeLoadingMore = false
+            bridgeModule.toast("Windowed 已加载至 $largeDataCount 行")
         }
     }
 
@@ -1251,6 +1377,9 @@ internal class TableBasicDemoPage : BasePager() {
         }
 
     private fun currentData(): List<User> = if (tableState == "空") emptyList() else users
+
+    private fun currentLargeData(): List<User> =
+        if (largeState == "空") emptyList() else largeDataSets.getValue(largeDataCount)
 
     private fun syncActiveColumns() {
         activeColumns = ObservableList(currentColumns().toMutableList())

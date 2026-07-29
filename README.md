@@ -33,6 +33,7 @@
 | 状态 | 加载中 / 空数据，支持自定义 Empty / Loading 内容 |
 | 展示模式 | 显式 `Table` 或 `List`（grouped） |
 | 数据加载 | `loadMore` 触底回调（分页与请求由业务层负责） |
+| 大数据 | 显式 `Standard` / `Windowed` 行渲染策略；窗口模式限制已挂载 DSL 行节点 |
 
 ## 接入方式
 
@@ -107,7 +108,7 @@ TableView<User> {
 
 ### 自定义单元格
 
-未配置 `cellRenderer` 时使用默认 `Text`。配置后由使用方传入任意业务 View（如下方彩色标签）；Table 只提供插槽，不内置标签/头像等组件。
+未配置 `cellRenderer` 时使用默认 `Text`，点击仍走 `rowClick` 或截断文本事件。配置后由使用方传入任意业务 View；Table 不再给该 Cell 外层附加 `rowClick`，renderer 内的按钮等控件自行处理点击、按压和禁用反馈。
 
 ```kotlin
 ColumnModel<User>(
@@ -181,6 +182,23 @@ attr {
 }
 ```
 
+### 大数据窗口渲染
+
+`Standard` 是默认全量 DSL 行渲染。大数据场景可在创建 Table 时显式选择 `Windowed`，底层复用 Kuikly List 的懒循环能力：
+
+```kotlin
+attr {
+    data = users
+    rowHeight = 48f
+    fixedColumnCount = 0
+    rowRenderMode = TableRowRenderMode.Windowed(maxRenderedRows = 160)
+}
+```
+
+`Windowed` 只限制已挂载的 UI/DSL 行节点；完整 `data` 和 `displayRows` 仍保留在内存中，排序仍处理完整数据。当前不支持同一挂载节点运行时切换渲染策略、动态行高、固定列组合或 `scrollToRow`。
+
+`maxRenderedRows` 需要覆盖一屏可见行并留出滚动缓冲；配置得小于一屏行数时，快速滚动可能出现暂时空白。默认值为 30，Showcase 的 48dp 固定行高场景使用 160。
+
 ## API 参考
 
 ### TableView
@@ -211,6 +229,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `fixedColumnCount` | `Int` | `0` | 左侧固定列数量（实验性） |
 | `themeColors` | `TableThemeColors` | Light | 语义色 |
 | `displayMode` | `TableDisplayMode` | `Table` | `Table` / `List` |
+| `rowRenderMode` | `TableRowRenderMode` | `Standard` | 初始化期行渲染策略；`Windowed(n)` 限制挂载行数 |
 | `listPrimaryColumnKey` | `String?` | `null` | List 模式主字段列 |
 | `listStatusColumnKey` | `String?` | `null` | List 模式状态列 |
 | `loading` | `Boolean` | `false` | 加载中 |
@@ -252,7 +271,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 1. Android Studio 打开本仓库
 2. 运行 `androidApp`
-3. 默认进入 `table_basic`，可浏览基础、滚动、主题、自定义渲染、状态、模式与 Playground
+3. 默认进入 `table_basic`，可浏览基础、滚动、主题、自定义渲染、状态、模式、大数据与 Playground
 
 ```bash
 ./gradlew :androidApp:compileDebugKotlin
@@ -264,11 +283,13 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 ./gradlew :KuiklyTable:allTests
 ```
 
-`commonTest` 覆盖三个纯逻辑模块：
+`commonTest` 覆盖纯逻辑模块与窗口配置约束：
 
 - `TableDataPipelineTest` — 排序管线（升降序、自定义 comparator、rowKey 稳定性、源数据不可变）
 - `TableColumnLayoutResolverTest` — 列宽分配（固定宽 / minWidth+flex / 视口溢出）
 - `TableBorderTest` — 边框规格（Default / None / Custom 输出）
+- `TableRowRenderModeTest` — Standard 默认值、Windowed 默认窗口与非法边界
+- `TableLoadMoreTriggerPolicyTest` — 同批数据排序不重复触发、追加与替换后解锁
 
 ## 相关资源
 

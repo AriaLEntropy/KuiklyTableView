@@ -49,6 +49,11 @@ class TableAttr<T> : ComposeAttr() {
     var fixedHeader: Boolean by observable(true)
     var fixedColumnCount: Int by observable(0)
     var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
+    /**
+     * Row DSL rendering strategy. Configure during Table creation; changing this value after
+     * the Table is mounted does not rebuild the rendering branch.
+     */
+    var rowRenderMode: TableRowRenderMode = TableRowRenderMode.Standard
     var listPrimaryColumnKey: String? by observable(null)
     var listStatusColumnKey: String? by observable(null)
     var listStatusTagPresetByText: Map<String, TableStatusTagPreset> by observable(emptyMap())

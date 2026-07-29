@@ -2,6 +2,7 @@ package com.arialentropy.kuiklytable
 
 import com.tencent.kuikly.core.base.*
 import com.tencent.kuikly.core.directives.vforIndex
+import com.tencent.kuikly.core.directives.vforLazy
 import com.tencent.kuikly.core.directives.vif
 import com.tencent.kuikly.core.layout.Frame
 import com.tencent.kuikly.core.reactive.collection.ObservableList
@@ -242,21 +243,47 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
                 )
             }
-            vif({ ctx.displayRows.isNotEmpty() }) {
-                listView.vforIndex({ ctx.displayRows }) { row, _, _ ->
-                    View {
-                        ctx.renderTableRowComponent(this, row, layout, region)
-                        ctx.renderBodyDivider(this)
-                        if (row.displayIndex == ctx.displayRows.lastIndex) {
-                            ctx.renderLoadMoreFooter(
-                                this,
-                                width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
-                                visible = region != TableColumnRegion.Fixed,
-                            )
-                        }
-                    }
+            ctx.renderTableRowLoop(listView, layout, region)
+        }
+    }
+
+    private fun renderTableRowLoop(
+        listView: ListView<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+        region: TableColumnRegion,
+    ) {
+        val ctx = this
+        when (val renderMode = attr.rowRenderMode) {
+            is TableRowRenderMode.Standard -> {
+                listView.vforIndex({ displayRows }) { row, _, _ ->
+                    View { ctx.renderTableRowWrapper(this, row, layout, region) }
                 }
             }
+            is TableRowRenderMode.Windowed -> {
+                require(attr.fixedColumnCount <= 0) {
+                    "TableRowRenderMode.Windowed does not support fixed columns"
+                }
+                listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, _, _ ->
+                    View { ctx.renderTableRowWrapper(this, row, layout, region) }
+                }
+            }
+        }
+    }
+
+    private fun renderTableRowWrapper(
+        container: ViewContainer<*, *>,
+        row: TableDisplayRow<T>,
+        layout: TableResolvedColumnLayout<T>,
+        region: TableColumnRegion,
+    ) {
+        renderTableRowComponent(container, row, layout, region)
+        renderBodyDivider(container)
+        if (row.displayIndex == displayRows.lastIndex) {
+            renderLoadMoreFooter(
+                container,
+                width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
+                visible = region != TableColumnRegion.Fixed,
+            )
         }
     }
 
@@ -272,6 +299,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private fun effectiveRowHeight(): Float = when {
         attr.rowHeight > 0f -> attr.rowHeight
+        attr.rowRenderMode is TableRowRenderMode.Windowed -> DEFAULT_ROW_HEIGHT_ESTIMATE
         attr.fixedColumnCount > 0 -> DEFAULT_ROW_HEIGHT_ESTIMATE
         else -> 0f
     }
@@ -345,17 +373,36 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             vif({ ctx.displayRows.isEmpty() }) {
                 ctx.renderEmptyPlaceholder(this)
             }
-            vif({ ctx.displayRows.isNotEmpty() }) {
-                vforIndex({ ctx.displayRows }) { row, index, count ->
-                    View {
-                        ctx.renderMobileRowComponent(this, row, index == count - 1)
-                        if (index == count - 1) {
-                            ctx.renderLoadMoreFooter(this)
-                        }
-                    }
+            ctx.renderMobileRowLoop(listView)
+        }
+    }
+
+    private fun renderMobileRowLoop(listView: ListView<*, *>) {
+        val ctx = this
+        when (val renderMode = attr.rowRenderMode) {
+            is TableRowRenderMode.Standard -> {
+                listView.vforIndex({ displayRows }) { row, index, count ->
+                    View { ctx.renderMobileRowWrapper(this, row, index == count - 1) }
+                }
+            }
+            is TableRowRenderMode.Windowed -> {
+                require(attr.fixedColumnCount <= 0) {
+                    "TableRowRenderMode.Windowed does not support fixed columns"
+                }
+                listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, index, count ->
+                    View { ctx.renderMobileRowWrapper(this, row, index == count - 1) }
                 }
             }
         }
+    }
+
+    private fun renderMobileRowWrapper(
+        container: ViewContainer<*, *>,
+        row: TableDisplayRow<T>,
+        isLast: Boolean,
+    ) {
+        renderMobileRowComponent(container, row, isLast)
+        if (isLast) renderLoadMoreFooter(container)
     }
 
     private fun renderMobileRowComponent(container: ViewContainer<*, *>, row: TableDisplayRow<T>, isLast: Boolean) {
@@ -597,7 +644,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     }
 
     private fun syncLoadMoreTriggerState(previousRows: List<TableDisplayRow<T>>, nextRows: List<TableDisplayRow<T>>) {
-        if (previousRows.size != nextRows.size || previousRows.map { it.key } != nextRows.map { it.key }) {
+        if (shouldResetLoadMoreTrigger(previousRows, nextRows)) {
             lastLoadMoreTriggerRowCount = null
         }
     }
