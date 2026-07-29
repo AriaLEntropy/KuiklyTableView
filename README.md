@@ -6,27 +6,21 @@
 
 ## 效果预览
 
-| 基础样式 | 双向滚动 | 主题 |
+静态对照（一眼能看出差异）：
+
+| 基础样式 | 主题三套 | 自定义 Renderer |
 | :---: | :---: | :---: |
-| <img src="assets/table_showcase_basic.png" alt="基础表格样式" width="280"> | <img src="assets/table_showcase_scroll.png" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_theme.png" alt="Light / Dark / Blue 主题" width="280"> |
+| <img src="assets/table_showcase_basic.png" alt="基础表格样式" width="280"> | <img src="assets/table_showcase_theme.png" alt="Light / Dark / Blue 主题" width="280"> | <img src="assets/table_showcase_renderer.png" alt="自定义单元格渲染" width="280"> |
 
-| 自定义 Renderer | 状态反馈 | Table / List 模式 |
+| 状态反馈 | Table / List 模式 |
+| :---: | :---: |
+| <img src="assets/table_showcase_state.png" alt="无数据状态" width="280"> | <img src="assets/table_showcase_mode.png" alt="Table 与 List 展示模式" width="280"> |
+
+交互录屏（静态看不出的能力）：
+
+| 双向滚动 | 排序三态 | 大数据虚拟滚动 |
 | :---: | :---: | :---: |
-| <img src="assets/table_showcase_renderer.png" alt="自定义单元格渲染" width="280"> | <img src="assets/table_showcase_state.png" alt="无数据状态" width="280"> | <img src="assets/table_showcase_mode.png" alt="Table 与 List 展示模式" width="280"> |
-
-| 大数据窗口渲染 |
-| :---: |
-| <img src="assets/table_showcase_large_1k.png" alt="Windowed 大数据窗口渲染" width="280"> |
-
-交互录屏（滚动 / 排序 / 主题切换 / 大数据虚拟滚动）：
-
-| 双向滚动 | 排序 | 主题 |
-| :---: | :---: | :---: |
-| <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_theme_demo.gif" alt="Light / Dark / Blue 主题" width="280"> |
-
-| 大数据虚拟滚动 |
-| :---: |
-| <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
+| <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
 
 ## 功能特性
 
@@ -196,7 +190,6 @@ attr {
 
 <p align="left">
   <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280">
-  <img src="assets/table_showcase_large_1k.png" alt="Windowed 大数据窗口渲染" width="280">
 </p>
 
 ```kotlin
