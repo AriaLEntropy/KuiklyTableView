@@ -3,9 +3,8 @@ package com.arialentropy.kuiklytable
 /**
  * Table 组件主题色值
  *
- * 色值格式为 Long ARGB（0xAARRGGBB），参照 KuiklyChatUI ChatThemeColors 模式。
- * 默认值取自 KuiklyUI 宿主皮肤 token 方向（bg_default / divider / text_primary 等），
- * 不硬编码竞品 hex。
+ * 色值格式为 Long ARGB（0xAARRGGBB）。
+ * 默认值按语义角色对齐 KuiklyUI 宿主皮肤 token 方向（bg_default / divider / text_primary 等）。
  */
 class TableThemeColors(
     /** 表头背景 */
@@ -26,33 +25,33 @@ class TableThemeColors(
     val cardBackground: Long = 0xFFFFFFFF,
     /** List 模式卡片边框 */
     val cardBorder: Long = 0xFFE6E6E6,
-    /** 成功状态标签背景（在职/正常） */
+    /** Success 语义状态标签背景 */
     val statusTagBackground: Long = 0xFFE8F5E9,
-    /** 成功状态标签文字（在职/正常） */
+    /** Success 语义状态标签文字 */
     val statusTagText: Long = 0xFF2E7D32,
-    /** 警告状态标签背景（如休假/待处理） */
+    /** Warning 语义状态标签背景 */
     val statusTagBackgroundAlt: Long = 0xFFFFF4E5,
-    /** 警告状态标签文字 */
+    /** Warning 语义状态标签文字 */
     val statusTagTextAlt: Long = 0xFFFF9800,
-    /** 危险状态标签背景（如离职/异常） */
+    /** Danger 语义状态标签背景 */
     val statusTagDangerBackground: Long = 0xFFFFEFF0,
-    /** 危险状态标签文字；取宿主 text_warning 方向 */
+    /** Danger 语义状态标签文字；取宿主 text_warning 方向 */
     val statusTagDangerText: Long = 0xFFFF5967,
-    /** 中性状态标签背景；取宿主 bg_backplate 方向 */
+    /** Neutral 语义状态标签背景；取宿主 bg_backplate 方向 */
     val statusTagNeutralBackground: Long = 0xFFF5F5F5,
-    /** 中性状态标签文字；取宿主 text_secondary 方向 */
+    /** Neutral 语义状态标签文字；取宿主 text_secondary 方向 */
     val statusTagNeutralText: Long = 0xFF999999,
-    /** 信息状态标签背景 */
+    /** Info 语义状态标签背景 */
     val statusTagInfoBackground: Long = 0xFFEAF4FF,
-    /** 信息状态标签文字；取宿主 text_link 方向 */
+    /** Info 语义状态标签文字；取宿主 text_link 方向 */
     val statusTagInfoText: Long = 0xFF2E77E5,
-    /** 状态层遮罩背景 */
+    /** 加载 / 空 / 错误状态层背景；默认全透明，只覆盖在表格区域之上 */
     val stateOverlayBackground: Long = 0x00FFFFFF,
-    /** 状态层正文 */
+    /** 状态层提示文字 */
     val stateText: Long = 0xFF666666,
-    /** 状态层主操作 */
+    /** 状态层主操作文字（无填充样式） */
     val actionText: Long = 0xFF2E77E5,
-    /** 状态层主操作填充上的文字 */
+    /** 状态层主操作文字（有填充背景时） */
     val actionTextOnFill: Long = 0xFFFFFFFF,
 ) {
     companion object {
@@ -86,7 +85,7 @@ class TableThemeColors(
             actionTextOnFill = 0xFF10223A,
         )
 
-        /** 蓝色示例主题，用于演示完整语义色覆盖。 */
+        /** 蓝色示例主题；只覆盖蓝色调相关色值，danger / neutral / info 沿用默认值。 */
         val Blue = TableThemeColors(
             headerBackground = 0xFF0D47A1,
             headerText = 0xFFFFFFFF,
@@ -143,7 +142,12 @@ class TableStatusTagStyle(
     }
 }
 
-/** List 模式状态标签预设，业务可通过 resolver 自行决定状态文本对应的语义。 */
+/**
+ * List 模式状态标签的语义预设。
+ *
+ * [fromText] 只是内置的兜底映射；业务应优先用 statusTagPresetByText / statusTagStyleResolver
+ * 指定自己的状态文本对应哪个语义。
+ */
 sealed class TableStatusTagPreset {
     object Success : TableStatusTagPreset()
     object Warning : TableStatusTagPreset()
@@ -158,6 +162,7 @@ sealed class TableStatusTagPreset {
         private val neutralTexts = setOf("草稿", "未知", "无", "未开始", "default", "neutral", "draft", "unknown")
         private val infoTexts = setOf("信息", "新建", "通知", "info", "new", "notice")
 
+        /** 未命中任何内置词表时返回 [Neutral]。 */
         fun fromText(text: String): TableStatusTagPreset {
             val normalized = text.trim().lowercase()
             return when {
@@ -178,6 +183,7 @@ class TableHeaderStyle(
     val fontWeight: TableHeaderFontWeight = TableHeaderFontWeight.Medium,
     val paddingH: Float = 12f,
     val paddingV: Float = 10f,
+    /** 固定表头高度；0 表示由 padding 与文字撑开 */
     val height: Float = 0f,
     val bottomBorderWidth: Float = 1f,
 ) {
