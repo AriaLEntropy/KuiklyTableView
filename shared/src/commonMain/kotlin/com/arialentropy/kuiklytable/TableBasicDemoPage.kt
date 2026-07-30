@@ -616,7 +616,7 @@ internal class TableBasicDemoPage : BasePager() {
             }
             Text {
                 attr {
-                    text("L1 Basic：按章节验证基础能力；DataTable 交互能力请从 table_home 进入 table_data。")
+                    text("KuiklyTable：按章节验证基础能力；DataTable 交互能力请从 table_home 进入 table_data。")
                     fontSize(12f)
                     color(Color(ctx.currentTheme().cellTextSecondary))
                     marginTop(4f)

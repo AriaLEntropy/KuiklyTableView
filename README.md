@@ -8,7 +8,7 @@
 
 基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端表格组件，支持 Android、iOS、鸿蒙。
 
-仓库提供两级正式表格：`KuiklyTable`（L1 Basic）与 `KuiklyDataTable`（L2）。
+仓库提供两级正式表格：`KuiklyTable`（基础表格）与 `KuiklyDataTable`（数据表格）。
 
 <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="300">
 
@@ -16,10 +16,10 @@
 
 | 入口 | 定位 | Showcase | 状态 |
 | --- | --- | --- | --- |
-| `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | `table_basic`（分章节验证） | L1 已交付 |
-| `DataTableView` / KuiklyDataTable | **拥有 KuiklyTable 全部能力**，叠加行选择、全选/半选、筛选与客户端分页 | `table_data`（数据交互 / 基础组合 / 接入关系） | L2 已交付：行选择、筛选、客户端分页 |
+| `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | `table_basic`（分章节验证） | 已交付 |
+| `DataTableView` / KuiklyDataTable | **拥有 KuiklyTable 全部能力**，叠加行选择、全选/半选、筛选与客户端分页 | `table_data`（数据交互 / 基础组合 / 接入关系） | 已交付：行选择、筛选、客户端分页 |
 
-`KuiklyDataTable` 是 `KuiklyTable` 的组合封装（Kuikly 组合组件）：排序、主题、固定列、自定义渲染、List 模式、大数据窗口等 L1 能力在 DataTable 上同样可用；`DataTableAttr` / `DataTableEvent` 继承 `TableAttr` / `TableEvent`，只新增独有属性与事件。
+`KuiklyDataTable` 是 `KuiklyTable` 的组合封装（Kuikly 组合组件）：排序、主题、固定列、自定义渲染、List 模式、大数据窗口等 KuiklyTable 能力在 DataTable 上同样可用；`DataTableAttr` / `DataTableEvent` 继承 `TableAttr` / `TableEvent`，只新增独有属性与事件。
 
 ## 效果预览
 
