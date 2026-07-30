@@ -280,9 +280,7 @@ attr {
 }
 ```
 
-Showcase：`table_basic` →「分隔线与圆角」可切无线/仅横线/网格/自定义，自定义下有蓝/灰/绿/橙/紫预设色。
-
-> 迁移：旧 `borderMode` / `TableBorderMode` 已替换为 `lineMode` / `TableLineMode`；原先只控外框，现在同时管内部线。斑马纹、选中、编辑不会隐式改写 `lineMode`。
+Showcase：`table_basic` →「分隔线与圆角」可切无线/仅横线/网格/自定义，自定义下有蓝/灰/绿/橙/紫预设色。斑马纹、选中、编辑不会隐式改写 `lineMode`。
 
 ### 左侧固定列
 
