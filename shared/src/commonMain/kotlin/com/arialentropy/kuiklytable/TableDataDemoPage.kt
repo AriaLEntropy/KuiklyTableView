@@ -144,19 +144,23 @@ internal class TableDataDemoPage : BasePager() {
                     }
                     listOf("数据交互", "大量数据", "接入关系").forEach { panel ->
                         DataToggleChip(label = { panel }, active = { ctx.activePanel == panel }, chrome = ctx.pageChrome) {
-                            ctx.activePanel = panel
-                            // 进入大量数据默认开 Windowed，避免 3000 行 Standard 挂满节点
                             if (panel == "大量数据") {
+                                // 先开 Windowed 再切页签，避免 Standard 在 reactive 帧里挂载 3000 行
                                 if (!ctx.enableWindowed) {
                                     ctx.enableWindowed = true
                                     ctx.fixedFirstColumn = false
                                     ctx.pageIndex = 0
-                                    ctx.lastEvent =
-                                        "大量数据：${LARGE_ROW_COUNT} 行 + Windowed($VIRTUAL_SCROLL_WINDOW)"
                                 }
-                            } else if (ctx.enableWindowed) {
-                                ctx.enableWindowed = false
-                                ctx.lastEvent = "已回到数据交互数据集（$DEMO_ROW_COUNT 行）"
+                                ctx.activePanel = panel
+                                ctx.lastEvent =
+                                    "大量数据：${LARGE_ROW_COUNT} 行 + Windowed($VIRTUAL_SCROLL_WINDOW)"
+                            } else {
+                                // 先切页签（data 回落到 100 行），再关 Windowed
+                                ctx.activePanel = panel
+                                if (ctx.enableWindowed) {
+                                    ctx.enableWindowed = false
+                                    ctx.lastEvent = "已回到数据交互数据集（$DEMO_ROW_COUNT 行）"
+                                }
                             }
                         }
                     }
@@ -192,7 +196,7 @@ internal class TableDataDemoPage : BasePager() {
 
     private fun renderMainDataTable(container: ViewContainer<*, *>, windowed: Boolean) {
         val ctx = this
-        container.DataTableView<User> {
+        container.DataTableView {
             attr {
                 flex(1f)
                 enableRowSelection = ctx.enableRowSelection
@@ -203,8 +207,12 @@ internal class TableDataDemoPage : BasePager() {
                 filterPredicate = ctx.currentFilter()
                 themeColors = ctx.tableTheme()
                 sortState = ctx.sortState
-                // 「大量数据」页始终用 3000 行；其它页用 100 行做选择/分页演示
-                data = if (ctx.activePanel == "大量数据") ctx.largeUsers else ctx.users
+                // 仅 Windowed + 大量数据页绑定 3000 行；Standard 永不挂载大集
+                data = if (ctx.activePanel == "大量数据" && ctx.enableWindowed) {
+                    ctx.largeUsers
+                } else {
+                    ctx.users
+                }
                 rowKey = { it.id }
                 zebraStripe = true
                 fixedHeader = ctx.fixedHeader
@@ -419,12 +427,17 @@ internal class TableDataDemoPage : BasePager() {
                     if (ctx.enableWindowed) {
                         "当前：${LARGE_ROW_COUNT} 行全量在内存，只挂载约 $VIRTUAL_SCROLL_WINDOW 行节点"
                     } else {
-                        "关闭后仍为 ${LARGE_ROW_COUNT} 行，但 Standard 会为每行建节点，debug 下可能卡顿"
+                        "大量数据页须保持开启；关闭后 Standard 会为 ${LARGE_ROW_COUNT} 行逐行建节点并可能崩溃"
                     }
                 },
                 checked = { ctx.enableWindowed },
                 chrome = ctx.pageChrome,
             ) { on ->
+                if (!on && ctx.activePanel == "大量数据") {
+                    ctx.lastEvent = "大量数据页不可关闭虚拟滚动（${LARGE_ROW_COUNT} 行）"
+                    ctx.bridgeModule.toast("大量数据页须保持虚拟滚动")
+                    return@DataSettingSwitch
+                }
                 ctx.enableWindowed = on
                 if (on) {
                     ctx.fixedFirstColumn = false
@@ -432,7 +445,7 @@ internal class TableDataDemoPage : BasePager() {
                     ctx.lastEvent =
                         "已开启虚拟滚动：${LARGE_ROW_COUNT} 行 + Windowed($VIRTUAL_SCROLL_WINDOW) + rowHeight=48；与固定列互斥"
                 } else {
-                    ctx.lastEvent = "已关闭虚拟滚动：${LARGE_ROW_COUNT} 行改用 Standard（可能卡顿）"
+                    ctx.lastEvent = "已关闭虚拟滚动：回到 $DEMO_ROW_COUNT 行 Standard 演示集"
                 }
             }
             configLabel("滚动组合", ctx)
