@@ -2,19 +2,27 @@
 
 基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端表格组件，支持 Android、iOS、鸿蒙。
 
-当前仓库主线是 **KuiklyDataTable（高级表格）**：行选择（#35）正式收口，分页筛选（#36）同页可验。`KuiklyTable` Basic（含分隔线 `lineMode`、左侧固定列 `fixedFirstColumn`）已作为底层展示组件交付。
+仓库提供两级正式表格：`KuiklyTable`（L1 Basic）与 `KuiklyDataTable`（L2）。
+
+<div align="center">
+  <img src="assets/table_showcase_basic.png" alt="KuiklyTable 基础表格" width="220">
+  <img src="assets/table_datatable_selection.png" alt="KuiklyDataTable 行选择" width="220">
+  <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="220">
+</div>
 
 ## 组件族
 
-| 入口 | 定位 | 状态 |
-| --- | --- | --- |
-| `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | Basic 已交付 |
-| `DataTableView` / KuiklyDataTable | 行选择、全选/半选、与排序 rowKey 联动；筛选与客户端分页 | #35 收口中；#36 同页可验 |
-| KuiklyTreeTable | 树形数据 | 后续 |
+| 入口 | 定位 | Showcase | 状态 |
+| --- | --- | --- | --- |
+| `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | `table_basic`（分章节验证） | L1 已交付 |
+| `DataTableView` / KuiklyDataTable | 行选择、全选/半选、与排序 rowKey 联动；筛选与客户端分页 | `table_data`（数据交互 / 基础组合 / 接入关系） | L2 已交付：行选择、筛选、客户端分页 |
+| KuiklyTreeTable | 树形数据 | — | 后续 |
 
 ## 效果预览
 
-静态对照（KuiklyTable Basic）：
+### KuiklyTable
+
+静态对照：
 
 | 基础样式 | 主题三套 | 自定义 Renderer |
 | :---: | :---: | :---: |
@@ -30,13 +38,17 @@
 | :---: | :---: | :---: |
 | <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
 
-DataTable 行选择：
+### KuiklyDataTable
 
-| 多选高亮 | 表头全选三态 |
+Showcase 页 `table_data`：顶部配置区分「数据交互 / 基础组合 / 接入关系」页签，表格占剩余高度。
+
+| 行选择 | 表头全选 |
 | :---: | :---: |
-| <img src="assets/table_datatable_selection.png" alt="DataTable 行多选高亮" width="280"> | <img src="assets/table_datatable_select_all.png" alt="DataTable 表头全选半选" width="280"> |
+| <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_select_all.png" alt="DataTable 表头全选" width="280"> |
 
-Android 宿主默认 `table_data`；也可用 `adb` 指定 `pageName=table_data`。
+| 状态筛选 | 客户端分页 |
+| :---: | :---: |
+| <img src="assets/table_datatable_filter.png" alt="按在职筛选" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页第 2 页" width="280"> |
 
 ## 功能特性
 
@@ -44,7 +56,7 @@ Android 宿主默认 `table_data`；也可用 `adb` 指定 `pageName=table_data`
 | --- | --- |
 | 基础结构 | `TableView` / `ColumnModel`，固定列宽与弹性 `minWidth + flex` |
 | 滚动 | 横纵双向滚动，表头与内容横向同步；可选固定表头；左侧固定列（单 List，需固定行高） |
-| 样式 | 默认网格线与 8dp 圆角；`lineMode` 可切无线/仅横线/网格/自定义；斑马纹、对齐、行高、内边距可配 |
+| 样式 | 默认网格线与 8dp 圆角；`lineMode` 可切无线/仅横线/网格/自定义；斑马纹、行高、内边距可配；列对齐默认 `Start`（左对齐），未显式设置时数值列也不居右 |
 | 主题 | Light / Dark 预设，`TableThemeColors` 语义色覆盖（含选中行背景） |
 | 自定义渲染 | `cellRenderer` / `headerRenderer`；未配置回退默认文本 |
 | 交互 | 表头三态排序、行点击、单元格点击、截断溢出点击、回顶；列上 `enableRowClick` / `enableCellClick` 显式控制 |
@@ -97,7 +109,6 @@ TableView<User> {
                     title = "年龄",
                     accessor = { it.age.toString() },
                     width = 60f,
-                    alignment = ColumnAlignment.End,
                     sortable = true,
                     sortComparator = compareBy { it.age },
                 ),
@@ -131,7 +142,7 @@ TableView<User> {
 
 `DataTableView` 复用 `TableView`。管线：源 `data` → `filterPredicate` → 单列排序 → 客户端分页。选中身份是 `rowKey`。不提供内建全局搜索框。
 
-**行选择（#35）**
+**行选择**
 
 | 配置 / 事件 | 说明 |
 | --- | --- |
@@ -171,7 +182,7 @@ DataTableView<User> {
 }
 ```
 
-**筛选与分页（#36，同入口可配）**
+**筛选与分页（同入口可配）**
 
 ```kotlin
 attr {
@@ -186,10 +197,13 @@ event {
 }
 ```
 
-Showcase：`table_data`（默认页）。配置区「选择:开/关」可验证 fallback；点「年龄」表头可验排序后选中保持。
+Showcase：`table_data`（从 `table_home` 进入）。「数据交互」页签可开关选择 / 筛选 / 分页并验证 fallback；点「年龄」表头可验排序后选中按 rowKey 保持。
+
 ### 自定义单元格
 
 未配置 `cellRenderer` 时用默认文本。单元格是否触发 `rowClick` / `cellClick` 由列上的 `enableRowClick`、`enableCellClick` 显式控制，与是否配置 renderer 无关。优先级：截断溢出提示 > `cellClick` > `rowClick`。操作列通常两开关都关，由 renderer 内 Button 自己处理点击和按压。
+
+Windows PC Web 兼容补丁：默认文本单元格（仅未配置 `cellRenderer`）会附加 HTML `title` 属性，鼠标悬停可看到完整文本；自定义 renderer 不会自动注入该属性。
 
 ```kotlin
 ColumnModel<User>(
@@ -231,7 +245,7 @@ ColumnModel<User>(
 
 ### 主题色（`TableThemeColors`）
 
-表格**不读** App 全局主题，只消费你传入的 `themeColors`。推荐顺序：
+表格只消费你传入的 `themeColors`，不跟随 App 全局主题。推荐顺序：
 
 1. 先用预设：`TableThemeColors.Light` / `.Dark` / `.Blue`
 2. 需要微调时再 `copy` 覆盖个别语义色（不要在业务里散落裸 hex，除非你很清楚它对应哪一块 UI）
@@ -448,7 +462,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `width` | `Float?` | `null` | 固定列宽；`null` 时用弹性宽度 |
 | `minWidth` | `Float` | `100f` | 最小宽度（弹性列） |
 | `flex` | `Float` | `1f` | 剩余空间权重 |
-| `alignment` | `ColumnAlignment` | `Start` | `Start` / `Center` / `End` |
+| `alignment` | `ColumnAlignment` | `Start` | 默认左对齐；`Start` / `Center` / `End`；未显式设置时数值列也不居右 |
 | `sortable` | `Boolean` | `false` | 是否可排序 |
 | `sortComparator` | `Comparator<T>?` | `null` | 自定义比较器 |
 | `cellRenderer` | DSL? | `null` | 自定义单元格 |
@@ -460,7 +474,11 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 1. Android Studio 打开本仓库
 2. 运行 `androidApp`
-3. 默认进入 `table_data`（DataTable 行选择）；`table_basic` 仍为基础表格 Showcase
+3. 默认进入 `table_home`；再进入：
+   - `table_basic`：按章节（基础 / 滚动 / 主题 / 自定义 / 状态 / 模式 / 大数据）对照验证
+   - `table_data`：配置区分「数据交互 / 基础组合 / 接入关系」页签，表格占剩余高度
+
+也可 `adb` 指定 `pageName=table_basic` 或 `pageName=table_data`。
 
 ```bash
 ./gradlew :androidApp:compileDebugKotlin

@@ -107,7 +107,7 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
             }
             Text {
                 attr {
-                    flex(1f); text(text); fontSize(14f); color(Color(ctx.attr.themeColors.cellText)); lines(1); textOverFlowTail()
+                    flex(1f); text(text); "title" with text; fontSize(14f); color(Color(ctx.attr.themeColors.cellText)); lines(1); textOverFlowTail()
                     when (column.alignment) {
                         is ColumnAlignment.Center -> textAlignCenter()
                         is ColumnAlignment.End -> textAlignRight()

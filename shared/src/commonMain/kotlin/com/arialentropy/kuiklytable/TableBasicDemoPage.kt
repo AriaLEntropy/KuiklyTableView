@@ -59,13 +59,12 @@ internal class TableBasicDemoPage : BasePager() {
             status = if (i % 3 == 0) "离职" else if (i % 2 == 0) "休假" else "在职",
         )
 
-    // 年龄列：3 列和 8 列模式共用，对齐可配置（响应式）
+    // 年龄列：3 列和 8 列模式共用；对齐默认 Start，章节内可改
     private val ageColumn = ColumnModel<User>(
         key = "age",
         title = "年龄",
         accessor = { it.age.toString() },
         width = 80f,
-        alignment = ColumnAlignment.End,
         sortable = true,
         sortComparator = compareBy { it.age },
     )
@@ -154,7 +153,6 @@ internal class TableBasicDemoPage : BasePager() {
             title = "年龄",
             accessor = { it.age.toString() },
             width = 80f,
-            alignment = ColumnAlignment.End,
         ),
         ColumnModel<User>(
             key = "basicEmail",
@@ -185,7 +183,6 @@ internal class TableBasicDemoPage : BasePager() {
             title = "年龄（可排序）",
             accessor = { it.age.toString() },
             minWidth = 140f,
-            alignment = ColumnAlignment.End,
             sortable = true,
             sortComparator = compareBy { it.age },
         ),
@@ -258,15 +255,6 @@ internal class TableBasicDemoPage : BasePager() {
         },
     )
 
-    /** Playground 用列：含 cellRenderer 传入的头像与彩色状态标签。 */
-    private val playgroundColumns = listOf(
-        avatarColumn,
-        nameColumn,
-        ageColumn,
-        emailColumn,
-        statusTagColumn,
-    )
-
     // ===== 可配置状态（observable，变化触发表格重渲染）=====
     private var wideTable by observable(true)          // 3列 / 5列 / 7列（横向滚动）
     private var activeColumns: ObservableList<ColumnModel<User>> by observableList()
@@ -324,7 +312,6 @@ internal class TableBasicDemoPage : BasePager() {
                 vif({ ctx.activeSection == "状态" }) { ctx.renderStateSection(this) }
                 vif({ ctx.activeSection == "模式" }) { ctx.renderMobileSection(this) }
                 vif({ ctx.activeSection == "大数据" }) { ctx.renderLargeDataSection(this) }
-                vif({ ctx.activeSection == "Playground" }) { ctx.renderPlaygroundSection(this) }
             }
             ctx.renderOverflowTip(this)
         }
@@ -629,7 +616,7 @@ internal class TableBasicDemoPage : BasePager() {
             }
             Text {
                 attr {
-                    text("按场景查看用法；完整运行时配置集中在 Playground")
+                    text("L1 Basic：按章节验证基础能力；DataTable 交互能力请从 table_home 进入 table_data。")
                     fontSize(12f)
                     color(Color(ctx.currentTheme().cellTextSecondary))
                     marginTop(4f)
@@ -647,7 +634,7 @@ internal class TableBasicDemoPage : BasePager() {
                 paddingLeft(16f)
                 paddingRight(8f)
             }
-            listOf("基础", "滚动", "主题", "自定义", "状态", "模式", "大数据", "Playground").forEach { section ->
+            listOf("基础", "滚动", "主题", "自定义", "状态", "模式", "大数据").forEach { section ->
                 ShowcaseTab(section, active = { ctx.activeSection == section }, theme = { ctx.currentTheme() }) {
                     ctx.activeSection = section
                     ctx.hideOverflowTip()
@@ -855,7 +842,6 @@ internal class TableBasicDemoPage : BasePager() {
                             title = "年龄",
                             accessor = { it.age.toString() },
                             width = 80f,
-                            alignment = ColumnAlignment.End,
                         ),
                     ),
                     { ctx.users.take(3) },
@@ -984,7 +970,6 @@ internal class TableBasicDemoPage : BasePager() {
                             title = "年龄",
                             accessor = { it.age.toString() },
                             width = 80f,
-                            alignment = ColumnAlignment.End,
                         ),
                     ),
                     { ctx.users.take(3) },
@@ -1065,82 +1050,6 @@ internal class TableBasicDemoPage : BasePager() {
         }
     }
 
-    private fun renderPlaygroundSection(container: ViewContainer<*, *>) {
-        val ctx = this
-        container.View {
-            attr {
-                flex(1f)
-                paddingLeft(16f)
-                paddingRight(16f)
-                paddingBottom(16f)
-            }
-            Scroller {
-                attr {
-                    // 配置区固定高度，剩余空间留给下方表格，避免错误挂载导致大块空白
-                    height(260f)
-                    marginBottom(10f)
-                }
-                SectionIntro(
-                    "Playground",
-                    "集中切换列对齐与外观。下方表格含使用方传入的头像与彩色状态标签；截断溢出提示默认开启。",
-                    { ctx.currentTheme() },
-                )
-                ConfigGroup("列与对齐", first = true, theme = { ctx.currentTheme() }) {
-                    Scroller {
-                        attr { height(44f); flexDirectionRow(); marginBottom(16f) }
-                        ctx.playgroundColumns.forEach { col ->
-                            ToggleChip(label = { col.title }, active = { ctx.selectedColumn === col }, theme = { ctx.currentTheme() }) {
-                                ctx.selectedColumn = col
-                            }
-                        }
-                    }
-                    View {
-                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        listOf("左对齐", "居中", "右对齐").forEach { alignment ->
-                            ToggleChip(label = { alignment }, active = {
-                                when (alignment) {
-                                    "居中" -> ctx.selectedColumn.alignment is ColumnAlignment.Center
-                                    "右对齐" -> ctx.selectedColumn.alignment is ColumnAlignment.End
-                                    else -> ctx.selectedColumn.alignment is ColumnAlignment.Start
-                                }
-                            }, theme = { ctx.currentTheme() }) {
-                                ctx.selectedColumn.alignment = when (alignment) {
-                                    "居中" -> ColumnAlignment.Center
-                                    "右对齐" -> ColumnAlignment.End
-                                    else -> ColumnAlignment.Start
-                                }
-                            }
-                        }
-                    }
-                }
-                ConfigGroup("外观", theme = { ctx.currentTheme() }) {
-                    SettingSwitch("斑马纹", "交替显示行背景", ctx.zebraOn, { ctx.currentTheme() }) { ctx.zebraOn = it }
-                    SettingSwitch("网格线", "关闭为无线；开启为网格", ctx.tableLineMode !is TableLineMode.None, { ctx.currentTheme() }) {
-                        ctx.tableLineMode = if (it) TableLineMode.Grid else TableLineMode.None
-                    }
-                    SettingSwitch("圆角 8dp", "关闭后圆角为 0", ctx.tableCornerRadius > 0f, { ctx.currentTheme() }) {
-                        ctx.applyCornerRadius(if (it) TableCornerRadius.Default else TableCornerRadius.None)
-                    }
-                    SettingSwitch("固定 48dp 行高", "关闭后由内容和内边距决定", ctx.fixedRowHeight, { ctx.currentTheme() }) { ctx.fixedRowHeight = it }
-                    SettingSwitch("紧凑内边距", "减小单元格水平和垂直留白", ctx.compactPadding, { ctx.currentTheme() }) { ctx.compactPadding = it }
-                }
-            }
-            ctx.renderTablePreview(
-                this,
-                ctx.playgroundColumns,
-                { ctx.users },
-                height = null,
-                lineMode = { ctx.tableLineMode },
-                cornerRadius = { ctx.tableCornerRadius },
-                zebra = { ctx.zebraOn },
-                fixedRowHeight = { ctx.fixedRowHeight },
-                fixedHeader = { ctx.fixedHeaderOn },
-                theme = ctx.currentTheme(),
-                displayMode = { TableDisplayMode.Table },
-            )
-        }
-    }
-
     private fun renderTablePreview(
         container: ViewContainer<*, *>,
         columns: List<ColumnModel<User>>,
@@ -1151,6 +1060,7 @@ internal class TableBasicDemoPage : BasePager() {
         zebra: () -> Boolean = { true },
         fixedRowHeight: () -> Boolean = { false },
         fixedHeader: () -> Boolean = { true },
+        fixedFirstColumn: () -> Boolean = { false },
         theme: TableThemeColors,
         displayMode: () -> TableDisplayMode = { TableDisplayMode.Table },
         rowRenderMode: TableRowRenderMode = TableRowRenderMode.Standard,
@@ -1187,7 +1097,7 @@ internal class TableBasicDemoPage : BasePager() {
                 sortState = controlledSortState()
                 autoIndexColumn = false
                 this.fixedHeader = fixedHeader()
-                fixedFirstColumn = false
+                this.fixedFirstColumn = fixedFirstColumn()
                 themeColors = theme
                 this.displayMode = displayMode()
                 this.rowRenderMode = rowRenderMode

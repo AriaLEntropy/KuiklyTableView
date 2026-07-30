@@ -137,6 +137,8 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
                         attr {
                             flex(1f)
                             text(text)
+                            // Web: default text cell adds native HTML title tooltip.
+                            "title" with text
                             fontSize(DEFAULT_CELL_FONT_SIZE)
                             color(Color(ctx.attr.themeColors.cellText))
                             lines(1)

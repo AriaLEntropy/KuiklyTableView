@@ -25,9 +25,10 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
     private var tableRef: ViewRef<TableView<T>>? = null
     /** 管线输出的当前页行；用 observable + bindValueChange 保证 pageSize 等变化会推到 TableView。 */
     private var pageItems: List<T> by observable(emptyList())
-    /** Theme changes must remount renderer closures that capture theme-dependent content. */
+    /** Theme / layout switches remount renderer closures that capture structure-dependent content. */
     private var themeRenderBranch by observable(false)
     private var lastThemeIdentity: Int? = null
+    private var lastFixedHeader: Boolean? = null
 
     override fun createAttr(): DataTableAttr<T> = DataTableAttr()
     override fun createEvent(): DataTableEvent<T> = DataTableEvent()
@@ -39,8 +40,9 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
     override fun created() {
         bindValueChange(
             valueBlock = {
-                // 返回值必须带上 fixedFirstColumn / theme 等，否则只改固定列时 page 相同、valueChange 不触发
+                // 返回值必须带上 fixedHeader / fixedFirstColumn / theme 等，否则只改布局时 page 相同、valueChange 不触发
                 DataTableSyncState(
+                    fixedHeader = attr.fixedHeader,
                     fixedFirstColumn = attr.fixedFirstColumn,
                     fixedColumnSlots = if (attr.fixedFirstColumn && attr.enableRowSelection) 2 else if (attr.fixedFirstColumn) 1 else 0,
                     themeIdentity = themeIdentityOf(attr.themeColors),
@@ -54,10 +56,14 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
                 @Suppress("UNCHECKED_CAST")
                 val state = value as DataTableSyncState<T>
                 pageItems = state.page.pageItems
-                if (lastThemeIdentity != null && lastThemeIdentity != state.themeIdentity) {
+                val themeChanged = lastThemeIdentity != null && lastThemeIdentity != state.themeIdentity
+                val headerChanged = lastFixedHeader != null && lastFixedHeader != state.fixedHeader
+                if (themeChanged || headerChanged) {
+                    // 固定表头改动会换布局树，需重建 TableView
                     themeRenderBranch = !themeRenderBranch
                 }
                 lastThemeIdentity = state.themeIdentity
+                lastFixedHeader = state.fixedHeader
                 val table = tableRef?.view ?: return@bindValueChange
                 table.updateData(state.page.pageItems)
                 table.updateFixedFirstColumn(state.fixedFirstColumn, state.fixedColumnSlots)
@@ -342,8 +348,9 @@ fun <T> ViewContainer<*, *>.DataTableView(init: DataTableView<T>.() -> Unit) {
     addChild(DataTableView(), init)
 }
 
-/** bindValueChange 票据：固定列/主题变化时即使分页结果相同也要触发同步。 */
+/** bindValueChange 票据：固定列/表头/主题变化时即使分页结果相同也要触发同步。 */
 private data class DataTableSyncState<T>(
+    val fixedHeader: Boolean,
     val fixedFirstColumn: Boolean,
     val fixedColumnSlots: Int,
     val themeIdentity: Int,
