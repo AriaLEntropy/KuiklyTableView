@@ -27,6 +27,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
     private var pageItems: List<T> by observable(emptyList())
     /** 最近一次同步的管线结果。渲染路径（分页栏 / 表头复选框）只读它，不在 attr/vif 内重复跑完整管线。 */
     private var syncedPage: DataTablePageResult<T>? by observable(null)
+    private var pageSizeMenuOpen by observable(false)
     /** Theme / layout switches remount renderer closures that capture structure-dependent content. */
     private var themeRenderBranch by observable(false)
     private var lastThemeIdentity: Int? = null
@@ -208,16 +209,63 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
             ) {
                 ctx.goToPage(ctx.attr.pageIndex + 1)
             }
-            listOf(5, 10, 20).forEach { size ->
+            View {
                 PaginationChip(
-                    label = { "$size/页" },
+                    label = { "${ctx.attr.pageSize} 条/页 ${if (ctx.pageSizeMenuOpen) "▴" else "▾"}" },
                     enabled = { true },
-                    active = { ctx.attr.pageSize == size },
+                    active = { ctx.pageSizeMenuOpen },
                     theme = theme,
                 ) {
-                    ctx.event.pageSizeChange?.invoke(size)
-                    ctx.attr.pageSize = size
-                    ctx.goToPage(0)
+                    ctx.pageSizeMenuOpen = !ctx.pageSizeMenuOpen
+                }
+                vif({ ctx.pageSizeMenuOpen }) {
+                    View {
+                        attr {
+                            absolutePosition(left = 0f, top = 46f)
+                            zIndex(20)
+                            borderRadius(10f)
+                            backgroundColor(Color(theme.cardBackground))
+                            border(Border(1f, BorderStyle.SOLID, Color(theme.cardBorder)))
+                            paddingTop(4f)
+                            paddingBottom(4f)
+                        }
+                        ctx.attr.pageSizeOptions.forEach { size ->
+                            View {
+                                attr {
+                                    height(34f)
+                                    flexDirectionRow()
+                                    alignItemsCenter()
+                                    paddingLeft(10f)
+                                    paddingRight(14f)
+                                }
+                                Text {
+                                    attr {
+                                        text(if (ctx.attr.pageSize == size) "✓" else "")
+                                        fontSize(12f)
+                                        width(16f)
+                                        color(Color(theme.actionText))
+                                    }
+                                }
+                                Text {
+                                    attr {
+                                        text("$size 条/页")
+                                        fontSize(12f)
+                                        color(Color(if (ctx.attr.pageSize == size) theme.actionText else theme.cellText))
+                                    }
+                                }
+                                event {
+                                    click {
+                                        ctx.pageSizeMenuOpen = false
+                                        if (ctx.attr.pageSize != size) {
+                                            ctx.event.pageSizeChange?.invoke(size)
+                                            ctx.attr.pageSize = size
+                                            ctx.goToPage(0)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -342,6 +390,8 @@ class DataTableAttr<T> : TableAttr<T>() {
     var enablePagination: Boolean by observable(false)
     var pageIndex: Int by observable(0)
     var pageSize: Int by observable(10)
+    /** 每页行数选项；分页栏以「N 条/页 ▾」下拉选择器呈现。 */
+    var pageSizeOptions: List<Int> by observable(listOf(5, 10, 20))
 }
 
 class DataTableEvent<T> : TableEvent<T>() {

@@ -546,12 +546,13 @@ event {
     enablePagination = true
     pageIndex = currentPage
     pageSize = 10
+    pageSizeOptions = listOf(5, 10, 20) // 分页栏「N 条/页 ▾」下拉选项
 }
 event {
     pageChange = { index -&gt; currentPage = index }
     pageSizeChange = { size -&gt; pageSize = size }
 }</code></pre>
-      <p>翻页自动回顶；筛选或页大小变化会重置到第一页。</p>
+      <p>翻页自动回顶；筛选或页大小变化会重置到第一页。每页行数以「N 条/页 ▾」下拉选择器切换，选项由 <code>pageSizeOptions</code> 配置。</p>
     </div>
     <div class="media">
       <figure>
@@ -560,7 +561,11 @@ event {
       </figure>
       <figure>
         <img src="../assets/table_datatable_pagination.png" alt="客户端分页" loading="lazy">
-        <figcaption>客户端分页</figcaption>
+        <figcaption>客户端分页：每页行数为下拉选择器</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/table_datatable_pagesize.png" alt="每页行数下拉展开" loading="lazy">
+        <figcaption>「N 条/页 ▾」下拉展开，选项来自 pageSizeOptions</figcaption>
       </figure>
     </div>
   </div>
@@ -651,6 +656,7 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
     <tr><td><code>enablePagination</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>客户端分页</td></tr>
     <tr><td><code>pageIndex</code></td><td><code>Int</code></td><td><code>0</code></td><td>当前页（0 起）</td></tr>
     <tr><td><code>pageSize</code></td><td><code>Int</code></td><td><code>10</code></td><td>每页行数</td></tr>
+    <tr><td><code>pageSizeOptions</code></td><td><code>List&lt;Int&gt;</code></td><td><code>[5, 10, 20]</code></td><td>分页栏「N 条/页 ▾」下拉选项</td></tr>
   </table>
 </section>
 

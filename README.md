@@ -120,6 +120,7 @@ DataTableView<User> {
         enablePagination = true
         pageIndex = currentPage
         pageSize = 10
+        pageSizeOptions = listOf(5, 10, 20) // 分页栏「N 条/页 ▾」下拉选项
         // columns / data / rowKey 写法同 TableView
     }
     event {
@@ -155,7 +156,7 @@ DataTableView<User> {
 | `loading` / `emptyText` / `hasMore` / `loadingMore` | 状态与加载更多 |
 | `enableRowSelection` / `selectedKeys` | DataTable 行选择与受控选中 |
 | `filterPredicate` | DataTable 筛选谓词 |
-| `enablePagination` / `pageIndex` / `pageSize` | DataTable 客户端分页 |
+| `enablePagination` / `pageIndex` / `pageSize` / `pageSizeOptions` | DataTable 客户端分页与每页行数下拉选项 |
 
 常用事件：
 
