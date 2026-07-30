@@ -82,8 +82,13 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
                     }
                     View {
                         attr {
-                            width(if (ctx.attr.borderMode.hasVisibleLines() && !isLastColumn) 1f else 0f)
-                            backgroundColor(Color(ctx.attr.themeColors.gridLine))
+                            val columnStroke = ctx.attr.lineMode.resolve(ctx.attr.themeColors).column
+                            val dividerWidth = columnStroke.columnDividerWidth(isLastColumn)
+                            width(dividerWidth)
+                            if (dividerWidth > 0f) {
+                                height(ctx.attr.headerStyle.height.coerceAtLeast(DEFAULT_HEADER_HEIGHT))
+                            }
+                            backgroundColor(Color(columnStroke?.color ?: 0x00000000))
                         }
                     }
                 }
@@ -110,7 +115,7 @@ internal class TableHeaderRowAttr<T> : ComposeAttr() {
     var columns: List<TableResolvedColumn<T>> by observable(emptyList())
     var sortState: TableSortState by observable(TableSortState())
     var indexColumnTitle: String by observable("序号")
-    var borderMode: TableBorderMode by observable(TableBorderMode.Default)
+    var lineMode: TableLineMode by observable(TableLineMode.Grid)
     var themeColors: TableThemeColors by observable(TableThemeColors())
     var headerStyle: TableHeaderStyle by observable(TableHeaderStyle.Default)
 }

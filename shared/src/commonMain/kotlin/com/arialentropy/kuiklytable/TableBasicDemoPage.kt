@@ -272,7 +272,8 @@ internal class TableBasicDemoPage : BasePager() {
     private var activeColumns: ObservableList<ColumnModel<User>> by observableList()
     private var selectedColumn by observable<ColumnModel<User>>(ageColumn)
     private var zebraOn by observable(true)             // 斑马纹
-    private var tableBorderMode: TableBorderMode by observable(TableBorderMode.Default)
+    private var tableLineMode: TableLineMode by observable(TableLineMode.Grid)
+    private var customLineColor: Long by observable(0xFF2E77E5)
     private var tableCornerRadius: Float by observable(TableCornerRadius.Default)
     private var cornerRadiusInputRef: ViewRef<InputView>? = null
     private var compactPadding by observable(false)     // 紧凑内边距
@@ -474,13 +475,9 @@ internal class TableBasicDemoPage : BasePager() {
                         ToggleChip(label = { "斑马纹 ${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }, theme = { ctx.currentTheme() }) {
                             ctx.zebraOn = !ctx.zebraOn
                         }
-                        listOf("无外框", "默认外框", "自定义外框").forEach { mode ->
-                            ToggleChip(label = { mode }, active = { ctx.tableBorderModeLabel() == mode }, theme = { ctx.currentTheme() }) {
-                                ctx.tableBorderMode = when (mode) {
-                                    "默认外框" -> TableBorderMode.Default
-                                    "自定义外框" -> TableBorderMode.Custom(0xFF2E77E5, 2f)
-                                    else -> TableBorderMode.None
-                                }
+                        listOf("无线", "仅横线", "网格", "自定义").forEach { mode ->
+                            ToggleChip(label = { mode }, active = { ctx.tableLineModeLabel() == mode }, theme = { ctx.currentTheme() }) {
+                                ctx.tableLineMode = ctx.lineModeForLabel(mode)
                             }
                         }
                         listOf(
@@ -514,7 +511,7 @@ internal class TableBasicDemoPage : BasePager() {
                         columns = ctx.activeColumns
                         rowKey = { user -> user.id }
                         zebraStripe = ctx.zebraOn
-                        borderMode = ctx.tableBorderMode
+                        lineMode = ctx.tableLineMode
                         cornerRadius = ctx.tableCornerRadius
                         cellPaddingH = if (ctx.compactPadding) 8f else 12f
                         cellPaddingV = if (ctx.compactPadding) 6f else 10f
@@ -544,7 +541,6 @@ internal class TableBasicDemoPage : BasePager() {
                                 paddingH = 8f,
                                 paddingV = 6f,
                                 height = 40f,
-                                bottomBorderWidth = 2f,
                             )
                         } else {
                             TableHeaderStyle.Default
@@ -668,15 +664,31 @@ internal class TableBasicDemoPage : BasePager() {
             ExampleCard("默认样式", "3 列 × 4 行；默认 1dp 主题色外框与 8dp 圆角，水平分隔线与自适应行高。", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(this, ctx.basicColumns, { ctx.users.take(4) }, height = 248f, zebra = { false }, theme = ctx.currentTheme())
             }
-            ExampleCard("外框与圆角", "外框与圆角互不影响；圆角可选预设，或右侧输入任意 dp。", { ctx.currentTheme() }) {
+            ExampleCard("分隔线与圆角", "线模式与圆角互不影响；可切换无线 / 仅横线 / 网格 / 自定义。", { ctx.currentTheme() }) {
                 View {
-                    attr { flexDirectionRow(); marginBottom(8f) }
-                    listOf("无外框", "默认外框", "自定义外框").forEach { mode ->
-                        SegmentOption(mode, active = { ctx.tableBorderModeLabel() == mode }, theme = { ctx.currentTheme() }) {
-                            ctx.tableBorderMode = when (mode) {
-                                "默认外框" -> TableBorderMode.Default
-                                "自定义外框" -> TableBorderMode.Custom(0xFF2E77E5, 2f)
-                                else -> TableBorderMode.None
+                    attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(8f) }
+                    listOf("无线", "仅横线", "网格", "自定义").forEach { mode ->
+                        SegmentOption(mode, active = { ctx.tableLineModeLabel() == mode }, theme = { ctx.currentTheme() }) {
+                            ctx.tableLineMode = ctx.lineModeForLabel(mode)
+                        }
+                    }
+                }
+                vif({ ctx.tableLineMode is TableLineMode.Custom }) {
+                    View {
+                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(8f) }
+                        listOf(
+                            "蓝" to 0xFF2E77E5,
+                            "灰" to 0xFF9E9E9E,
+                            "绿" to 0xFF2E7D32,
+                            "橙" to 0xFFE65100,
+                            "紫" to 0xFF6A1B9A,
+                        ).forEach { (label, color) ->
+                            SegmentOption(
+                                label,
+                                active = { ctx.customLineColor == color },
+                                theme = { ctx.currentTheme() },
+                            ) {
+                                ctx.applyCustomLineColor(color)
                             }
                         }
                     }
@@ -717,16 +729,23 @@ internal class TableBasicDemoPage : BasePager() {
                         }
                     }
                 }
-                ctx.renderTablePreview(
-                    this,
-                    ctx.basicColumns,
-                    { ctx.users.take(4) },
-                    height = 248f,
-                    borderMode = { ctx.tableBorderMode },
-                    cornerRadius = { ctx.tableCornerRadius },
-                    zebra = { true },
-                    theme = ctx.currentTheme(),
-                )
+                vif({
+                    ctx.tableLineModeLabel() to
+                        ctx.formatCornerRadius(ctx.tableCornerRadius) to
+                        ctx.customLineColor
+                }) {
+                    ctx.renderTablePreview(
+                        this,
+                        ctx.basicColumns,
+                        { ctx.users.take(4) },
+                        height = 248f,
+                        lineMode = { ctx.tableLineMode },
+                        cornerRadius = { ctx.tableCornerRadius },
+                        zebra = { true },
+                        fixedRowHeight = { true },
+                        theme = ctx.currentTheme(),
+                    )
+                }
             }
             ExampleCard("列对齐与单列撑满", "该列配置 width=180，但作为唯一列时会使用 Table 全宽；选择对齐方式观察实时变化。", { ctx.currentTheme() }) {
                 View {
@@ -1096,8 +1115,8 @@ internal class TableBasicDemoPage : BasePager() {
                 }
                 ConfigGroup("外观", theme = { ctx.currentTheme() }) {
                     SettingSwitch("斑马纹", "交替显示行背景", ctx.zebraOn, { ctx.currentTheme() }) { ctx.zebraOn = it }
-                    SettingSwitch("外框", "默认 1dp 主题色；关闭后仅保留水平分隔线", ctx.tableBorderMode !is TableBorderMode.None, { ctx.currentTheme() }) {
-                        ctx.tableBorderMode = if (it) TableBorderMode.Default else TableBorderMode.None
+                    SettingSwitch("网格线", "关闭为无线；开启为网格", ctx.tableLineMode !is TableLineMode.None, { ctx.currentTheme() }) {
+                        ctx.tableLineMode = if (it) TableLineMode.Grid else TableLineMode.None
                     }
                     SettingSwitch("圆角 8dp", "关闭后圆角为 0", ctx.tableCornerRadius > 0f, { ctx.currentTheme() }) {
                         ctx.applyCornerRadius(if (it) TableCornerRadius.Default else TableCornerRadius.None)
@@ -1111,7 +1130,7 @@ internal class TableBasicDemoPage : BasePager() {
                 ctx.playgroundColumns,
                 { ctx.users },
                 height = null,
-                borderMode = { ctx.tableBorderMode },
+                lineMode = { ctx.tableLineMode },
                 cornerRadius = { ctx.tableCornerRadius },
                 zebra = { ctx.zebraOn },
                 fixedRowHeight = { ctx.fixedRowHeight },
@@ -1127,7 +1146,7 @@ internal class TableBasicDemoPage : BasePager() {
         columns: List<ColumnModel<User>>,
         data: () -> List<User>,
         height: Float?,
-        borderMode: () -> TableBorderMode = { TableBorderMode.Default },
+        lineMode: () -> TableLineMode = { TableLineMode.Grid },
         cornerRadius: () -> Float = { TableCornerRadius.Default },
         zebra: () -> Boolean = { true },
         fixedRowHeight: () -> Boolean = { false },
@@ -1160,7 +1179,7 @@ internal class TableBasicDemoPage : BasePager() {
                 rowKey = { user -> user.id }
                 // 在 attr 内读取 lambda，才能订阅页面 observable，切换外框/圆角等才会生效
                 zebraStripe = zebra()
-                this.borderMode = borderMode()
+                this.lineMode = lineMode()
                 this.cornerRadius = cornerRadius()
                 cellPaddingH = if (ctx.compactPadding) 8f else 12f
                 cellPaddingV = if (ctx.compactPadding) 6f else 10f
@@ -1189,7 +1208,7 @@ internal class TableBasicDemoPage : BasePager() {
                 this.loadingMore = loadingMore()
                 loadMoreThresholdRows = 3
                 enableOverflowCellClick = overflowEnabled()
-                headerStyle = if (ctx.compactHeader) TableHeaderStyle(13f, TableHeaderFontWeight.Bold, 8f, 6f, 40f, 2f) else TableHeaderStyle.Default
+                headerStyle = if (ctx.compactHeader) TableHeaderStyle(13f, TableHeaderFontWeight.Bold, 8f, 6f, 40f) else TableHeaderStyle.Default
             }
             event {
                 rowClick = { user -> ctx.bridgeModule.toast("行点击: ${user.name}") }
@@ -1323,10 +1342,34 @@ internal class TableBasicDemoPage : BasePager() {
         is DemoThemeMode.Light -> TableThemeColors.Light
     }
 
-    private fun tableBorderModeLabel(): String = when (tableBorderMode) {
-        is TableBorderMode.None -> "无外框"
-        is TableBorderMode.Default -> "默认外框"
-        is TableBorderMode.Custom -> "自定义外框"
+    private fun tableLineModeLabel(): String = when (tableLineMode) {
+        is TableLineMode.None -> "无线"
+        is TableLineMode.Horizontal -> "仅横线"
+        is TableLineMode.Grid -> "网格"
+        is TableLineMode.Custom -> "自定义"
+    }
+
+    private fun lineModeForLabel(mode: String): TableLineMode = when (mode) {
+        "仅横线" -> TableLineMode.Horizontal
+        "网格" -> TableLineMode.Grid
+        "自定义" -> TableLineMode.Custom(demoCustomLineStyle(customLineColor))
+        else -> TableLineMode.None
+    }
+
+    private fun applyCustomLineColor(color: Long) {
+        customLineColor = color
+        tableLineMode = TableLineMode.Custom(demoCustomLineStyle(color))
+    }
+
+    private fun demoCustomLineStyle(color: Long = customLineColor): TableLineStyle {
+        val stroke = TableStroke(color, 2f)
+        return TableLineStyle(
+            outer = stroke,
+            header = stroke,
+            row = stroke,
+            column = stroke,
+            listRow = stroke,
+        )
     }
 
     private fun sortDescription(): String = when (sortState.direction) {
@@ -1357,7 +1400,7 @@ internal class TableBasicDemoPage : BasePager() {
             themeMode = DemoThemeMode.Blue
         }
         if (example == "基础样式") {
-            tableBorderMode = TableBorderMode.Default
+            tableLineMode = TableLineMode.Grid
         }
         selectedColumn = ageColumn
         syncActiveColumns()

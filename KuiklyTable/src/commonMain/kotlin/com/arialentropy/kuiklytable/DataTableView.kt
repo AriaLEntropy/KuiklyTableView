@@ -355,7 +355,7 @@ private fun <T> TableAttr<T>.applyFrom(source: DataTableAttr<T>) {
     tableWidth = source.tableWidth
     rowKey = source.rowKey
     zebraStripe = source.zebraStripe
-    borderMode = source.borderMode
+    lineMode = source.lineMode
     cornerRadius = source.cornerRadius
     cellPaddingH = source.cellPaddingH
     cellPaddingV = source.cellPaddingV

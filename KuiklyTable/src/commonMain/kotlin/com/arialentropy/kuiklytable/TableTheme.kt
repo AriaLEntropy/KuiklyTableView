@@ -15,8 +15,15 @@ class TableThemeColors(
     val cellText: Long = 0xFF333333,
     /** 单元格次要文本 / List 模式标签 */
     val cellTextSecondary: Long = 0xFF999999,
-    /** 网格线 / 边框 */
+    /** 网格线 / 边框（历史字段；线色优先 [dividerColor]） */
     val gridLine: Long = 0xFFE6E6E6,
+    /**
+     * 表格分隔线颜色；null 时回退 [gridLine]。
+     * [TableLineMode.Grid] / [TableLineMode.Horizontal] 预设线使用此色。
+     */
+    val dividerColor: Long? = null,
+    /** 固定列右侧分隔线；null 时回退 [dividerColor] / [gridLine]。 */
+    val frozenDividerColor: Long? = null,
     /** 默认行背景 */
     val rowBackground: Long = 0xFFFFFFFF,
     /** 斑马纹行背景 */
@@ -185,7 +192,7 @@ sealed class TableStatusTagPreset {
     }
 }
 
-/** 表头的结构化视觉样式；颜色仍由 TableThemeColors 提供。 */
+/** 表头的结构化视觉样式；颜色仍由 TableThemeColors 提供。表头底线由 [TableLineMode] 控制。 */
 class TableHeaderStyle(
     val fontSize: Float = 14f,
     val fontWeight: TableHeaderFontWeight = TableHeaderFontWeight.Medium,
@@ -193,7 +200,6 @@ class TableHeaderStyle(
     val paddingV: Float = 10f,
     /** 固定表头高度；0 表示由 padding 与文字撑开 */
     val height: Float = 0f,
-    val bottomBorderWidth: Float = 1f,
 ) {
     companion object {
         val Default = TableHeaderStyle()

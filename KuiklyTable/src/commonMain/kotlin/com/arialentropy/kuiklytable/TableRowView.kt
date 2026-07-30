@@ -16,7 +16,7 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             ctx.attr.row?.let { row ->
                 attr {
                     flexDirectionRow()
-                    alignItemsCenter()
+                    alignItemsStretch()
                     width(ctx.attr.columns.sumOf { it.width.toDouble() }.toFloat())
                     backgroundColor(Color(ctx.rowBackground(row)))
                     if (ctx.attr.rowHeight > 0f) height(ctx.attr.rowHeight)
@@ -60,8 +60,13 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             }
             View {
                 attr {
-                    width(if (ctx.attr.borderMode.hasVisibleLines() && !isLastColumn) 1f else 0f)
-                    backgroundColor(Color(ctx.attr.themeColors.gridLine))
+                    val columnStroke = ctx.attr.lineMode.resolve(ctx.attr.themeColors).column
+                    val dividerWidth = columnStroke.columnDividerWidth(isLastColumn)
+                    width(dividerWidth)
+                    if (dividerWidth > 0f) {
+                        height(ctx.columnDividerHeight())
+                    }
+                    backgroundColor(Color(columnStroke?.color ?: 0x00000000))
                 }
             }
         }
@@ -155,11 +160,21 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             }
             View {
                 attr {
-                    width(if (ctx.attr.borderMode.hasVisibleLines() && !isLastColumn) 1f else 0f)
-                    backgroundColor(Color(ctx.attr.themeColors.gridLine))
+                    val columnStroke = ctx.attr.lineMode.resolve(ctx.attr.themeColors).column
+                    val dividerWidth = columnStroke.columnDividerWidth(isLastColumn)
+                    width(dividerWidth)
+                    if (dividerWidth > 0f) {
+                        height(ctx.columnDividerHeight())
+                    }
+                    backgroundColor(Color(columnStroke?.color ?: 0x00000000))
                 }
             }
         }
+    }
+
+    private fun columnDividerHeight(): Float {
+        if (attr.rowHeight > 0f) return attr.rowHeight
+        return attr.cellPaddingV * 2f + DEFAULT_CELL_FONT_SIZE + 4f
     }
 
     private fun dispatchCellClick(
@@ -242,7 +257,7 @@ internal class TableRowAttr<T> : ComposeAttr() {
     var columns: List<TableResolvedColumn<T>> by observable(emptyList())
     var rowHeight: Float by observable(0f)
     var zebraStripe: Boolean by observable(true)
-    var borderMode: TableBorderMode by observable(TableBorderMode.Default)
+    var lineMode: TableLineMode by observable(TableLineMode.Grid)
     var cellPaddingH: Float by observable(12f)
     var cellPaddingV: Float by observable(10f)
     var themeColors: TableThemeColors by observable(TableThemeColors())

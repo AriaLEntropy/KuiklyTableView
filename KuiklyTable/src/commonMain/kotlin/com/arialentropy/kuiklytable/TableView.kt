@@ -122,8 +122,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     overflow(true)
                     borderRadius(tableAttr.cornerRadius.coerceAtLeast(0f))
                     border(
-                        tableAttr.borderMode.borderSpec(tableAttr.themeColors)
-                            ?: Border(0f, BorderStyle.SOLID, Color(0x00000000)),
+                        tableAttr.lineMode.resolve(tableAttr.themeColors).outer
+                            .toOuterBorderOrTransparent(),
                     )
                     backgroundColor(
                         Color(
@@ -223,7 +223,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         if (tableAttr.rowHeight <= 0f) {
             println("[KuiklyTable] fixedFirstColumn expects rowHeight>0; falling back to ${DEFAULT_ROW_HEIGHT_ESTIMATE}dp")
         }
-        pinnedFixedClusterWidth = layout.fixedWidth + 1f
+        pinnedFixedClusterWidth = layout.fixedWidth + (frozenDividerStroke()?.width ?: 0f)
         container.View {
             attr {
                 flex(1f)
@@ -264,13 +264,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     event { columnClick = { ctx.toggleSort(it) } }
                 }
             }
-            View {
-                attr {
-                    width(1f)
-                    alignSelfStretch()
-                    backgroundColor(Color(ctx.attr.themeColors.gridLine))
-                }
-            }
+            ctx.renderFrozenColumnDivider(this)
             Scroller {
                 ref {
                     @Suppress("UNCHECKED_CAST")
@@ -432,13 +426,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         event { columnClick = { ctx.toggleSort(it) } }
                     }
                 }
-                View {
-                    attr {
-                        width(1f)
-                        alignSelfStretch()
-                        backgroundColor(Color(ctx.attr.themeColors.gridLine))
-                    }
-                }
+                ctx.renderFrozenColumnDivider(this)
             }
             View {
                 attr {
@@ -492,13 +480,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     }
                     ctx.renderTableRowComponent(this, row, layout, TableColumnRegion.Fixed)
                 }
-                View {
-                    attr {
-                        width(1f)
-                        alignSelfStretch()
-                        backgroundColor(Color(ctx.attr.themeColors.gridLine))
-                    }
-                }
+                ctx.renderFrozenColumnDivider(this)
             }
             View {
                 attr {
@@ -511,6 +493,32 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             }
         }
         ctx.renderBodyDivider(container)
+    }
+
+    private fun renderFrozenColumnDivider(container: ViewContainer<*, *>) {
+        val ctx = this
+        container.View {
+            attr {
+                val stroke = ctx.frozenDividerStroke()
+                width(stroke?.width?.coerceAtLeast(0f) ?: 0f)
+                alignSelfStretch()
+                backgroundColor(Color(stroke?.color ?: 0x00000000))
+            }
+        }
+    }
+
+    /**
+     * 固定列右侧分隔：None 不画；Custom 跟 column；Grid/Horizontal 用 frozenDivider 色。
+     */
+    private fun frozenDividerStroke(): TableStroke? = when (val mode = attr.lineMode) {
+        is TableLineMode.None -> null
+        is TableLineMode.Custom -> mode.style.column?.let { column ->
+            TableStroke(
+                color = attr.themeColors.frozenDividerColor ?: column.color,
+                width = column.width,
+            )
+        }
+        else -> TableStroke(attr.themeColors.effectiveFrozenDividerColor(), 1f)
     }
 
     private fun renderHeaderRow(
@@ -533,17 +541,18 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         target.columns = columns
         target.sortState = attr.sortState
         target.indexColumnTitle = attr.indexColumnTitle
-        target.borderMode = attr.borderMode
+        target.lineMode = attr.lineMode
         target.themeColors = attr.themeColors
         target.headerStyle = attr.headerStyle
     }
 
     private fun renderHeaderDivider(container: ViewContainer<*, *>) {
-        val tableAttr = attr
+        val ctx = this
         container.View {
             attr {
-                height(tableAttr.headerStyle.bottomBorderWidth)
-                backgroundColor(Color(tableAttr.themeColors.gridLine))
+                val stroke = ctx.attr.lineMode.resolve(ctx.attr.themeColors).header
+                height(stroke?.width?.coerceAtLeast(0f) ?: 0f)
+                backgroundColor(Color(stroke?.color ?: 0x00000000))
             }
         }
     }
@@ -615,11 +624,12 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     }
 
     private fun renderBodyDivider(container: ViewContainer<*, *>) {
-        val tableAttr = attr
+        val ctx = this
         container.View {
             attr {
-                height(1f)
-                backgroundColor(Color(tableAttr.themeColors.gridLine))
+                val stroke = ctx.attr.lineMode.resolve(ctx.attr.themeColors).row
+                height(stroke?.width?.coerceAtLeast(0f) ?: 0f)
+                backgroundColor(Color(stroke?.color ?: 0x00000000))
             }
         }
     }
@@ -658,7 +668,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 columns = visibleColumns
                 rowHeight = ctx.effectiveRowHeight()
                 zebraStripe = ctx.attr.zebraStripe
-                borderMode = ctx.attr.borderMode
+                lineMode = ctx.attr.lineMode
                 cellPaddingH = ctx.attr.cellPaddingH
                 cellPaddingV = ctx.attr.cellPaddingV
                 themeColors = ctx.attr.themeColors
@@ -745,10 +755,11 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         if (!isLast) {
             container.View {
                 attr {
-                    height(1f)
+                    val stroke = tableAttr.lineMode.resolve(tableAttr.themeColors).listRow
+                    height(stroke?.width?.coerceAtLeast(0f) ?: 0f)
                     marginLeft(16f)
                     marginRight(16f)
-                    backgroundColor(Color(tableAttr.themeColors.gridLine))
+                    backgroundColor(Color(stroke?.color ?: 0x00000000))
                 }
             }
         }

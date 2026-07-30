@@ -38,7 +38,7 @@ DataTable 行选择预览：在 Android 宿主打开 `table_data` Showcase 验�
 | --- | --- |
 | 基础结构 | `TableView` / `ColumnModel`，固定列宽与弹性 `minWidth + flex` |
 | 滚动 | 横纵双向滚动，表头与内容横向同步；可选固定表头；左侧固定列（单 List，需固定行高） |
-| 样式 | 默认 1dp 主题色外框与 8dp 圆角；斑马纹、对齐、行高、内边距可配 |
+| 样式 | 默认网格线与 8dp 圆角；`lineMode` 可切无线/仅横线/网格/自定义；斑马纹、对齐、行高、内边距可配 |
 | 主题 | Light / Dark 预设，`TableThemeColors` 语义色覆盖（含选中行背景） |
 | 自定义渲染 | `cellRenderer` / `headerRenderer`；未配置回退默认文本 |
 | 交互 | 表头三态排序、行点击、单元格点击、截断溢出点击、回顶；列上 `enableRowClick` / `enableCellClick` 显式控制 |
@@ -108,8 +108,9 @@ TableView<User> {
         rowKey = { it.id }
         zebraStripe = true
         fixedHeader = true
-        // borderMode 默认 Default（1dp 主题色）；cornerRadius 默认 8
-        // borderMode = TableBorderMode.None
+        // lineMode 默认 Grid；cornerRadius 默认 8
+        // lineMode = TableLineMode.None
+        // lineMode = TableLineMode.Horizontal
         // cornerRadius = TableCornerRadius.None
     }
     event {
@@ -231,7 +232,9 @@ attr {
 | `rowBackground` / `rowBackgroundAlt` | 行背景 / 斑马纹行 |
 | `selectedRowBackground` | DataTable 选中行高亮 |
 | `cellText` / `cellTextSecondary` | 单元格主/次文本 |
-| `gridLine` | 行列分隔线、默认外框颜色 |
+| `gridLine` | 历史网格色；`dividerColor` 缺省时回退到此值 |
+| `dividerColor` | 分隔线色（可选）；Grid/Horizontal 预设线优先用它 |
+| `frozenDividerColor` | 固定列右侧分隔色（可选） |
 | `cardBackground` / `cardBorder` | List 模式卡片 |
 | `statusTag*` | List 状态标签等语义色 |
 | `actionText` / `actionTextOnFill` | 交互强调色 / 强调底上的文字 |
@@ -239,19 +242,47 @@ attr {
 
 Showcase 里「主题预设」**只应改表格**；页面标题和配置区属于 Demo 铬，不应当成组件 API。
 
-### 外框与圆角
+### 分隔线与圆角
 
-默认外框为 1dp 主题色（`TableBorderMode.Default`，颜色取 `themeColors.gridLine`），默认圆角 8dp。设为 `None` / `0` 可关闭。
+用 `lineMode` 控制表格线（外框 + 表头/行/列线），用 `cornerRadius` 控制圆角；两者互不影响。默认 `Grid` + `8dp`。
+
+| 模式 | 效果 | 写法 |
+| --- | --- | --- |
+| `Grid`（默认） | 外框 + 表头底线 + 行线 + 列线 | 可不写，或 `lineMode = TableLineMode.Grid` |
+| `Horizontal` | 仅表头底线与行线（无线框/列线） | `lineMode = TableLineMode.Horizontal` |
+| `None` | 全部关闭 | `lineMode = TableLineMode.None` |
+| `Custom` | 逐项指定颜色/宽度；某字段 `null` 表示关掉该线 | 见下方 |
+
+**预设线颜色**：`Grid` / `Horizontal` 走主题 `dividerColor`（未设则回退 `gridLine`）。改主题色即可统一换线色：
 
 ```kotlin
 attr {
-    themeColors = TableThemeColors.Light
-    borderMode = TableBorderMode.Custom(color = 0xFF4F8FFF, width = 1f)
-    cornerRadius = TableCornerRadius.Large // 0 / 8 / 12，或任意 dp
-    cellPaddingH = 12f
-    cellPaddingV = 10f
+    themeColors = TableThemeColors.Light.copy(dividerColor = 0xFF9E9E9E)
+    lineMode = TableLineMode.Grid
+    cornerRadius = TableCornerRadius.Default // 0 / 8 / 12，或任意 dp
 }
 ```
+
+**自定义线**（颜色、宽度、开关都自己定）：
+
+```kotlin
+attr {
+    // 例如统一蓝色 2dp 网格；不想要外框就把 outer = null
+    lineMode = TableLineMode.Custom(
+        TableLineStyle(
+            outer = TableStroke(0xFF2E77E5, 2f),
+            header = TableStroke(0xFF2E77E5, 2f),
+            row = TableStroke(0xFF2E77E5, 2f),
+            column = TableStroke(0xFF2E77E5, 2f),
+            listRow = TableStroke(0xFF2E77E5, 2f), // List 模式行分隔
+        ),
+    )
+}
+```
+
+Showcase：`table_basic` →「分隔线与圆角」可切无线/仅横线/网格/自定义，自定义下有蓝/灰/绿/橙/紫预设色。
+
+> 迁移：旧 `borderMode` / `TableBorderMode` 已替换为 `lineMode` / `TableLineMode`；原先只控外框，现在同时管内部线。斑马纹、选中、编辑不会隐式改写 `lineMode`。
 
 ### 左侧固定列
 
@@ -354,7 +385,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `rowKey` | `((T) -> Any)?` | `null` | 稳定行标识；未配置时用源索引 |
 | `tableWidth` | `Float?` | `null` | `null` 表示沿父容器撑满 |
 | `zebraStripe` | `Boolean` | `true` | 斑马纹 |
-| `borderMode` | `TableBorderMode` | `Default` | 默认 1dp 主题色外框；`None` 关闭；`Custom` 自定义 |
+| `lineMode` | `TableLineMode` | `Grid` | `None` / `Horizontal` / `Grid` / `Custom(style)`；控制外框与内部线 |
 | `cornerRadius` | `Float` | `8f` | 根容器圆角（dp）；`0` 无圆角。可用 `TableCornerRadius` |
 | `cellPaddingH` | `Float` | `12f` | 水平内边距 |
 | `cellPaddingV` | `Float` | `10f` | 垂直内边距 |
@@ -422,7 +453,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 - `TableDataPipelineTest` — 排序管线
 - `TableColumnLayoutResolverTest` — 列宽分配
-- `TableBorderTest` — 边框规格
+- `TableLineModeTest` — None/Horizontal/Grid/Custom 解析
 - `TableRowRenderModeTest` — Standard / Windowed 配置
 - `TableLoadMoreTriggerPolicyTest` — 加载更多触发去重
 - `DataTableSelectionTest` — 全选半选与 rowKey 选择联动
