@@ -14,7 +14,7 @@ import com.tencent.kuikly.core.views.Text
 import com.tencent.kuikly.core.views.View
 
 /**
- * KuiklyDataTable Showcase：选择、筛选、分页、左侧固定列。
+ * KuiklyDataTable Showcase：#35 行选择为主；筛选/分页（#36）与左侧固定列可同页验证。
  *
  * 页面铬（标题 / 配置区）使用固定浅色；仅表格消费 [themeColors] 预设。
  */
@@ -103,7 +103,7 @@ internal class TableDataDemoPage : BasePager() {
                 Text {
                     attr {
                         marginTop(4f)
-                        text("选择 / 筛选 / 分页 / 左侧固定列；主题预设只作用于表格")
+                        text("主验 #35：行选择 / 全选半选 / 排序后选中保持；同页可验筛选分页与固定列")
                         fontSize(12f)
                         color(Color(ctx.pageChrome.cellTextSecondary))
                     }
@@ -117,7 +117,7 @@ internal class TableDataDemoPage : BasePager() {
                     paddingBottom(8f)
                     alignSelfStretch()
                 }
-                configLabel("选择", ctx)
+                configLabel("选择（#35）", ctx)
                 View {
                     attr {
                         flexDirectionRow()
@@ -130,15 +130,23 @@ internal class TableDataDemoPage : BasePager() {
                     DataToggleChip(label = { "选择:关" }, active = { !ctx.enableRowSelection }, chrome = ctx.pageChrome) {
                         ctx.enableRowSelection = false
                         ctx.selectedKeys = emptyList()
-                        ctx.lastEvent = "已关闭选择并清空选中"
+                        ctx.lastEvent = "已关闭选择并清空选中（无选择列、无高亮）"
                     }
                     DataToggleChip(label = { "清空选中" }, active = { ctx.selectedKeys.isNotEmpty() }, chrome = ctx.pageChrome) {
                         ctx.selectedKeys = emptyList()
                         ctx.lastEvent = "已清空选中"
                     }
                 }
+                Text {
+                    attr {
+                        marginBottom(4f)
+                        text("勾选行 → 高亮；表头框 → 未选/半选/全选；点「年龄」排序 → 选中 key 保持")
+                        fontSize(11f)
+                        color(Color(ctx.pageChrome.cellTextSecondary))
+                    }
+                }
 
-                configLabel("筛选（状态）", ctx)
+                configLabel("筛选（#36）", ctx)
                 View {
                     attr {
                         flexDirectionRow()
@@ -153,7 +161,7 @@ internal class TableDataDemoPage : BasePager() {
                     }
                 }
 
-                configLabel("分页", ctx)
+                configLabel("分页（#36）", ctx)
                 View {
                     attr {
                         flexDirectionRow()
@@ -372,12 +380,13 @@ private fun ViewContainer<*, *>.DataToggleChip(
 ) {
     View {
         attr {
+            height(44f)
             marginRight(8f)
             marginBottom(8f)
             paddingLeft(12f)
             paddingRight(12f)
-            paddingTop(8f)
-            paddingBottom(8f)
+            alignItemsCenter()
+            justifyContentCenter()
             borderRadius(16f)
             border(
                 Border(

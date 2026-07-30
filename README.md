@@ -2,14 +2,14 @@
 
 基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端表格组件，支持 Android、iOS、鸿蒙。
 
-当前仓库主线是 **KuiklyDataTable（高级表格）** 与 **左侧固定列重做**：在复用基础 `TableView` 的前提下建设行选择、分页筛选，并稳定左固定列。`KuiklyTable` Basic 能力已交付，继续作为底层展示组件使用。
+当前仓库主线是 **KuiklyDataTable（高级表格）**：行选择（#35）正式收口，分页筛选（#36）同页可验。`KuiklyTable` Basic（含分隔线 `lineMode`、左侧固定列 `fixedFirstColumn`）已作为底层展示组件交付。
 
 ## 组件族
 
 | 入口 | 定位 | 状态 |
 | --- | --- | --- |
-| `TableView` / KuiklyTable | 基础展示、布局、滚动、固定表头/左固定列、主题、renderer | Basic 已交付；左固定列 #37 进行中 |
-| `DataTableView` / KuiklyDataTable | 行选择、全选/半选、筛选、客户端分页，以及与排序的 rowKey 联动 | 进行中（Issue #35 / #36） |
+| `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | Basic 已交付 |
+| `DataTableView` / KuiklyDataTable | 行选择、全选/半选、与排序 rowKey 联动；筛选与客户端分页 | #35 收口中；#36 同页可验 |
 | KuiklyTreeTable | 树形数据 | 后续 |
 
 ## 效果预览
@@ -30,7 +30,13 @@
 | :---: | :---: | :---: |
 | <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
 
-DataTable 行选择预览：在 Android 宿主打开 `table_data` Showcase 验证；截图/GIF 验收后补入本区。
+DataTable 行选择：
+
+| 多选高亮 | 表头全选三态 |
+| :---: | :---: |
+| <img src="assets/table_datatable_selection.png" alt="DataTable 行多选高亮" width="280"> | <img src="assets/table_datatable_select_all.png" alt="DataTable 表头全选半选" width="280"> |
+
+Android 宿主默认 `table_data`；也可用 `adb` 指定 `pageName=table_data`。
 
 ## 功能特性
 
@@ -125,16 +131,23 @@ TableView<User> {
 
 `DataTableView` 复用 `TableView`。管线：源 `data` → `filterPredicate` → 单列排序 → 客户端分页。选中身份是 `rowKey`。不提供内建全局搜索框。
 
+**行选择（#35）**
+
+| 配置 / 事件 | 说明 |
+| --- | --- |
+| `enableRowSelection` | 开：注入选择列 + 行高亮；关：无选择列、清空高亮 |
+| `selectedKeys` | 受控选中 rowKey 列表 |
+| `selectionColumnWidth` | 选择列宽，默认 48 |
+| `selectionChange` | 勾选或表头全选变化后回调 |
+| 表头复选框 | 未选 / 半选 / 全选；半选或未选点击 → 全选当前页（或当前展示行）；全选再点 → 清空当前可见选中 |
+| 排序联动 | `sortChange` 只改展示顺序；`selectedKeys` 按 rowKey 保持 |
+
 ```kotlin
 DataTableView<User> {
     attr {
         flex(1f) // 撑满父容器，否则 Table 拿不到高度不会渲染
         enableRowSelection = true
         selectedKeys = currentSelectedKeys
-        enablePagination = true
-        pageIndex = currentPage
-        pageSize = 10
-        filterPredicate = { it.status == "在职" } // null 表示不过滤
         data = users
         rowKey = { it.id }
         columns.addAll(
@@ -153,15 +166,27 @@ DataTableView<User> {
     }
     event {
         selectionChange = { keys -> currentSelectedKeys = keys }
-        pageChange = { index -> currentPage = index }
-        pageSizeChange = { size -> pageSize = size }
         sortChange = { state -> /* 排序变化；selectedKeys 按 rowKey 保持 */ }
     }
 }
 ```
 
-Android 宿主默认进入 `table_data`。基础表格 Showcase 仍为 `table_basic`。
+**筛选与分页（#36，同入口可配）**
 
+```kotlin
+attr {
+    enablePagination = true
+    pageIndex = currentPage
+    pageSize = 10
+    filterPredicate = { it.status == "在职" } // null 表示不过滤
+}
+event {
+    pageChange = { index -> currentPage = index }
+    pageSizeChange = { size -> pageSize = size }
+}
+```
+
+Showcase：`table_data`（默认页）。配置区「选择:开/关」可验证 fallback；点「年龄」表头可验排序后选中保持。
 ### 自定义单元格
 
 未配置 `cellRenderer` 时用默认文本。单元格是否触发 `rowClick` / `cellClick` 由列上的 `enableRowClick`、`enableCellClick` 显式控制，与是否配置 renderer 无关。优先级：截断溢出提示 > `cellClick` > `rowClick`。操作列通常两开关都关，由 renderer 内 Button 自己处理点击和按压。

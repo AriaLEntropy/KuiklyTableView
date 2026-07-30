@@ -321,7 +321,9 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
 }
 
 class DataTableAttr<T> : TableAttr<T>() {
+    /** 开启后注入选择列并支持行高亮；关闭后无选择列、无选中高亮。 */
     var enableRowSelection: Boolean by observable(false)
+    /** 受控选中 rowKey 列表；排序/分页不改写身份，只改变展示顺序与可见集。 */
     var selectedKeys: List<Any> by observable(emptyList())
     var selectionColumnWidth: Float by observable(DataTableSelection.DEFAULT_COLUMN_WIDTH)
     var filterPredicate: ((T) -> Boolean)? by observable(null)
