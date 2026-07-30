@@ -17,9 +17,9 @@
 | 入口 | 定位 | Showcase | 状态 |
 | --- | --- | --- | --- |
 | `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | `table_basic`（分章节验证） | 已交付 |
-| `DataTableView` / KuiklyDataTable | **拥有 KuiklyTable 全部能力**，叠加行选择、全选/半选、筛选与客户端分页 | `table_data`（数据交互 / 基础组合 / 接入关系） | 已交付：行选择、筛选、客户端分页 |
+| `DataTableView` / KuiklyDataTable | **拥有 KuiklyTable 全部能力**，叠加行选择、全选/半选、筛选与客户端分页 | `table_data`（数据交互 / 大量数据 / 接入关系） | 已交付：行选择、筛选、客户端分页 |
 
-`KuiklyDataTable` 是 `KuiklyTable` 的组合封装（Kuikly 组合组件）：排序、主题、固定列、自定义渲染、大数据窗口等 KuiklyTable 能力在 DataTable 上同样可用；`DataTableAttr` / `DataTableEvent` 继承 `TableAttr` / `TableEvent`，只新增独有属性与事件。
+`KuiklyDataTable` 是 `KuiklyTable` 的组合封装（Kuikly 组合组件）：排序、主题、固定列、自定义渲染、虚拟滚动等 KuiklyTable 能力在 DataTable 上同样可用；`DataTableAttr` / `DataTableEvent` 继承 `TableAttr` / `TableEvent`，只新增独有属性与事件。
 
 ## 效果预览
 
@@ -27,7 +27,7 @@
 | :---: | :---: | :---: |
 | <img src="assets/table_showcase_basic.png" alt="基础表格样式" width="280"> | <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页" width="280"> |
 
-更多效果（主题、自定义渲染、状态、排序三态、大数据虚拟滚动、筛选）与交互录屏见[文档站](https://arialentropy.github.io/KuiklyTableView/site/)。
+更多效果（主题、自定义渲染、状态、排序三态、虚拟滚动、筛选）与交互录屏见[文档站](https://arialentropy.github.io/KuiklyTableView/site/)。
 
 ## 功能特性
 
@@ -39,7 +39,7 @@
 | 自定义渲染 | `cellRenderer` / `headerRenderer`，未配置回退默认文本 |
 | 交互 | 表头三态排序、行/单元格点击、截断溢出点击、回顶 |
 | 状态 | 加载中 / 空数据（可自定义）；`loadMore` 触底回调 |
-| 大数据 | 显式 `Standard` / `Windowed` 行渲染策略 |
+| 虚拟滚动 | 显式 `Standard` / `Windowed` 行渲染策略（需固定行高；Showcase 在 `table_data`） |
 | 高级表格 | `DataTableView` 行多选、全选/半选、`filterPredicate` 筛选、客户端分页 |
 
 ## 接入方式
@@ -151,7 +151,7 @@ DataTableView<User> {
 | `themeColors` | 语义色；预设 `Light` / `Dark` / `Blue`，可 `copy` 覆盖 |
 | `lineMode` / `cornerRadius` | 分隔线（默认 `Grid`）/ 圆角（默认 8dp） |
 | `fixedHeader` / `fixedFirstColumn` | 固定表头（默认开）/ 左侧固定列 |
-| `rowRenderMode` | `Standard` / `Windowed(n)` 大数据窗口渲染 |
+| `rowRenderMode` | `Standard` / `Windowed(n)` 虚拟滚动（需固定 `rowHeight`） |
 | `loading` / `emptyText` / `hasMore` / `loadingMore` | 状态与加载更多 |
 | `enableRowSelection` / `selectedKeys` | DataTable 行选择与受控选中 |
 | `filterPredicate` | DataTable 筛选谓词 |
@@ -170,8 +170,9 @@ DataTableView<User> {
 1. Android Studio 打开本仓库
 2. 运行 `androidApp`
 3. 默认进入 `table_home`；再进入：
-   - `table_basic`：按章节（基础 / 滚动 / 主题 / 自定义 / 状态 / 模式 / 大数据）对照验证
-   - `table_data`：配置区分「数据交互 / 基础组合 / 接入关系」页签，表格占剩余高度
+   - `table_basic`：按章节（基础 / 滚动 / 主题 / 自定义 / 状态）对照验证
+   - `table_data`：选择、筛选、分页；「大量数据」可开关虚拟滚动（3000 行 Windowed）
+   - `table_data`：配置区分「数据交互 / 大量数据 / 接入关系」页签，表格占剩余高度
 
 也可 `adb` 指定 `pageName=table_basic` 或 `pageName=table_data`。
 

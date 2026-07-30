@@ -66,14 +66,14 @@ internal class TableHomePage : BasePager() {
                 LevelEntryCard(
                     title = "KuiklyTable",
                     badge = "TableView",
-                    summary = "基础展示、列布局、分隔线、横纵滚动、固定表头/左固定列、主题、renderer、状态层、Table/List、单列排序、溢出提示、加载更多与回顶。按章节验证基础能力。",
+                    summary = "基础展示、列布局、分隔线、横纵滚动、固定表头/左固定列、主题、renderer、状态层、单列排序、溢出提示、加载更多与回顶。按章节验证基础能力。",
                     pageName = "table_basic",
                     chrome = ctx.chrome,
                 ) { ctx.openShowcase("table_basic") }
                 LevelEntryCard(
                     title = "KuiklyDataTable",
                     badge = "DataTableView",
-                    summary = "在 KuiklyTable 之上增加行选择、全选/半选、筛选与客户端分页，并通过 rowKey 保持交互状态；固定表头、固定列和主题复用 KuiklyTable 能力。",
+                    summary = "在 KuiklyTable 之上增加行选择、筛选与客户端分页；「大量数据」用 3000 行验证虚拟滚动，可与筛选组合。",
                     pageName = "table_data",
                     chrome = ctx.chrome,
                 ) { ctx.openShowcase("table_data") }

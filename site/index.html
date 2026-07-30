@@ -141,11 +141,11 @@
   <a href="#loading">加载状态的表格</a>
   <a href="#empty">空表格</a>
   <a href="#load-more">触底加载的表格</a>
-  <a href="#windowed">虚拟滚动的表格</a>
   <div class="group">KuiklyDataTable 数据表格</div>
   <a href="#selection">可选中行的表格</a>
   <a href="#filter">可筛选的表格</a>
   <a href="#pagination">可分页的表格</a>
+  <a href="#windowed">虚拟滚动的表格</a>
   <div class="group">API 参考</div>
   <a href="#api-tableview">TableView</a>
   <a href="#api-attr">TableAttr</a>
@@ -557,38 +557,11 @@ event {
 }</code></pre>
 </section>
 
-<section id="windowed">
-  <div class="split">
-    <div>
-      <h2>虚拟滚动的表格</h2>
-      <p>默认 <code>Standard</code> 为每行创建 DSL 节点。数据量大时改用 <code>Windowed</code>（基于 Kuikly <code>vforLazy</code>），按窗口挂载行节点。</p>
-      <pre><code class="language-kotlin">attr {
-    data = users
-    rowHeight = 48f
-    fixedFirstColumn = false
-    rowRenderMode = TableRowRenderMode.Windowed(maxRenderedRows = 160)
-}</code></pre>
-      <ul>
-        <li>只限制挂载的行节点，完整 <code>data</code> 仍在内存，排序作用于全量</li>
-        <li>创建时选定模式后不要在同一 Table 上切换</li>
-        <li>暂不支持动态行高与固定列组合</li>
-        <li><code>maxRenderedRows</code> 建议按可见行数 × 3 估算，默认 60；太小快速滚动会短暂空白</li>
-      </ul>
-    </div>
-    <div class="media">
-      <figure>
-        <img src="../assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" loading="lazy">
-        <figcaption>5k 行 Windowed 虚拟滚动</figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
-
 <section id="selection">
   <div class="split">
     <div>
       <h2>可选中行的表格</h2>
-      <p class="note">KuiklyDataTable 章节只讲新增能力；上述 KuiklyTable 全部章节（列宽 / 排序 / 滚动 / 主题 / 渲染 / 分隔线 / 固定列 / 状态 / 大数据）对 DataTable 同样适用。</p>
+      <p class="note">KuiklyDataTable 章节讲数据交互；KuiklyTable 的列宽 / 排序 / 滚动 / 主题 / 渲染 / 分隔线 / 固定列 / 状态能力对 DataTable 同样适用。虚拟滚动见下方专章。</p>
       <p><code>DataTableView</code> 复用 <code>TableView</code>。开启 <code>enableRowSelection</code> 后注入选择列与行高亮；关闭时无选择列、清空高亮。选中身份是 <code>rowKey</code>：排序只改展示顺序，<code>selectedKeys</code> 按 rowKey 保持。</p>
       <pre><code class="language-kotlin">DataTableView&lt;User&gt; {
     attr {
@@ -666,6 +639,36 @@ event {
   </div>
 </section>
 
+<section id="windowed">
+  <div class="split">
+    <div>
+      <h2>虚拟滚动的表格</h2>
+      <p>虚拟滚动限制挂载的行节点数，与筛选 / 分页正交。Showcase 在 <code>table_data</code>「大量数据」页签中开关验证。</p>
+      <pre><code class="language-kotlin">DataTableView&lt;User&gt; {
+    attr {
+        data = largeUsers          // 例如 3000 行
+        filterPredicate = { it.status == "在职" }
+        rowHeight = 48f            // Windowed 需要固定行高
+        fixedFirstColumn = false   // 暂不与固定列组合
+        rowRenderMode = TableRowRenderMode.Windowed(40)
+    }
+}</code></pre>
+      <ul>
+        <li>只限制 View 节点；完整 <code>data</code> 仍在内存，筛选 / 排序作用于全量</li>
+        <li>分页切的是数据切片，虚拟滚动管的是挂载行数——可同时开</li>
+        <li>创建时选定模式；运行时切换需 remount，不要在同一实例上热切换</li>
+        <li><code>maxRenderedRows</code> 建议可见行数 × 3，默认 60；演示用 40</li>
+      </ul>
+    </div>
+    <div class="media">
+      <figure>
+        <img src="../assets/table_showcase_large_demo.gif" alt="Windowed 虚拟滚动" loading="lazy">
+        <figcaption>3000 行 Windowed：只挂载窗口内行节点</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <section id="api-tableview">
   <h2>API 参考 · TableView</h2>
   <pre><code class="language-kotlin">fun &lt;T&gt; ViewContainer&lt;*, *&gt;.TableView(init: TableView&lt;T&gt;.() -&gt; Unit)
@@ -693,7 +696,7 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
     <tr><td><code>fixedHeader</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>固定表头</td></tr>
     <tr><td><code>fixedFirstColumn</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>固定第一列；被固定列须显式 <code>width</code>；需固定行高，不与 Windowed 组合</td></tr>
     <tr><td><code>themeColors</code></td><td><code>TableThemeColors</code></td><td>Light</td><td>语义色；预设 <code>Light</code> / <code>Dark</code> / <code>Blue</code></td></tr>
-    <tr><td><code>rowRenderMode</code></td><td><code>TableRowRenderMode</code></td><td><code>Standard</code></td><td><code>Windowed(n)</code> 限制挂载行数</td></tr>
+    <tr><td><code>rowRenderMode</code></td><td><code>TableRowRenderMode</code></td><td><code>Standard</code></td><td><code>Windowed(n)</code> 虚拟滚动；需固定 <code>rowHeight</code>，不与固定列组合</td></tr>
     <tr><td><code>loading</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>加载中</td></tr>
     <tr><td><code>emptyText</code> / <code>loadingText</code></td><td><code>String</code></td><td>默认文案</td><td>状态文案</td></tr>
     <tr><td><code>emptyRenderer</code> / <code>loadingRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>自定义状态内容</td></tr>
@@ -761,7 +764,7 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
     <tr><td><code>pageChange</code></td><td>页码变化</td></tr>
     <tr><td><code>pageSizeChange</code></td><td>页大小变化</td></tr>
   </table>
-  <div class="note">示例工程：运行 <code>androidApp</code> 后默认进入 <code>table_home</code>，再进入 <code>table_basic</code>（分章节验证 KuiklyTable）或 <code>table_data</code>（数据交互 / 基础组合 / 接入关系页签验证 KuiklyDataTable）。</div>
+  <div class="note">示例工程：运行 <code>androidApp</code> 后默认进入 <code>table_home</code>，再进入 <code>table_basic</code>（分章节验证 KuiklyTable）或 <code>table_data</code>（数据交互 / 大量数据 / 接入关系页签验证 KuiklyDataTable）。</div>
 </section>
 
 </main>
