@@ -20,51 +20,24 @@
 
 ## 效果预览
 
-### KuiklyTable
-
-静态对照：
-
-| 基础样式 | 主题三套 | 自定义 Renderer |
+| 基础表格（默认网格线） | DataTable 行选择 | 客户端分页 |
 | :---: | :---: | :---: |
-| <img src="assets/table_showcase_basic.png" alt="基础表格样式" width="280"> | <img src="assets/table_showcase_theme.png" alt="Light / Dark / Blue 主题" width="280"> | <img src="assets/table_showcase_renderer.png" alt="自定义单元格渲染" width="280"> |
+| <img src="assets/table_showcase_basic.png" alt="基础表格样式" width="280"> | <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页" width="280"> |
 
-| 状态反馈 | Table / List 模式 |
-| :---: | :---: |
-| <img src="assets/table_showcase_state.png" alt="无数据状态" width="280"> | <img src="assets/table_showcase_mode.png" alt="Table 与 List 展示模式" width="280"> |
-
-交互录屏：
-
-| 双向滚动 | 排序三态 | 大数据虚拟滚动 |
-| :---: | :---: | :---: |
-| <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
-
-### KuiklyDataTable
-
-Showcase 页 `table_data`：顶部配置区分「数据交互 / 基础组合 / 接入关系」页签，表格占剩余高度。
-
-| 行选择 | 表头全选 |
-| :---: | :---: |
-| <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_select_all.png" alt="DataTable 表头全选" width="280"> |
-
-| 状态筛选 | 客户端分页 |
-| :---: | :---: |
-| <img src="assets/table_datatable_filter.png" alt="按在职筛选" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页第 2 页" width="280"> |
+更多效果（主题、自定义渲染、状态、List 模式、排序三态、大数据虚拟滚动、筛选）与交互录屏见[文档站](https://arialentropy.github.io/KuiklyTableView/site/)。
 
 ## 功能特性
 
 | 类别 | 能力 |
 | --- | --- |
-| 基础结构 | `TableView` / `ColumnModel`，固定列宽与弹性 `minWidth + flex` |
-| 滚动 | 横纵双向滚动，表头与内容横向同步；可选固定表头；左侧固定列（单 List，需固定行高） |
-| 样式 | 默认网格线与 8dp 圆角；`lineMode` 可切无线/仅横线/网格/自定义；斑马纹、行高、内边距可配；列对齐默认 `Start`（左对齐），未显式设置时数值列也不居右 |
-| 主题 | Light / Dark 预设，`TableThemeColors` 语义色覆盖（含选中行背景） |
-| 自定义渲染 | `cellRenderer` / `headerRenderer`；未配置回退默认文本 |
-| 交互 | 表头三态排序、行点击、单元格点击、截断溢出点击、回顶；列上 `enableRowClick` / `enableCellClick` 显式控制 |
-| 状态 | 加载中 / 空数据，支持自定义 Empty / Loading 内容 |
-| 展示模式 | 显式 `Table` 或 `List`（grouped） |
-| 数据加载 | `loadMore` 触底回调（分页与请求由业务层负责） |
-| 大数据 | 显式 `Standard` / `Windowed` 行渲染策略；窗口模式限制已挂载 DSL 行节点 |
-| 高级表格 | `DataTableView` 行多选、表头全选/半选、`filterPredicate` 筛选、客户端分页与翻页回顶；选中按 rowKey 联动 |
+| 基础结构 | `TableView` / `ColumnModel`；固定列宽与弹性 `minWidth + flex`；列对齐默认 `Start` |
+| 滚动 | 横纵双向滚动；可选固定表头；左侧固定列（单 List，需固定行高） |
+| 样式与主题 | 默认网格线 + 8dp 圆角（`lineMode` 可切可自定义）；斑马纹、行高、内边距；Light / Dark 预设 + 语义色覆盖 |
+| 自定义渲染 | `cellRenderer` / `headerRenderer`，未配置回退默认文本 |
+| 交互 | 表头三态排序、行/单元格点击、截断溢出点击、回顶 |
+| 状态与模式 | 加载中 / 空数据（可自定义）；显式 `Table` / `List` 模式；`loadMore` 触底回调 |
+| 大数据 | 显式 `Standard` / `Windowed` 行渲染策略 |
+| 高级表格 | `DataTableView` 行多选、全选/半选、`filterPredicate` 筛选、客户端分页 |
 
 ## 接入方式
 
@@ -104,21 +77,8 @@ TableView<User> {
         columns.addAll(
             listOf(
                 ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f),
-                ColumnModel(
-                    key = "age",
-                    title = "年龄",
-                    accessor = { it.age.toString() },
-                    width = 60f,
-                    sortable = true,
-                    sortComparator = compareBy { it.age },
-                ),
-                ColumnModel(
-                    key = "email",
-                    title = "邮箱",
-                    accessor = { it.email },
-                    minWidth = 140f,
-                    flex = 2f,
-                ),
+                ColumnModel(key = "age", title = "年龄", accessor = { it.age.toString() }, width = 60f, sortable = true),
+                ColumnModel(key = "email", title = "邮箱", accessor = { it.email }, minWidth = 140f, flex = 2f),
             )
         )
         data = users
@@ -134,6 +94,8 @@ TableView<User> {
     }
 }
 ```
+
+自定义比较器、自定义渲染、主题、固定列等完整写法见[文档站](https://arialentropy.github.io/KuiklyTableView/site/)。
 
 `DataTableView` 复用同一套列与数据源，叠加行选择、筛选与客户端分页：
 
@@ -212,15 +174,7 @@ DataTableView<User> {
 ./gradlew :KuiklyTable:allTests
 ```
 
-`commonTest` 覆盖：
-
-- `TableDataPipelineTest` — 排序管线
-- `TableColumnLayoutResolverTest` — 列宽分配
-- `TableLineModeTest` — None/Horizontal/Grid/Custom 解析
-- `TableRowRenderModeTest` — Standard / Windowed 配置
-- `TableLoadMoreTriggerPolicyTest` — 加载更多触发去重
-- `DataTableSelectionTest` — 全选半选与 rowKey 选择联动
-- `DataTablePipelineTest` — 筛选 → 排序 → 分页管线
+`commonTest` 覆盖排序管线、列宽分配、分隔线解析、行渲染模式、加载更多去重、全选半选联动、筛选分页管线（7 个测试类）。
 
 ## 相关资源
 
