@@ -125,15 +125,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         tableAttr.lineMode.resolve(tableAttr.themeColors).outer
                             .toOuterBorderOrTransparent(),
                     )
-                    backgroundColor(
-                        Color(
-                            if (ctx.shouldRenderMobileList()) {
-                                tableAttr.themeColors.cardBackground
-                            } else {
-                                tableAttr.themeColors.rowBackground
-                            },
-                        ),
-                    )
+                    backgroundColor(Color(tableAttr.themeColors.rowBackground))
                 }
 
                 View {
@@ -145,21 +137,16 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     // pinnedMode 为开时仍可能因单列/缺 width 而无效；以 resolved fixed 为准
                     vif({
                         ctx.viewportWidth > 0f &&
-                            !ctx.shouldRenderMobileList() &&
                             (!ctx.pinnedMode || ctx.resolvedColumnLayout().fixed.isEmpty())
                     }) {
                         ctx.renderPlainTableLayout(this, ctx.resolvedColumnLayout())
                     }
                     vif({
                         ctx.viewportWidth > 0f &&
-                            !ctx.shouldRenderMobileList() &&
                             ctx.pinnedMode &&
                             ctx.resolvedColumnLayout().fixed.isNotEmpty()
                     }) {
                         ctx.renderPinnedLeftTableLayout(this, ctx.resolvedColumnLayout())
-                    }
-                    vif({ ctx.viewportWidth > 0f && ctx.shouldRenderMobileList() }) {
-                        ctx.renderMobileListLayout(this)
                     }
                 }
 
@@ -683,88 +670,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
-    private fun renderMobileListLayout(container: ViewContainer<*, *>) {
-        val ctx = this
-        val tableAttr = attr
-        container.List {
-            val listView = this
-            ctx.mainBodyList = listView
-            attr {
-                flex(1f)
-                backgroundColor(Color(tableAttr.themeColors.cardBackground))
-            }
-            event {
-                scroll { params ->
-                    ctx.event.overflowTipDismiss?.invoke()
-                    ctx.maybeTriggerLoadMore(params)
-                }
-                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
-            }
-            vif({ ctx.displayRows.isEmpty() }) {
-                ctx.renderEmptyPlaceholder(this)
-            }
-            ctx.renderMobileRowLoop(listView)
-            ctx.renderLoadMoreFooter(this)
-        }
-    }
-
-    private fun renderMobileRowLoop(listView: ListView<*, *>) {
-        val ctx = this
-        when (val renderMode = attr.rowRenderMode) {
-            is TableRowRenderMode.Standard -> {
-                listView.vforIndex({ displayRows }) { row, index, count ->
-                    View { ctx.renderMobileRowComponent(this, row, index == count - 1) }
-                }
-            }
-            is TableRowRenderMode.Windowed -> {
-                require(!attr.fixedFirstColumn) {
-                    "TableRowRenderMode.Windowed does not support fixed columns"
-                }
-                listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, index, count ->
-                    View { ctx.renderMobileRowComponent(this, row, index == count - 1) }
-                }
-            }
-        }
-    }
-
-    private fun renderMobileRowComponent(container: ViewContainer<*, *>, row: TableDisplayRow<T>, isLast: Boolean) {
-        val ctx = this
-        val tableAttr = attr
-        val primaryColumn = primaryMobileColumn() ?: return
-        val statusColumn = statusMobileColumn()
-        container.TableListRowView<T> {
-            attr {
-                this.row = row
-                columns = tableAttr.columns
-                layout = ctx.resolvedColumnLayout()
-                this.primaryColumn = primaryColumn
-                this.statusColumn = statusColumn
-                viewportWidth = ctx.effectiveViewportWidth()
-                themeColors = tableAttr.themeColors
-                statusTagPresetByText = tableAttr.listStatusTagPresetByText
-                statusTagStyleByText = tableAttr.listStatusTagStyleByText
-                statusTagStyleResolver = tableAttr.listStatusTagStyleResolver
-                enableOverflowCellClick = tableAttr.enableOverflowCellClick
-            }
-            event {
-                rowClick = { ctx.event.rowClick?.invoke(it) }
-                cellClick = { ctx.event.cellClick?.invoke(it) }
-                overflowCellClick = { ctx.event.overflowCellClick?.invoke(it) }
-            }
-        }
-        if (!isLast) {
-            container.View {
-                attr {
-                    val stroke = tableAttr.lineMode.resolve(tableAttr.themeColors).listRow
-                    height(stroke?.width?.coerceAtLeast(0f) ?: 0f)
-                    marginLeft(16f)
-                    marginRight(16f)
-                    backgroundColor(Color(stroke?.color ?: 0x00000000))
-                }
-            }
-        }
-    }
-
     private fun renderStateLayer(container: ViewContainer<*, *>) {
         val ctx = this
         container.View {
@@ -869,12 +774,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         event.sortChange?.invoke(next)
     }
 
-    private fun shouldRenderMobileList(): Boolean =
-        when (attr.displayMode) {
-            is TableDisplayMode.List -> true
-            is TableDisplayMode.Table -> false
-        }
-
     private fun hasStateLayer(): Boolean = attr.loading
 
     private fun stateLayerBackground(): Long = attr.themeColors.stateOverlayBackground
@@ -939,7 +838,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     }
 
     private fun estimatedRowScrollHeight(): Float = when {
-        attr.displayMode is TableDisplayMode.List -> LIST_ROW_HEIGHT_ESTIMATE
         effectiveRowHeight() > 0f -> effectiveRowHeight() + BODY_DIVIDER_HEIGHT
         else -> DEFAULT_ROW_HEIGHT_ESTIMATE + BODY_DIVIDER_HEIGHT
     }
@@ -1018,21 +916,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
-    private fun primaryMobileColumn(): ColumnModel<T>? =
-        attr.listPrimaryColumnKey?.let { key ->
-            attr.columns.firstOrNull { it.key == key }
-        } ?: attr.columns.firstOrNull()
-
-    private fun statusMobileColumn(): ColumnModel<T>? =
-        attr.listStatusColumnKey?.let { key ->
-            attr.columns.firstOrNull { it.key == key }
-        }
-
     companion object {
         private const val DEFAULT_ROW_HEIGHT_ESTIMATE = 48f
         private const val BODY_DIVIDER_HEIGHT = 1f
         private const val LOAD_MORE_FOOTER_HEIGHT = 44f
-        private const val LIST_ROW_HEIGHT_ESTIMATE = 74f
         private const val SCROLL_SYNC_TOLERANCE = 0.5f
     }
 }

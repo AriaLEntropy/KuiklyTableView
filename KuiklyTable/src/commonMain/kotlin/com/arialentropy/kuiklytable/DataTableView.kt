@@ -448,13 +448,7 @@ private fun <T> TableAttr<T>.applyFrom(source: DataTableAttr<T>) {
     fixedHeader = source.fixedHeader
     fixedFirstColumn = source.fixedFirstColumn
     fixedColumnSlots = if (source.fixedFirstColumn && source.enableRowSelection) 2 else if (source.fixedFirstColumn) 1 else 0
-    displayMode = source.displayMode
     rowRenderMode = source.rowRenderMode
-    listPrimaryColumnKey = source.listPrimaryColumnKey
-    listStatusColumnKey = source.listStatusColumnKey
-    listStatusTagPresetByText = source.listStatusTagPresetByText
-    listStatusTagStyleByText = source.listStatusTagStyleByText
-    listStatusTagStyleResolver = source.listStatusTagStyleResolver
     loading = source.loading
     emptyText = source.emptyText
     loadingText = source.loadingText

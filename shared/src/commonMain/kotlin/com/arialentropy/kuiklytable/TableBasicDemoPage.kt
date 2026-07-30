@@ -271,7 +271,6 @@ internal class TableBasicDemoPage : BasePager() {
     private var sortingDemoSortState by observable(TableSortState())
     private var themeMode: DemoThemeMode by observable(DemoThemeMode.Light)
     private var compactHeader by observable(false)
-    private var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     private var tableState by observable("正常")
     private var customStateRendererOn by observable(false)
     private var demoEnableRowClick by observable(true)
@@ -285,7 +284,6 @@ internal class TableBasicDemoPage : BasePager() {
     private var scrollDemoLimit by observable(20)
     private var scrollDemoLoadingMore by observable(false)
     private var largeDataCount by observable(1_000)
-    private var largeDisplayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     private var largeSortState by observable(TableSortState())
     private var largeState by observable("正常")
     private var largeLoadingMore by observable(false)
@@ -310,7 +308,6 @@ internal class TableBasicDemoPage : BasePager() {
                 vif({ ctx.activeSection == "主题" }) { ctx.renderThemeSection(this) }
                 vif({ ctx.activeSection == "自定义" }) { ctx.renderRendererSection(this) }
                 vif({ ctx.activeSection == "状态" }) { ctx.renderStateSection(this) }
-                vif({ ctx.activeSection == "模式" }) { ctx.renderMobileSection(this) }
                 vif({ ctx.activeSection == "大数据" }) { ctx.renderLargeDataSection(this) }
             }
             ctx.renderOverflowTip(this)
@@ -395,9 +392,6 @@ internal class TableBasicDemoPage : BasePager() {
                 ConfigGroup("补充示例", theme = { ctx.currentTheme() }) {
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(label = { "List 模式" }, active = { ctx.activeExample == "List 模式" }, theme = { ctx.currentTheme() }) {
-                            ctx.selectExample("List 模式")
-                        }
                         ToggleChip(label = { "无数据" }, active = { ctx.activeExample == "无数据" }, theme = { ctx.currentTheme() }, emphasis = true) {
                             ctx.selectExample("无数据")
                         }
@@ -509,10 +503,6 @@ internal class TableBasicDemoPage : BasePager() {
                         fixedHeader = ctx.fixedHeaderOn
                         fixedFirstColumn = false
                         themeColors = ctx.currentTheme()
-                        displayMode = ctx.displayMode
-                        listPrimaryColumnKey = "name"
-                        listStatusColumnKey = "status"
-                        listStatusTagStyleByText = ctx.statusTagStyleByText(ctx.currentTheme())
                         loading = ctx.tableState == "加载"
                         emptyText = "暂无员工数据"
                         loadingText = "正在加载员工数据"
@@ -634,7 +624,7 @@ internal class TableBasicDemoPage : BasePager() {
                 paddingLeft(16f)
                 paddingRight(8f)
             }
-            listOf("基础", "滚动", "主题", "自定义", "状态", "模式", "大数据").forEach { section ->
+            listOf("基础", "滚动", "主题", "自定义", "状态", "大数据").forEach { section ->
                 ShowcaseTab(section, active = { ctx.activeSection == section }, theme = { ctx.currentTheme() }) {
                     ctx.activeSection = section
                     ctx.hideOverflowTip()
@@ -954,35 +944,6 @@ internal class TableBasicDemoPage : BasePager() {
         }
     }
 
-    private fun renderMobileSection(container: ViewContainer<*, *>) {
-        val ctx = this
-        container.Scroller {
-            attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
-            SectionIntro("Table / List 模式", "相同数据分别使用 Table 模式和 List 模式展示。", { ctx.currentTheme() })
-            ExampleCard("Table", "适合横向对比和报表。", { ctx.currentTheme() }) {
-                ctx.renderTablePreview(
-                    this,
-                    listOf(
-                        ColumnModel(key = "name", title = "姓名", accessor = { it.name }, minWidth = 80f, flex = 1f),
-                        ctx.statusTextColumn,
-                        ColumnModel(
-                            key = "age",
-                            title = "年龄",
-                            accessor = { it.age.toString() },
-                            width = 80f,
-                        ),
-                    ),
-                    { ctx.users.take(3) },
-                    210f,
-                    theme = ctx.currentTheme(),
-                )
-            }
-            ExampleCard("List 模式", "显式选择 List 模式，不按列数自动切换。", { ctx.currentTheme() }) {
-                ctx.renderTablePreview(this, listOf(ctx.nameColumn, ctx.ageColumn, ctx.cityColumn, ctx.statusTextColumn), { ctx.users.take(3) }, 286f, displayMode = { TableDisplayMode.List }, theme = ctx.currentTheme())
-            }
-        }
-    }
-
     private fun renderLargeDataSection(container: ViewContainer<*, *>) {
         val ctx = this
         container.View {
@@ -1002,12 +963,6 @@ internal class TableBasicDemoPage : BasePager() {
                         ctx.largeLoadingMore = false
                         ctx.largeDataTableRef?.view?.scrollToTop()
                     }
-                }
-                SegmentOption("Table", active = { ctx.largeDisplayMode is TableDisplayMode.Table }, theme = { ctx.currentTheme() }) {
-                    ctx.largeDisplayMode = TableDisplayMode.Table
-                }
-                SegmentOption("List", active = { ctx.largeDisplayMode is TableDisplayMode.List }, theme = { ctx.currentTheme() }) {
-                    ctx.largeDisplayMode = TableDisplayMode.List
                 }
             }
             View {
@@ -1037,7 +992,6 @@ internal class TableBasicDemoPage : BasePager() {
                 height = null,
                 fixedRowHeight = { true },
                 theme = ctx.currentTheme(),
-                displayMode = { ctx.largeDisplayMode },
                 rowRenderMode = TableRowRenderMode.Windowed(LARGE_DATA_WINDOW),
                 controlledSortState = { ctx.largeSortState },
                 onSortChange = { state -> ctx.largeSortState = state },
@@ -1062,7 +1016,6 @@ internal class TableBasicDemoPage : BasePager() {
         fixedHeader: () -> Boolean = { true },
         fixedFirstColumn: () -> Boolean = { false },
         theme: TableThemeColors,
-        displayMode: () -> TableDisplayMode = { TableDisplayMode.Table },
         rowRenderMode: TableRowRenderMode = TableRowRenderMode.Standard,
         loading: () -> Boolean = { false },
         overflowEnabled: () -> Boolean = { true },
@@ -1099,11 +1052,7 @@ internal class TableBasicDemoPage : BasePager() {
                 this.fixedHeader = fixedHeader()
                 this.fixedFirstColumn = fixedFirstColumn()
                 themeColors = theme
-                this.displayMode = displayMode()
                 this.rowRenderMode = rowRenderMode
-                listPrimaryColumnKey = "name"
-                listStatusColumnKey = "status"
-                listStatusTagStyleByText = ctx.statusTagStyleByText(theme)
                 this.loading = loading()
                 emptyText = "暂无员工数据"
                 loadingText = "正在加载员工数据"
@@ -1278,7 +1227,6 @@ internal class TableBasicDemoPage : BasePager() {
             header = stroke,
             row = stroke,
             column = stroke,
-            listRow = stroke,
         )
     }
 
@@ -1304,7 +1252,6 @@ internal class TableBasicDemoPage : BasePager() {
             "加载中" -> "加载"
             else -> "正常"
         }
-        displayMode = if (example == "List 模式") TableDisplayMode.List else TableDisplayMode.Table
         wideTable = example != "基础样式"
         if (example == "主题定制") {
             themeMode = DemoThemeMode.Blue
@@ -1321,7 +1268,6 @@ internal class TableBasicDemoPage : BasePager() {
         themeMode = theme
         activeExample = "主题定制"
         tableState = "正常"
-        displayMode = TableDisplayMode.Table
         wideTable = true
         selectedColumn = ageColumn
         syncActiveColumns()
@@ -1333,8 +1279,7 @@ internal class TableBasicDemoPage : BasePager() {
         "双向滚动" -> "5 列 × 50 行数据，验证横纵滚动和固定表头"
         "主题定制" -> "验证表头、边框、行背景等语义颜色可整体覆盖"
         "自定义渲染" -> "验证单元格 renderer 插槽由使用方绘制内容"
-        "List 模式" -> "显式 List 模式，验证 grouped list 展示"
-        "无数据" -> "保留当前展示模式，在内容区显示无数据占位"
+        "无数据" -> "在内容区显示无数据占位"
         "加载中" -> "保留旧内容并显示加载遮罩，期间禁止交互"
         else -> "选择一个场景查看对应能力"
     }

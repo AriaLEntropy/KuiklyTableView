@@ -58,17 +58,11 @@ open class TableAttr<T> : ComposeAttr() {
     var fixedFirstColumn: Boolean by observable(false)
     /** Internal fixed slot count; DataTable uses 2 when selection is enabled. */
     internal var fixedColumnSlots: Int by observable(0)
-    var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     /**
      * Row DSL rendering strategy. Configure during Table creation; changing this value after
      * the Table is mounted does not rebuild the rendering branch.
      */
     var rowRenderMode: TableRowRenderMode = TableRowRenderMode.Standard
-    var listPrimaryColumnKey: String? by observable(null)
-    var listStatusColumnKey: String? by observable(null)
-    var listStatusTagPresetByText: Map<String, TableStatusTagPreset> by observable(emptyMap())
-    var listStatusTagStyleByText: Map<String, TableStatusTagStyle> by observable(emptyMap())
-    var listStatusTagStyleResolver: ((T, String, TableThemeColors) -> TableStatusTagStyle)? by observable(null)
     var loading: Boolean by observable(false)
     var emptyText: String by observable("暂无数据")
     var loadingText: String by observable("加载中…")

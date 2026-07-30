@@ -15,7 +15,6 @@ class TableLineModeTest {
         assertNull(style.header)
         assertNull(style.row)
         assertNull(style.column)
-        assertNull(style.listRow)
     }
 
     @Test
@@ -25,7 +24,6 @@ class TableLineModeTest {
         assertNull(style.column)
         assertNotNull(style.header)
         assertNotNull(style.row)
-        assertNotNull(style.listRow)
         assertEquals(theme.gridLine, style.header?.color)
     }
 
@@ -36,7 +34,6 @@ class TableLineModeTest {
         assertNotNull(style.header)
         assertNotNull(style.row)
         assertNotNull(style.column)
-        assertNotNull(style.listRow)
     }
 
     @Test
@@ -44,7 +41,7 @@ class TableLineModeTest {
         val themed = TableThemeColors(dividerColor = 0xFF112233)
         val hair = TableStroke(themed.effectiveDividerColor(), 2f)
         val style = TableLineMode.Custom(
-            TableLineStyle(outer = hair, header = null, row = hair, column = null, listRow = null),
+            TableLineStyle(outer = hair, header = null, row = hair, column = null),
         ).resolve(themed)
         assertEquals(0xFF112233, style.outer?.color)
         assertEquals(2f, style.outer?.width)

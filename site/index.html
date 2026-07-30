@@ -56,8 +56,7 @@
     max-width: 1180px;
   }
   section { margin-bottom: 72px; scroll-margin-top: calc(var(--header-h) + 16px); }
-  .hero {
-    background: linear-gradient(135deg, #ecf4ff 0%, #f2f8ff 100%);
+  .hero { 
     border-radius: 16px; padding: 36px 40px 24px; margin-bottom: 64px;
   }
   .hero h1 {
@@ -142,7 +141,6 @@
   <a href="#loading">加载状态的表格</a>
   <a href="#empty">空表格</a>
   <a href="#load-more">触底加载的表格</a>
-  <a href="#display-mode">Table / List 模式的表格</a>
   <a href="#windowed">虚拟滚动的表格</a>
   <div class="group">KuiklyDataTable 数据表格</div>
   <a href="#selection">可选中行的表格</a>
@@ -168,7 +166,7 @@
     <tr><td><code>TableView</code> / KuiklyTable</td><td>基础展示、布局、分隔线、滚动、固定表头 / 左固定列、主题、renderer</td><td>已交付</td></tr>
     <tr><td><code>DataTableView</code> / KuiklyDataTable</td><td>行选择、全选 / 半选、筛选、客户端分页；复用 KuiklyTable 全部能力</td><td>已交付</td></tr>
   </table>
-  <p class="note"><strong>能力关系</strong>：<code>KuiklyDataTable</code> 是 <code>KuiklyTable</code> 的组合封装（Kuikly 组合组件），<strong>拥有 KuiklyTable 的全部能力</strong>——列宽与对齐、排序、滚动、固定表头、样式主题、行高亮、自定义单元格 / 表头、超出省略、分隔线与圆角、固定列、加载 / 空态、触底加载、展示模式、虚拟滚动对两者同样适用。KuiklyDataTable 章节只讲新增能力（行选择、筛选与分页）。对应地，<code>DataTableAttr</code> / <code>DataTableEvent</code> 继承 <code>TableAttr</code> / <code>TableEvent</code>，只新增独有属性与事件。</p>
+  <p class="note"><strong>能力关系</strong>：<code>KuiklyDataTable</code> 是 <code>KuiklyTable</code> 的组合封装（Kuikly 组合组件），<strong>拥有 KuiklyTable 的全部能力</strong>——列宽与对齐、排序、滚动、固定表头、样式主题、行高亮、自定义单元格 / 表头、超出省略、分隔线与圆角、固定列、加载 / 空态、触底加载、虚拟滚动对两者同样适用。KuiklyDataTable 章节只讲新增能力（行选择、筛选与分页）。对应地，<code>DataTableAttr</code> / <code>DataTableEvent</code> 继承 <code>TableAttr</code> / <code>TableEvent</code>，只新增独有属性与事件。</p>
 </section>
 
 <section id="install">
@@ -510,12 +508,8 @@ tableRef.scrollToTop(animated = true)</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_fixed_verify_before.png" alt="固定列滚动前" loading="lazy">
-        <figcaption>滚动前：首列在视口左侧</figcaption>
-      </figure>
-      <figure>
-        <img src="../assets/table_fixed_verify_after_h.png" alt="固定列横向滚动后" loading="lazy">
-        <figcaption>横滑后：首列固定，其余列滚动</figcaption>
+        <img src="../assets/table_fixed_verify_before.png" alt="固定首列示例" loading="lazy">
+        <figcaption>开启 fixedFirstColumn：横滑时「姓名」列固定在视口左侧，其余列正常滚动</figcaption>
       </figure>
     </div>
   </div>
@@ -563,26 +557,6 @@ event {
 }</code></pre>
 </section>
 
-<section id="display-mode">
-  <div class="split">
-    <div>
-      <h2>Table / List 模式的表格</h2>
-      <p>显式 <code>Table</code> 或 <code>List</code>（grouped 卡片）模式。List 模式指定主字段列与状态列，适合窄屏场景。</p>
-      <pre><code class="language-kotlin">attr {
-    displayMode = TableDisplayMode.List
-    listPrimaryColumnKey = "name"
-    listStatusColumnKey = "status"
-}</code></pre>
-    </div>
-    <div class="media">
-      <figure>
-        <img src="../assets/table_showcase_mode.png" alt="Table 与 List 展示模式" loading="lazy">
-        <figcaption>Table / List 两种展示模式</figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
-
 <section id="windowed">
   <div class="split">
     <div>
@@ -614,7 +588,7 @@ event {
   <div class="split">
     <div>
       <h2>可选中行的表格</h2>
-      <p class="note">KuiklyDataTable 章节只讲新增能力；上述 KuiklyTable 全部章节（列宽 / 排序 / 滚动 / 主题 / 渲染 / 分隔线 / 固定列 / 状态 / 模式 / 大数据）对 DataTable 同样适用。</p>
+      <p class="note">KuiklyDataTable 章节只讲新增能力；上述 KuiklyTable 全部章节（列宽 / 排序 / 滚动 / 主题 / 渲染 / 分隔线 / 固定列 / 状态 / 大数据）对 DataTable 同样适用。</p>
       <p><code>DataTableView</code> 复用 <code>TableView</code>。开启 <code>enableRowSelection</code> 后注入选择列与行高亮；关闭时无选择列、清空高亮。选中身份是 <code>rowKey</code>：排序只改展示顺序，<code>selectedKeys</code> 按 rowKey 保持。</p>
       <pre><code class="language-kotlin">DataTableView&lt;User&gt; {
     attr {
@@ -719,10 +693,7 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
     <tr><td><code>fixedHeader</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>固定表头</td></tr>
     <tr><td><code>fixedFirstColumn</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>固定第一列；被固定列须显式 <code>width</code>；需固定行高，不与 Windowed 组合</td></tr>
     <tr><td><code>themeColors</code></td><td><code>TableThemeColors</code></td><td>Light</td><td>语义色；预设 <code>Light</code> / <code>Dark</code> / <code>Blue</code></td></tr>
-    <tr><td><code>displayMode</code></td><td><code>TableDisplayMode</code></td><td><code>Table</code></td><td><code>Table</code> / <code>List</code></td></tr>
     <tr><td><code>rowRenderMode</code></td><td><code>TableRowRenderMode</code></td><td><code>Standard</code></td><td><code>Windowed(n)</code> 限制挂载行数</td></tr>
-    <tr><td><code>listPrimaryColumnKey</code></td><td><code>String?</code></td><td><code>null</code></td><td>List 模式主字段列</td></tr>
-    <tr><td><code>listStatusColumnKey</code></td><td><code>String?</code></td><td><code>null</code></td><td>List 模式状态列</td></tr>
     <tr><td><code>loading</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>加载中</td></tr>
     <tr><td><code>emptyText</code> / <code>loadingText</code></td><td><code>String</code></td><td>默认文案</td><td>状态文案</td></tr>
     <tr><td><code>emptyRenderer</code> / <code>loadingRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>自定义状态内容</td></tr>

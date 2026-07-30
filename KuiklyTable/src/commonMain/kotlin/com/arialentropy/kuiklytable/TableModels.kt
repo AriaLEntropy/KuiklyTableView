@@ -69,11 +69,6 @@ sealed class TableCellClickAction<T> {
     class None<T> : TableCellClickAction<T>()
 }
 
-sealed class TableDisplayMode {
-    object Table : TableDisplayMode()
-    object List : TableDisplayMode()
-}
-
 sealed class TableSortDirection {
     object None : TableSortDirection()
     object Ascending : TableSortDirection()
