@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Kuikly](https://img.shields.io/badge/Kuikly-2.23.2-00A870)](https://github.com/Tencent-TDS/KuiklyUI)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20HarmonyOS-brightgreen)](https://github.com/Tencent-TDS/KuiklyUI)
 [![Docs](https://img.shields.io/badge/Docs-%E6%96%87%E6%A1%A3%E7%AB%99-0969da)](https://arialentropy.github.io/KuiklyTableView/site/)
 
@@ -40,6 +41,14 @@
 | 高级表格 | `DataTableView` 行多选、全选/半选、`filterPredicate` 筛选、客户端分页 |
 
 ## 接入方式
+
+环境要求（Kuikly 依赖坐标与 Kotlin 版本绑定，须一致）：
+
+| 依赖 | 版本 |
+| --- | --- |
+| Kuikly | `2.23.2`（坐标 `2.23.2-2.1.21`；鸿蒙 `2.23.2-2.0.21-ohos`） |
+| Kotlin | `2.1.21`（鸿蒙 `2.0.21-ohos`） |
+| KSP | `2.1.21-2.0.1` |
 
 将本仓库的 `KuiklyTable` 模块引入你的 Kuikly 工程：
 
