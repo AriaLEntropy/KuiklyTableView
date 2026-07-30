@@ -8,20 +8,25 @@ internal object TableColumnLayoutResolver {
         viewportWidth: Float,
         autoIndexColumn: Boolean,
         indexColumnWidth: Float,
-        fixedColumnCount: Int,
+        fixedColumnSlots: Int,
     ): TableResolvedColumnLayout<T> {
+        val effectiveSlots = effectiveFixedColumnSlots(
+            columns = columns,
+            autoIndexColumn = autoIndexColumn,
+            requestedSlots = fixedColumnSlots,
+        )
         if (!autoIndexColumn && columns.size == 1) {
             val column = columns.first()
             val fallbackWidth = max(column.width ?: column.minWidth, 0f)
             val width = if (viewportWidth > 0f) viewportWidth else fallbackWidth
             val resolvedColumn = TableResolvedColumn(column, 0, 0, 0f, width, false)
-            val fixedCount = fixedColumnCount.coerceIn(0, 1)
+            // 单列无法形成「固定 + 可滚」分区，忽略固定列
             return TableResolvedColumnLayout(
                 all = listOf(resolvedColumn),
-                fixed = if (fixedCount == 1) listOf(resolvedColumn) else emptyList(),
-                scrollable = if (fixedCount == 1) emptyList() else listOf(resolvedColumn),
+                fixed = emptyList(),
+                scrollable = listOf(resolvedColumn),
                 contentWidth = width,
-                fixedWidth = if (fixedCount == 1) width else 0f,
+                fixedWidth = 0f,
             )
         }
         val generatedWidth = if (autoIndexColumn) indexColumnWidth else 0f
@@ -50,7 +55,7 @@ internal object TableColumnLayoutResolver {
             x += width
         }
 
-        val fixedCount = fixedColumnCount.coerceIn(0, resolved.size)
+        val fixedCount = effectiveSlots.coerceIn(0, resolved.size)
         val fixed = resolved.take(fixedCount)
         return TableResolvedColumnLayout(
             all = resolved,
@@ -59,6 +64,42 @@ internal object TableColumnLayoutResolver {
             contentWidth = x,
             fixedWidth = fixed.sumOf { it.width.toDouble() }.toFloat(),
         )
+    }
+
+    /**
+     * 计算实际生效的固定列槽位数。
+     *
+     * - 请求 ≤0：不固定
+     * - 渲染列总数 ≤1：单列无法固定，返回 0
+     * - 请求槽位覆盖全部渲染列：没有可滚区，返回 0
+     * - 将被固定的业务列必须带显式 [ColumnModel.width]（生成序号列用 indexColumnWidth）；否则返回 0
+     */
+    fun effectiveFixedColumnSlots(
+        columns: List<ColumnModel<*>>,
+        autoIndexColumn: Boolean,
+        requestedSlots: Int,
+    ): Int {
+        if (requestedSlots <= 0) return 0
+        val renderColumnCount = (if (autoIndexColumn) 1 else 0) + columns.size
+        if (renderColumnCount <= 1) return 0
+        val slots = requestedSlots.coerceAtMost(renderColumnCount - 1)
+        if (slots <= 0) return 0
+
+        var remaining = slots
+        if (autoIndexColumn) {
+            remaining -= 1
+        }
+        if (remaining > 0) {
+            val targets = columns.take(remaining)
+            if (targets.any { it.width == null || it.width!! <= 0f }) {
+                println(
+                    "[KuiklyTable] fixedFirstColumn requires explicit positive width on fixed columns; " +
+                        "falling back to plain horizontal scroll",
+                )
+                return 0
+            }
+        }
+        return slots
     }
 
     fun naturalWidth(

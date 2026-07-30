@@ -18,7 +18,7 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
             if (row != null && primaryColumn != null) {
                 attr {
                     paddingLeft(16f); paddingRight(16f); paddingTop(12f); paddingBottom(12f)
-                    backgroundColor(Color(ctx.attr.themeColors.cardBackground))
+                    backgroundColor(Color(ctx.rowBackground(row)))
                 }
                 event { click { ctx.event.rowClick?.invoke(row.item) } }
                 View {
@@ -48,7 +48,10 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
                     }
                 }
                 ctx.attr.columns.forEachIndexed { index, column ->
-                    if (column !== primaryColumn && column !== ctx.attr.statusColumn) {
+                    if (column.key != DataTableSelection.COLUMN_KEY &&
+                        column !== primaryColumn &&
+                        column !== ctx.attr.statusColumn
+                    ) {
                         ctx.renderField(this, row, index, column)
                     }
                 }
@@ -168,6 +171,13 @@ internal class TableListRowView<T> : ComposeView<TableListRowAttr<T>, TableListR
         (if (ch.code > ASCII_MAX_CODE) DEFAULT_FONT_SIZE else DEFAULT_FONT_SIZE * ASCII_CHAR_WIDTH_RATIO).toDouble()
     }.toFloat()
 
+    private fun rowBackground(row: TableDisplayRow<T>): Long =
+        if (attr.selectedRowKeys.any { it == row.key }) {
+            attr.themeColors.selectedRowBackground
+        } else {
+            attr.themeColors.cardBackground
+        }
+
     companion object {
         private const val CARD_HORIZONTAL_MARGIN = 8f
         private const val CARD_HORIZONTAL_PADDING = 16f
@@ -192,6 +202,7 @@ internal class TableListRowAttr<T> : ComposeAttr() {
     var statusTagStyleByText: Map<String, TableStatusTagStyle> by observable(emptyMap())
     var statusTagStyleResolver: ((T, String, TableThemeColors) -> TableStatusTagStyle)? by observable(null)
     var enableOverflowCellClick: Boolean by observable(true)
+    var selectedRowKeys: List<Any> by observable(emptyList())
 }
 
 internal class TableListRowEvent<T> : ComposeEvent() {

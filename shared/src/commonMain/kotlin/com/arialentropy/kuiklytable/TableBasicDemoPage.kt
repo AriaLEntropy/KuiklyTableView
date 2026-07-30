@@ -523,7 +523,7 @@ internal class TableBasicDemoPage : BasePager() {
                         sortState = ctx.sortState
                         autoIndexColumn = false
                         fixedHeader = ctx.fixedHeaderOn
-                        fixedColumnCount = 0
+                        fixedFirstColumn = false
                         themeColors = ctx.currentTheme()
                         displayMode = ctx.displayMode
                         listPrimaryColumnKey = "name"
@@ -1168,7 +1168,7 @@ internal class TableBasicDemoPage : BasePager() {
                 sortState = controlledSortState()
                 autoIndexColumn = false
                 this.fixedHeader = fixedHeader()
-                fixedColumnCount = 0
+                fixedFirstColumn = false
                 themeColors = theme
                 this.displayMode = displayMode()
                 this.rowRenderMode = rowRenderMode

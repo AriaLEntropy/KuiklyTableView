@@ -17,7 +17,8 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
                 attr {
                     flexDirectionRow()
                     alignItemsCenter()
-                    backgroundColor(Color(ctx.rowBackground(row.displayIndex)))
+                    width(ctx.attr.columns.sumOf { it.width.toDouble() }.toFloat())
+                    backgroundColor(Color(ctx.rowBackground(row)))
                     if (ctx.attr.rowHeight > 0f) height(ctx.attr.rowHeight)
                 }
                 ctx.attr.columns.forEachIndexed { columnIndex, resolvedColumn ->
@@ -45,7 +46,7 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             attr {
                 width(resolvedColumn.width)
                 flexDirectionRow()
-                backgroundColor(Color(ctx.rowBackground(row.displayIndex)))
+                backgroundColor(Color(ctx.rowBackground(row)))
             }
             View {
                 attr { flex(1f); alignItemsCenter(); justifyContentCenter() }
@@ -94,7 +95,7 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
             attr {
                 width(resolvedColumn.width)
                 flexDirectionRow()
-                backgroundColor(Color(ctx.rowBackground(row.displayIndex)))
+                backgroundColor(Color(ctx.rowBackground(row)))
             }
             if (tableClickEnabled) {
                 event {
@@ -217,8 +218,16 @@ internal class TableRowView<T> : ComposeView<TableRowAttr<T>, TableRowEvent<T>>(
         (if (ch.code > ASCII_MAX_CODE) DEFAULT_CELL_FONT_SIZE else DEFAULT_CELL_FONT_SIZE * ASCII_CHAR_WIDTH_RATIO).toDouble()
     }.toFloat()
 
-    private fun rowBackground(index: Int): Long =
-        if (attr.zebraStripe && index % 2 == 1) attr.themeColors.rowBackgroundAlt else attr.themeColors.rowBackground
+    private fun rowBackground(row: TableDisplayRow<T>): Long {
+        if (attr.selectedRowKeys.any { it == row.key }) {
+            return attr.themeColors.selectedRowBackground
+        }
+        return if (attr.zebraStripe && row.displayIndex % 2 == 1) {
+            attr.themeColors.rowBackgroundAlt
+        } else {
+            attr.themeColors.rowBackground
+        }
+    }
 
     companion object {
         private const val DEFAULT_CELL_FONT_SIZE = 14f
@@ -238,6 +247,7 @@ internal class TableRowAttr<T> : ComposeAttr() {
     var cellPaddingV: Float by observable(10f)
     var themeColors: TableThemeColors by observable(TableThemeColors())
     var enableOverflowCellClick: Boolean by observable(true)
+    var selectedRowKeys: List<Any> by observable(emptyList())
 }
 
 internal class TableRowEvent<T> : ComposeEvent() {

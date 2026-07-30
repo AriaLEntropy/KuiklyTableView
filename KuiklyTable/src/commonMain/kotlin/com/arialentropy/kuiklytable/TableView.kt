@@ -13,22 +13,27 @@ import kotlin.math.max
 /**
  * KuiklyTable 主组件
  *
- * 使用 ComposeView 路线，在 commonMain 内用基础组件组合 Table。
- *
- * 滚动架构（ST-2）：
- * - 单个横向 Scroller 包住「表头行 + 纵向 List」，横向滚动时表头与数据行天然同步（无需手写同步逻辑）
- * - 表头作为纵向 List 的兄弟节点，纵向滚动时天然固定（固定表头）
- * - 纵向 List 复用 KuiklyUI 原生列表（RecyclerView/UICollectionView 回收）
+ * 滚动架构：
+ * - `fixedFirstColumn == false`：普通横向滚动
+ * - `fixedFirstColumn == true`：表头 Fixed|H-Scroller；表体单个 H-Scroller 包纵向 List（与无固定列同构），
+ *   固定列用 +scrollX transform 钉在视口左侧。表头/表体 Scroller 用 pending 互相同步，禁止多行 H-Scroller。
+ *   要求固定行高；不与 Windowed 组合。固定列 transform 命令式更新，不用 observable。
  */
 class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private var displayRows: ObservableList<TableDisplayRow<T>> by observableList()
     private var viewportWidth by observable(0f)
-    private var pendingScrollableOffset = Float.NaN
-    private var pendingFixedOffset = Float.NaN
+    /** 非 observable：避免横滑每帧触发可见行 ReactiveObserver 重跑 attr。 */
+    private var horizontalScrollX = 0f
+    /** 与 fixedFirstColumn 分离的布局开关，确保 vif 能可靠订阅到变化。 */
+    private var pinnedMode by observable(false)
     private var mainBodyList: ListView<*, *>? = null
-    private var fixedBodyList: ListView<*, *>? = null
+    private var headerHorizontalScroller: ScrollerView<*, *>? = null
+    private var bodyHorizontalScroller: ScrollerView<*, *>? = null
+    private val pinnedFixedContentRefs = mutableMapOf<Int, ViewRef<*>>()
+    private var pinnedFixedClusterWidth = 0f
     private var lastLoadMoreTriggerRowCount: Int? = null
+    private var pendingHorizontalScrollX = Float.NaN
 
     override fun createAttr(): TableAttr<T> = TableAttr()
 
@@ -38,7 +43,55 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         setVerticalContentOffset(0f, animated)
     }
 
+    /** 供 DataTable 等外层在管线 / 配置变化时同步到 Table。 */
+    fun updateData(rows: List<T>) {
+        attr.data = rows
+    }
+
+    fun updateFixedFirstColumn(enabled: Boolean, slots: Int = if (enabled) 1 else 0) {
+        attr.fixedFirstColumn = enabled
+        attr.fixedColumnSlots = slots.coerceAtLeast(0)
+        pinnedMode = enabled
+        if (!enabled) {
+            horizontalScrollX = 0f
+            pendingHorizontalScrollX = Float.NaN
+            headerHorizontalScroller = null
+            bodyHorizontalScroller = null
+            pinnedFixedContentRefs.clear()
+        }
+    }
+
+    fun updateThemeColors(colors: TableThemeColors) {
+        attr.themeColors = colors
+    }
+
+    fun updateSelectedRowKeys(keys: List<Any>) {
+        attr.selectedRowKeys = keys
+    }
+
+    fun updateSortState(state: TableSortState) {
+        attr.sortState = state
+    }
+
     override fun created() {
+        pinnedMode = attr.fixedFirstColumn
+        if (attr.fixedFirstColumn && attr.fixedColumnSlots == 0) {
+            attr.fixedColumnSlots = 1
+        }
+        bindValueChange(
+            valueBlock = { attr.fixedFirstColumn to attr.fixedColumnSlots },
+            valueChange = { value ->
+                val state = value as Pair<*, *>
+                pinnedMode = state.first as Boolean
+                if (!pinnedMode) {
+                    horizontalScrollX = 0f
+                    pendingHorizontalScrollX = Float.NaN
+                    headerHorizontalScroller = null
+                    bodyHorizontalScroller = null
+                    pinnedFixedContentRefs.clear()
+                }
+            },
+        )
         bindValueChange(
             valueBlock = {
                 TableDataPipeline.buildDisplayRows(attr.data, attr.rowKey, attr.columns, attr.sortState)
@@ -67,7 +120,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     tableAttr.tableWidth?.let { width(it) } ?: alignSelfStretch()
                     positionRelative()
                     overflow(true)
-                    // 必须每次都写入，条件跳过会导致 None/0 无法清掉上一帧的边框与圆角
                     borderRadius(tableAttr.cornerRadius.coerceAtLeast(0f))
                     border(
                         tableAttr.borderMode.borderSpec(tableAttr.themeColors)
@@ -90,10 +142,21 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                         opacity(if (tableAttr.loading) 0.4f else 1f)
                         touchEnable(!tableAttr.loading)
                     }
-                    // 互斥创建：两套布局若同时挂载，后执行的 List 会覆盖 mainBodyList，
-                    // 导致 scrollToTop 作用到隐藏列表上。
-                    vif({ ctx.viewportWidth > 0f && !ctx.shouldRenderMobileList() }) {
-                        ctx.renderTableLayout(this)
+                    // pinnedMode 为开时仍可能因单列/缺 width 而无效；以 resolved fixed 为准
+                    vif({
+                        ctx.viewportWidth > 0f &&
+                            !ctx.shouldRenderMobileList() &&
+                            (!ctx.pinnedMode || ctx.resolvedColumnLayout().fixed.isEmpty())
+                    }) {
+                        ctx.renderPlainTableLayout(this, ctx.resolvedColumnLayout())
+                    }
+                    vif({
+                        ctx.viewportWidth > 0f &&
+                            !ctx.shouldRenderMobileList() &&
+                            ctx.pinnedMode &&
+                            ctx.resolvedColumnLayout().fixed.isNotEmpty()
+                    }) {
+                        ctx.renderPinnedLeftTableLayout(this, ctx.resolvedColumnLayout())
                     }
                     vif({ ctx.viewportWidth > 0f && ctx.shouldRenderMobileList() }) {
                         ctx.renderMobileListLayout(this)
@@ -106,48 +169,348 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     }
 
     private fun renderTableLayout(container: ViewContainer<*, *>) {
+        val layout = resolvedColumnLayout()
+        if (layout.fixed.isEmpty()) {
+            if (horizontalScrollX != 0f) {
+                horizontalScrollX = 0f
+            }
+            pinnedFixedContentRefs.clear()
+            bodyHorizontalScroller = null
+            renderPlainTableLayout(container, layout)
+        } else {
+            renderPinnedLeftTableLayout(container, layout)
+        }
+    }
+
+    /** 无固定列：横向 Scroller 包表头 + 单 List。 */
+    private fun renderPlainTableLayout(
+        container: ViewContainer<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+    ) {
         val ctx = this
         val tableAttr = attr
-        val layout = resolvedColumnLayout()
+        container.Scroller {
+            attr {
+                flex(1f)
+                flexDirectionRow()
+            }
+            event {
+                scroll(sync = true) { ctx.event.overflowTipDismiss?.invoke() }
+                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
+            }
+            View {
+                attr { width(layout.contentWidth) }
+                if (tableAttr.fixedHeader) {
+                    ctx.renderHeaderRow(this, layout)
+                    ctx.renderHeaderDivider(this)
+                }
+                ctx.renderBodyRows(this, layout)
+            }
+        }
+    }
+
+    /**
+     * 左侧固定列：表头 Fixed|H-Scroller；表体单个 H-Scroller + 纵向 List。
+     * 固定列集群用 +scrollX 补偿钉住；表体横滑走原生 Scroller，避免 pan 卡顿。
+     */
+    private fun renderPinnedLeftTableLayout(
+        container: ViewContainer<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+    ) {
+        val ctx = this
+        val tableAttr = attr
+        val scrollableWidth = max(layout.contentWidth - layout.fixedWidth, 0f)
+        if (tableAttr.rowHeight <= 0f) {
+            println("[KuiklyTable] fixedFirstColumn expects rowHeight>0; falling back to ${DEFAULT_ROW_HEIGHT_ESTIMATE}dp")
+        }
+        pinnedFixedClusterWidth = layout.fixedWidth + 1f
         container.View {
             attr {
                 flex(1f)
-                positionRelative()
+                flexDirectionColumn()
+            }
+            if (tableAttr.fixedHeader) {
+                ctx.renderPinnedHeaderRow(this, layout, scrollableWidth)
+                ctx.renderHeaderDivider(this)
+            }
+            ctx.renderPinnedBodyScroller(this, layout, scrollableWidth)
+        }
+    }
+
+    private fun renderPinnedHeaderRow(
+        container: ViewContainer<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+        scrollableWidth: Float,
+    ) {
+        val ctx = this
+        container.View {
+            attr {
+                flexDirectionRow()
+                alignItemsCenter()
+                width(ctx.effectiveViewportWidth())
+                height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                backgroundColor(Color(ctx.attr.themeColors.headerBackground))
+            }
+            View {
+                attr {
+                    width(layout.fixedWidth)
+                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                    backgroundColor(Color(ctx.attr.themeColors.headerBackground))
+                    overflow(true)
+                    zIndex(2)
+                }
+                TableHeaderRowView<T> {
+                    attr { ctx.applyHeaderRowAttr(this, layout.fixed) }
+                    event { columnClick = { ctx.toggleSort(it) } }
+                }
+            }
+            View {
+                attr {
+                    width(1f)
+                    alignSelfStretch()
+                    backgroundColor(Color(ctx.attr.themeColors.gridLine))
+                }
             }
             Scroller {
+                ref {
+                    @Suppress("UNCHECKED_CAST")
+                    ctx.headerHorizontalScroller = (it as ViewRef<ScrollerView<*, *>>).view
+                }
                 attr {
                     flex(1f)
                     flexDirectionRow()
+                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                    bouncesEnable(false)
+                    showScrollerIndicator(true)
                 }
                 event {
-                    scroll(sync = true) { ctx.event.overflowTipDismiss?.invoke() }
+                    scroll(sync = true) { params ->
+                        ctx.event.overflowTipDismiss?.invoke()
+                        ctx.onHeaderHorizontalScroll(params.offsetX)
+                    }
                     dragBegin { ctx.event.overflowTipDismiss?.invoke() }
                 }
                 View {
-                    attr { width(layout.contentWidth) }
-                    if (tableAttr.fixedHeader) {
-                        ctx.renderHeaderRow(this, layout, TableColumnRegion.Scrollable)
-                        ctx.renderHeaderDivider(this)
-                    }
-                    ctx.renderBodyRows(this, layout, TableColumnRegion.Scrollable)
-                }
-            }
-            if (layout.fixed.isNotEmpty()) {
-                View {
                     attr {
-                        absolutePosition(top = 0f, left = 0f, bottom = 0f)
-                        width(layout.fixedWidth)
-                        zIndex(tableAttr.fixedColumnCount + 10)
-                        backgroundColor(Color(tableAttr.themeColors.rowBackground))
+                        width(scrollableWidth)
+                        flexDirectionRow()
                     }
-                    if (tableAttr.fixedHeader) {
-                        ctx.renderHeaderRow(this, layout, TableColumnRegion.Fixed)
-                        ctx.renderHeaderDivider(this)
+                    TableHeaderRowView<T> {
+                        attr { ctx.applyHeaderRowAttr(this, layout.scrollable) }
+                        event { columnClick = { ctx.toggleSort(it) } }
                     }
-                    ctx.renderBodyRows(this, layout, TableColumnRegion.Fixed)
                 }
             }
         }
+    }
+
+    private fun renderPinnedBodyScroller(
+        container: ViewContainer<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+        scrollableWidth: Float,
+    ) {
+        val ctx = this
+        container.Scroller {
+            ref {
+                @Suppress("UNCHECKED_CAST")
+                ctx.bodyHorizontalScroller = (it as ViewRef<ScrollerView<*, *>>).view
+            }
+            attr {
+                flex(1f)
+                flexDirectionRow()
+                bouncesEnable(false)
+                showScrollerIndicator(false)
+            }
+            event {
+                scroll(sync = true) { params ->
+                    ctx.event.overflowTipDismiss?.invoke()
+                    ctx.onBodyHorizontalScroll(params.offsetX)
+                }
+                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
+            }
+            View {
+                attr {
+                    width(layout.contentWidth)
+                    flex(1f)
+                    flexDirectionColumn()
+                }
+                ctx.renderPinnedBodyList(this, layout, scrollableWidth)
+            }
+        }
+    }
+
+    private fun renderPinnedBodyList(
+        container: ViewContainer<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+        scrollableWidth: Float,
+    ) {
+        val ctx = this
+        val tableAttr = attr
+        container.List {
+            val listView = this
+            ctx.mainBodyList = listView
+            attr {
+                flex(1f)
+                width(layout.contentWidth)
+                backgroundColor(Color(tableAttr.themeColors.rowBackground))
+            }
+            event {
+                scroll { params ->
+                    ctx.event.overflowTipDismiss?.invoke()
+                    ctx.maybeTriggerLoadMore(params)
+                }
+                dragBegin { ctx.event.overflowTipDismiss?.invoke() }
+            }
+            if (!tableAttr.fixedHeader) {
+                ctx.renderPinnedInListHeaderRow(this, layout, scrollableWidth)
+                ctx.renderHeaderDivider(this)
+            }
+            vif({ ctx.displayRows.isEmpty() }) {
+                ctx.renderEmptyPlaceholder(this, width = layout.contentWidth)
+            }
+            when (val renderMode = tableAttr.rowRenderMode) {
+                is TableRowRenderMode.Standard -> {
+                    listView.vforIndex({ ctx.displayRows }) { row, _, _ ->
+                        View {
+                            ctx.renderPinnedBodyRow(this, row, layout, scrollableWidth)
+                        }
+                    }
+                }
+                is TableRowRenderMode.Windowed -> {
+                    require(!tableAttr.fixedFirstColumn) {
+                        "TableRowRenderMode.Windowed does not support fixed columns"
+                    }
+                    listView.vforLazy({ ctx.displayRows }, renderMode.maxRenderedRows) { row, _, _ ->
+                        View {
+                            ctx.renderPinnedBodyRow(this, row, layout, scrollableWidth)
+                        }
+                    }
+                }
+            }
+            ctx.renderLoadMoreFooter(this, width = layout.contentWidth)
+        }
+    }
+
+    /** 表头随内容纵滚时：与表体同行结构，固定区走 +scrollX，不再嵌套独立 H-Scroller。 */
+    private fun renderPinnedInListHeaderRow(
+        container: ViewContainer<*, *>,
+        layout: TableResolvedColumnLayout<T>,
+        scrollableWidth: Float,
+    ) {
+        val ctx = this
+        container.View {
+            attr {
+                flexDirectionRow()
+                width(layout.contentWidth)
+                height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                backgroundColor(Color(ctx.attr.themeColors.headerBackground))
+            }
+            View {
+                ref {
+                    ctx.registerPinnedFixedContent(it)
+                }
+                attr {
+                    flexDirectionRow()
+                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                    zIndex(2)
+                    transform(
+                        translate = Translate(
+                            percentageX = ctx.pinnedFixedTranslatePercentage(ctx.horizontalScrollX),
+                            percentageY = 0f,
+                        ),
+                    )
+                }
+                View {
+                    attr {
+                        width(layout.fixedWidth)
+                        height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                        backgroundColor(Color(ctx.attr.themeColors.headerBackground))
+                        overflow(true)
+                    }
+                    TableHeaderRowView<T> {
+                        attr { ctx.applyHeaderRowAttr(this, layout.fixed) }
+                        event { columnClick = { ctx.toggleSort(it) } }
+                    }
+                }
+                View {
+                    attr {
+                        width(1f)
+                        alignSelfStretch()
+                        backgroundColor(Color(ctx.attr.themeColors.gridLine))
+                    }
+                }
+            }
+            View {
+                attr {
+                    width(scrollableWidth)
+                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                    flexDirectionRow()
+                }
+                TableHeaderRowView<T> {
+                    attr { ctx.applyHeaderRowAttr(this, layout.scrollable) }
+                    event { columnClick = { ctx.toggleSort(it) } }
+                }
+            }
+        }
+    }
+
+    private fun renderPinnedBodyRow(
+        container: ViewContainer<*, *>,
+        row: TableDisplayRow<T>,
+        layout: TableResolvedColumnLayout<T>,
+        scrollableWidth: Float,
+    ) {
+        val ctx = this
+        container.View {
+            attr {
+                flexDirectionRow()
+                width(layout.contentWidth)
+                height(ctx.effectiveRowHeight())
+            }
+            // 整表横滚后，固定列集群 +scrollX 补偿钉在视口左侧
+            View {
+                ref {
+                    ctx.registerPinnedFixedContent(it)
+                }
+                attr {
+                    flexDirectionRow()
+                    height(ctx.effectiveRowHeight())
+                    zIndex(2)
+                    transform(
+                        translate = Translate(
+                            percentageX = ctx.pinnedFixedTranslatePercentage(ctx.horizontalScrollX),
+                            percentageY = 0f,
+                        ),
+                    )
+                }
+                View {
+                    attr {
+                        width(layout.fixedWidth)
+                        height(ctx.effectiveRowHeight())
+                        backgroundColor(Color(ctx.rowBackground(row)))
+                        overflow(true)
+                    }
+                    ctx.renderTableRowComponent(this, row, layout, TableColumnRegion.Fixed)
+                }
+                View {
+                    attr {
+                        width(1f)
+                        alignSelfStretch()
+                        backgroundColor(Color(ctx.attr.themeColors.gridLine))
+                    }
+                }
+            }
+            View {
+                attr {
+                    width(scrollableWidth)
+                    height(ctx.effectiveRowHeight())
+                    flexDirectionRow()
+                    backgroundColor(Color(ctx.attr.themeColors.rowBackground))
+                }
+                ctx.renderTableRowComponent(this, row, layout, TableColumnRegion.Scrollable)
+            }
+        }
+        ctx.renderBodyDivider(container)
     }
 
     private fun renderHeaderRow(
@@ -157,20 +520,9 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     ) {
         val ctx = this
         val visibleColumns = layout.columnsFor(region)
-        if (region == TableColumnRegion.Scrollable && layout.fixed.isNotEmpty()) {
-            container.View {
-                attr { flexDirectionRow() }
-                View { attr { width(layout.fixedWidth) } }
-                TableHeaderRowView<T> {
-                    attr { ctx.applyHeaderRowAttr(this, visibleColumns) }
-                    event { columnClick = { ctx.toggleSort(it) } }
-                }
-            }
-        } else {
-            container.TableHeaderRowView<T> {
-                attr { ctx.applyHeaderRowAttr(this, visibleColumns) }
-                event { columnClick = { ctx.toggleSort(it) } }
-            }
+        container.TableHeaderRowView<T> {
+            attr { ctx.applyHeaderRowAttr(this, visibleColumns) }
+            event { columnClick = { ctx.toggleSort(it) } }
         }
     }
 
@@ -205,9 +557,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         val tableAttr = attr
         container.List {
             val listView = this
-            if (region == TableColumnRegion.Scrollable) ctx.mainBodyList = listView
-            if (region == TableColumnRegion.Fixed) ctx.fixedBodyList = listView
-            if (region == TableColumnRegion.All) ctx.mainBodyList = listView
+            ctx.mainBodyList = listView
             attr {
                 flex(1f)
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
@@ -215,21 +565,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             event {
                 scroll { params ->
                     ctx.event.overflowTipDismiss?.invoke()
-                    if (region != TableColumnRegion.Fixed) ctx.maybeTriggerLoadMore(params)
-                    if (region != TableColumnRegion.All && !ctx.consumePendingSync(region, params.offsetY)) {
-                        val targetRegion = if (region == TableColumnRegion.Fixed) {
-                            TableColumnRegion.Scrollable
-                        } else {
-                            TableColumnRegion.Fixed
-                        }
-                        ctx.setPendingSync(targetRegion, params.offsetY)
-                        val target = if (targetRegion == TableColumnRegion.Fixed) {
-                            ctx.fixedBodyList
-                        } else {
-                            ctx.mainBodyList
-                        }
-                        target?.setContentOffset(0f, params.offsetY)
-                    }
+                    ctx.maybeTriggerLoadMore(params)
                 }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
             }
@@ -238,19 +574,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 ctx.renderHeaderDivider(this)
             }
             vif({ ctx.displayRows.isEmpty() }) {
-                ctx.renderEmptyPlaceholder(
-                    this,
-                    width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
-                )
+                ctx.renderEmptyPlaceholder(this, width = layout.contentWidth)
             }
             ctx.renderTableRowLoop(listView, layout, region)
-            // footer 必须是 List 的兄弟节点而非行节点的一部分：Windowed 模式下
-            // vforLazy 用挂载行的平均高度估算未挂载区域，把 footer 塞进末行会撑高该行。
-            ctx.renderLoadMoreFooter(
-                this,
-                width = if (region == TableColumnRegion.Fixed) layout.fixedWidth else layout.contentWidth,
-                visible = region != TableColumnRegion.Fixed,
-            )
+            ctx.renderLoadMoreFooter(this, width = layout.contentWidth)
         }
     }
 
@@ -267,7 +594,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
             }
             is TableRowRenderMode.Windowed -> {
-                require(attr.fixedColumnCount <= 0) {
+                require(!attr.fixedFirstColumn) {
                     "TableRowRenderMode.Windowed does not support fixed columns"
                 }
                 listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, _, _ ->
@@ -300,7 +627,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     private fun effectiveRowHeight(): Float = when {
         attr.rowHeight > 0f -> attr.rowHeight
         attr.rowRenderMode is TableRowRenderMode.Windowed -> DEFAULT_ROW_HEIGHT_ESTIMATE
-        attr.fixedColumnCount > 0 -> DEFAULT_ROW_HEIGHT_ESTIMATE
+        attr.fixedFirstColumn -> DEFAULT_ROW_HEIGHT_ESTIMATE
         else -> 0f
     }
 
@@ -325,30 +652,23 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     ) {
         val ctx = this
         val visibleColumns = layout.columnsFor(region)
-        container.View {
+        container.TableRowView<T> {
             attr {
-                flexDirectionRow()
+                this.row = row
+                columns = visibleColumns
+                rowHeight = ctx.effectiveRowHeight()
+                zebraStripe = ctx.attr.zebraStripe
+                borderMode = ctx.attr.borderMode
+                cellPaddingH = ctx.attr.cellPaddingH
+                cellPaddingV = ctx.attr.cellPaddingV
+                themeColors = ctx.attr.themeColors
+                enableOverflowCellClick = ctx.attr.enableOverflowCellClick
+                selectedRowKeys = ctx.attr.selectedRowKeys
             }
-            if (region == TableColumnRegion.Scrollable && layout.fixed.isNotEmpty()) {
-                View { attr { width(layout.fixedWidth) } }
-            }
-            TableRowView<T> {
-                attr {
-                    this.row = row
-                    columns = visibleColumns
-                    rowHeight = ctx.effectiveRowHeight()
-                    zebraStripe = ctx.attr.zebraStripe
-                    borderMode = ctx.attr.borderMode
-                    cellPaddingH = ctx.attr.cellPaddingH
-                    cellPaddingV = ctx.attr.cellPaddingV
-                    themeColors = ctx.attr.themeColors
-                    enableOverflowCellClick = ctx.attr.enableOverflowCellClick
-                }
-                event {
-                    rowClick = { ctx.event.rowClick?.invoke(it) }
-                    cellClick = { ctx.event.cellClick?.invoke(it) }
-                    overflowCellClick = { ctx.event.overflowCellClick?.invoke(it) }
-                }
+            event {
+                rowClick = { ctx.event.rowClick?.invoke(it) }
+                cellClick = { ctx.event.cellClick?.invoke(it) }
+                overflowCellClick = { ctx.event.overflowCellClick?.invoke(it) }
             }
         }
     }
@@ -361,7 +681,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             ctx.mainBodyList = listView
             attr {
                 flex(1f)
-                // 外框与圆角由 Table 根容器统一绘制，List 内容不再套一层卡片。
                 backgroundColor(Color(tableAttr.themeColors.cardBackground))
             }
             event {
@@ -388,7 +707,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 }
             }
             is TableRowRenderMode.Windowed -> {
-                require(attr.fixedColumnCount <= 0) {
+                require(!attr.fixedFirstColumn) {
                     "TableRowRenderMode.Windowed does not support fixed columns"
                 }
                 listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, index, count ->
@@ -437,7 +756,6 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private fun renderStateLayer(container: ViewContainer<*, *>) {
         val ctx = this
-        val tableAttr = attr
         container.View {
             attr {
                 absolutePositionAllZero()
@@ -447,11 +765,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 backgroundColor(Color(ctx.stateLayerBackground()))
             }
             event {
-                click {
-                    // 消费状态层点击，避免 Loading/Empty 点击透传到底部行。
-                }
+                click { }
             }
-
             ctx.renderLoadingState(this)
         }
     }
@@ -524,7 +839,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         viewportWidth = effectiveViewportWidth(),
         autoIndexColumn = attr.autoIndexColumn,
         indexColumnWidth = attr.indexColumnWidth,
-        fixedColumnCount = attr.fixedColumnCount,
+        fixedColumnSlots = attr.fixedColumnSlots,
     )
 
     private fun toggleSort(column: ColumnModel<T>) {
@@ -549,11 +864,20 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             is TableDisplayMode.Table -> false
         }
 
-    private fun hasStateLayer(): Boolean =
-        attr.loading
+    private fun hasStateLayer(): Boolean = attr.loading
 
-    private fun stateLayerBackground(): Long =
-        attr.themeColors.stateOverlayBackground
+    private fun stateLayerBackground(): Long = attr.themeColors.stateOverlayBackground
+
+    private fun rowBackground(row: TableDisplayRow<T>): Long {
+        if (attr.selectedRowKeys.any { it == row.key }) {
+            return attr.themeColors.selectedRowBackground
+        }
+        return if (attr.zebraStripe && row.displayIndex % 2 == 1) {
+            attr.themeColors.rowBackgroundAlt
+        } else {
+            attr.themeColors.rowBackground
+        }
+    }
 
     private fun maybeTriggerLoadMore(params: ScrollParams) {
         if (!attr.hasMore || attr.loadingMore || displayRows.isEmpty() || event.loadMore == null) {
@@ -610,33 +934,71 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     }
 
     private fun setVerticalContentOffset(offsetY: Float, animated: Boolean) {
-        val targetOffset = max(offsetY, 0f)
-        setPendingSync(TableColumnRegion.Scrollable, targetOffset)
-        mainBodyList?.setContentOffset(0f, targetOffset, animated)
-        setPendingSync(TableColumnRegion.Fixed, targetOffset)
-        fixedBodyList?.setContentOffset(0f, targetOffset, animated)
+        mainBodyList?.setContentOffset(0f, max(offsetY, 0f), animated)
     }
 
-    private fun consumePendingSync(region: TableColumnRegion, offsetY: Float): Boolean {
-        val pendingOffset = when (region) {
-            TableColumnRegion.Fixed -> pendingFixedOffset
-            TableColumnRegion.Scrollable -> pendingScrollableOffset
-            TableColumnRegion.All -> Float.NaN
+    private fun registerPinnedFixedContent(ref: ViewRef<*>) {
+        pinnedFixedContentRefs[ref.nativeRef] = ref
+        ref.view?.let { applyPinnedFixedTransform(it, horizontalScrollX) }
+    }
+
+    private fun pinnedFixedTranslatePercentage(offsetX: Float): Float {
+        val width = pinnedFixedClusterWidth
+        return if (width > 0f) offsetX / width else 0f
+    }
+
+    private fun applyPinnedFixedTransform(view: DeclarativeBaseView<*, *>, offsetX: Float) {
+        view.getViewAttr().transform(
+            translate = Translate(
+                percentageX = pinnedFixedTranslatePercentage(offsetX),
+                percentageY = 0f,
+            ),
+        )
+    }
+
+    private fun syncPinnedFixedTransforms(offsetX: Float) {
+        val iterator = pinnedFixedContentRefs.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            val view = entry.value.view
+            if (view == null) {
+                iterator.remove()
+                continue
+            }
+            applyPinnedFixedTransform(view, offsetX)
         }
+    }
+
+    private fun commitHorizontalScrollX(offsetX: Float): Boolean {
+        val next = max(offsetX, 0f)
+        if (kotlin.math.abs(horizontalScrollX - next) <= SCROLL_SYNC_TOLERANCE) return false
+        horizontalScrollX = next
+        syncPinnedFixedTransforms(next)
+        return true
+    }
+
+    private fun consumePendingHorizontalScroll(offsetX: Float): Boolean {
+        val pendingOffset = pendingHorizontalScrollX
         if (pendingOffset.isNaN()) return false
-        val matches = kotlin.math.abs(pendingOffset - offsetY) <= SCROLL_SYNC_TOLERANCE
+        val matches = kotlin.math.abs(pendingOffset - offsetX) <= SCROLL_SYNC_TOLERANCE
         if (matches) {
-            setPendingSync(region, Float.NaN)
+            pendingHorizontalScrollX = Float.NaN
         }
         return matches
     }
 
-    private fun setPendingSync(region: TableColumnRegion, offsetY: Float) {
-        when (region) {
-            TableColumnRegion.Fixed -> pendingFixedOffset = offsetY
-            TableColumnRegion.Scrollable -> pendingScrollableOffset = offsetY
-            TableColumnRegion.All -> Unit
-        }
+    private fun onHeaderHorizontalScroll(offsetX: Float) {
+        if (consumePendingHorizontalScroll(offsetX)) return
+        if (!commitHorizontalScrollX(offsetX)) return
+        pendingHorizontalScrollX = horizontalScrollX
+        bodyHorizontalScroller?.setContentOffset(horizontalScrollX, 0f, false)
+    }
+
+    private fun onBodyHorizontalScroll(offsetX: Float) {
+        if (consumePendingHorizontalScroll(offsetX)) return
+        if (!commitHorizontalScrollX(offsetX)) return
+        pendingHorizontalScrollX = horizontalScrollX
+        headerHorizontalScroller?.setContentOffset(horizontalScrollX, 0f, false)
     }
 
     private fun syncLoadMoreTriggerState(previousRows: List<TableDisplayRow<T>>, nextRows: List<TableDisplayRow<T>>) {
@@ -660,13 +1022,10 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         private const val BODY_DIVIDER_HEIGHT = 1f
         private const val LOAD_MORE_FOOTER_HEIGHT = 44f
         private const val LIST_ROW_HEIGHT_ESTIMATE = 74f
-        private const val SCROLL_SYNC_TOLERANCE = 1f
+        private const val SCROLL_SYNC_TOLERANCE = 0.5f
     }
 }
 
-/**
- * DSL 入口：在任意 ViewContainer 中使用 TableView
- */
 fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit) {
     addChild(TableView<T>(), init)
 }

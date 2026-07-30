@@ -2,11 +2,19 @@
 
 基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端表格组件，支持 Android、iOS、鸿蒙。
 
-用 `TableView` + `ColumnModel` 定义列和数据，支持横纵滚动、主题、自定义单元格、排序和空态/加载态。
+当前仓库主线是 **KuiklyDataTable（高级表格）** 与 **左侧固定列重做**：在复用基础 `TableView` 的前提下建设行选择、分页筛选，并稳定左固定列。`KuiklyTable` Basic 能力已交付，继续作为底层展示组件使用。
+
+## 组件族
+
+| 入口 | 定位 | 状态 |
+| --- | --- | --- |
+| `TableView` / KuiklyTable | 基础展示、布局、滚动、固定表头/左固定列、主题、renderer | Basic 已交付；左固定列 #37 进行中 |
+| `DataTableView` / KuiklyDataTable | 行选择、全选/半选、筛选、客户端分页，以及与排序的 rowKey 联动 | 进行中（Issue #35 / #36） |
+| KuiklyTreeTable | 树形数据 | 后续 |
 
 ## 效果预览
 
-静态对照：
+静态对照（KuiklyTable Basic）：
 
 | 基础样式 | 主题三套 | 自定义 Renderer |
 | :---: | :---: | :---: |
@@ -22,20 +30,23 @@
 | :---: | :---: | :---: |
 | <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="280"> | <img src="assets/table_showcase_sort_demo.gif" alt="表头三态排序" width="280"> | <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280"> |
 
+DataTable 行选择预览：在 Android 宿主打开 `table_data` Showcase 验证；截图/GIF 验收后补入本区。
+
 ## 功能特性
 
 | 类别 | 能力 |
 | --- | --- |
 | 基础结构 | `TableView` / `ColumnModel`，固定列宽与弹性 `minWidth + flex` |
-| 滚动 | 横纵双向滚动，表头与内容横向同步；可选固定表头 |
+| 滚动 | 横纵双向滚动，表头与内容横向同步；可选固定表头；左侧固定列（单 List，需固定行高） |
 | 样式 | 默认 1dp 主题色外框与 8dp 圆角；斑马纹、对齐、行高、内边距可配 |
-| 主题 | Light / Dark 预设，`TableThemeColors` 语义色覆盖 |
+| 主题 | Light / Dark 预设，`TableThemeColors` 语义色覆盖（含选中行背景） |
 | 自定义渲染 | `cellRenderer` / `headerRenderer`；未配置回退默认文本 |
 | 交互 | 表头三态排序、行点击、单元格点击、截断溢出点击、回顶；列上 `enableRowClick` / `enableCellClick` 显式控制 |
 | 状态 | 加载中 / 空数据，支持自定义 Empty / Loading 内容 |
 | 展示模式 | 显式 `Table` 或 `List`（grouped） |
 | 数据加载 | `loadMore` 触底回调（分页与请求由业务层负责） |
 | 大数据 | 显式 `Standard` / `Windowed` 行渲染策略；窗口模式限制已挂载 DSL 行节点 |
+| 高级表格 | `DataTableView` 行多选、表头全选/半选、`filterPredicate` 筛选、客户端分页与翻页回顶；选中按 rowKey 联动 |
 
 ## 接入方式
 
@@ -109,6 +120,47 @@ TableView<User> {
 }
 ```
 
+### DataTable 行选择 / 筛选 / 分页
+
+`DataTableView` 复用 `TableView`。管线：源 `data` → `filterPredicate` → 单列排序 → 客户端分页。选中身份是 `rowKey`。不提供内建全局搜索框。
+
+```kotlin
+DataTableView<User> {
+    attr {
+        flex(1f) // 撑满父容器，否则 Table 拿不到高度不会渲染
+        enableRowSelection = true
+        selectedKeys = currentSelectedKeys
+        enablePagination = true
+        pageIndex = currentPage
+        pageSize = 10
+        filterPredicate = { it.status == "在职" } // null 表示不过滤
+        data = users
+        rowKey = { it.id }
+        columns.addAll(
+            listOf(
+                ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f),
+                ColumnModel(
+                    key = "age",
+                    title = "年龄",
+                    accessor = { it.age.toString() },
+                    width = 60f,
+                    sortable = true,
+                    sortComparator = compareBy { it.age },
+                ),
+            )
+        )
+    }
+    event {
+        selectionChange = { keys -> currentSelectedKeys = keys }
+        pageChange = { index -> currentPage = index }
+        pageSizeChange = { size -> pageSize = size }
+        sortChange = { state -> /* 排序变化；selectedKeys 按 rowKey 保持 */ }
+    }
+}
+```
+
+Android 宿主默认进入 `table_data`。基础表格 Showcase 仍为 `table_basic`。
+
 ### 自定义单元格
 
 未配置 `cellRenderer` 时用默认文本。单元格是否触发 `rowClick` / `cellClick` 由列上的 `enableRowClick`、`enableCellClick` 显式控制，与是否配置 renderer 无关。优先级：截断溢出提示 > `cellClick` > `rowClick`。操作列通常两开关都关，由 renderer 内 Button 自己处理点击和按压。
@@ -151,19 +203,80 @@ ColumnModel<User>(
 )
 ```
 
-### 主题、外框与圆角
+### 主题色（`TableThemeColors`）
 
-默认外框为 1dp 主题色（`TableBorderMode.Default`），默认圆角 8dp（`TableCornerRadius.Default`）。设为 `None` / `0` 可关闭。
+表格**不读** App 全局主题，只消费你传入的 `themeColors`。推荐顺序：
+
+1. 先用预设：`TableThemeColors.Light` / `.Dark` / `.Blue`
+2. 需要微调时再 `copy` 覆盖个别语义色（不要在业务里散落裸 hex，除非你很清楚它对应哪一块 UI）
 
 ```kotlin
 attr {
+    // 1) 换肤：一行切换预设
     themeColors = TableThemeColors.Dark
+
+    // 2) 微调：只改表头底和选中行，其余仍跟 Dark
+    // themeColors = TableThemeColors.Dark.copy(
+    //     headerBackground = 0xFF2A2A2A,
+    //     selectedRowBackground = 0xFF1A3A5C,
+    // )
+}
+```
+
+色值是 `Long` ARGB（`0xAARRGGBB`）。各字段对应的表格区域：
+
+| 字段 | 作用在表格的哪里 |
+| --- | --- |
+| `headerBackground` / `headerText` | 表头背景与表头文字 |
+| `rowBackground` / `rowBackgroundAlt` | 行背景 / 斑马纹行 |
+| `selectedRowBackground` | DataTable 选中行高亮 |
+| `cellText` / `cellTextSecondary` | 单元格主/次文本 |
+| `gridLine` | 行列分隔线、默认外框颜色 |
+| `cardBackground` / `cardBorder` | List 模式卡片 |
+| `statusTag*` | List 状态标签等语义色 |
+| `actionText` / `actionTextOnFill` | 交互强调色 / 强调底上的文字 |
+| `stateOverlayBackground` 等 | Loading 遮罩等状态层 |
+
+Showcase 里「主题预设」**只应改表格**；页面标题和配置区属于 Demo 铬，不应当成组件 API。
+
+### 外框与圆角
+
+默认外框为 1dp 主题色（`TableBorderMode.Default`，颜色取 `themeColors.gridLine`），默认圆角 8dp。设为 `None` / `0` 可关闭。
+
+```kotlin
+attr {
+    themeColors = TableThemeColors.Light
     borderMode = TableBorderMode.Custom(color = 0xFF4F8FFF, width = 1f)
     cornerRadius = TableCornerRadius.Large // 0 / 8 / 12，或任意 dp
     cellPaddingH = 12f
     cellPaddingV = 10f
 }
 ```
+
+### 左侧固定列
+
+```kotlin
+attr {
+    fixedFirstColumn = true
+    rowHeight = 48f
+    columns.add(
+        ColumnModel(
+            key = "name",
+            title = "姓名",
+            accessor = { it.name },
+            width = 96f, // 固定列必须显式 width
+        ),
+    )
+    // 其余列…
+}
+```
+
+约束：
+
+- 被固定的列必须配置显式正数 `width`（DataTable 开启选择时：选择列 + 第一业务列都要有 width）
+- 只有 1 列时忽略 `fixedFirstColumn`，仍走普通横向滚动
+- 开启后可在表头右侧或表体右侧横滑；左列保持可见
+- 不与 `Windowed`、动态行高组合
 
 ### 空态 / 加载中 / 加载更多
 
@@ -211,7 +324,7 @@ attr {
 attr {
     data = users
     rowHeight = 48f
-    fixedColumnCount = 0
+    fixedFirstColumn = false
     rowRenderMode = TableRowRenderMode.Windowed(maxRenderedRows = 160)
 }
 ```
@@ -247,8 +360,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 | `cellPaddingV` | `Float` | `10f` | 垂直内边距 |
 | `rowHeight` | `Float` | `0f` | `0` 表示内容自适应 |
 | `fixedHeader` | `Boolean` | `true` | 固定表头 |
-| `fixedColumnCount` | `Int` | `0` | 左侧固定列数量（实验性） |
-| `themeColors` | `TableThemeColors` | Light | 语义色 |
+| `fixedFirstColumn` | `Boolean` | `false` | 是否固定第一列；被固定列须显式 `width`；单列时忽略；需固定行高，不与 Windowed 组合 |
+| `themeColors` | `TableThemeColors` | Light | 语义色；见上文「主题色」；预设 `Light`/`Dark`/`Blue` |
 | `displayMode` | `TableDisplayMode` | `Table` | `Table` / `List` |
 | `rowRenderMode` | `TableRowRenderMode` | `Standard` | 初始化期行渲染策略；`Windowed(n)` 限制挂载行数 |
 | `listPrimaryColumnKey` | `String?` | `null` | List 模式主字段列 |
@@ -293,7 +406,7 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 
 1. Android Studio 打开本仓库
 2. 运行 `androidApp`
-3. 默认进入 `table_basic` Showcase
+3. 默认进入 `table_data`（DataTable 行选择）；`table_basic` 仍为基础表格 Showcase
 
 ```bash
 ./gradlew :androidApp:compileDebugKotlin
@@ -312,6 +425,8 @@ fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
 - `TableBorderTest` — 边框规格
 - `TableRowRenderModeTest` — Standard / Windowed 配置
 - `TableLoadMoreTriggerPolicyTest` — 加载更多触发去重
+- `DataTableSelectionTest` — 全选半选与 rowKey 选择联动
+- `DataTablePipelineTest` — 筛选 → 排序 → 分页管线
 
 ## 相关资源
 

@@ -114,7 +114,7 @@ class KuiklyRenderActivity : AppCompatActivity(), KuiklyRenderViewBaseDelegatorD
 
         private const val KEY_PAGE_NAME = "pageName"
         private const val KEY_PAGE_DATA = "pageData"
-        private const val DEFAULT_PAGE_NAME = "table_basic"
+        private const val DEFAULT_PAGE_NAME = "table_data"
 
         init {
             initKuiklyAdapter()

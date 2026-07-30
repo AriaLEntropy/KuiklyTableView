@@ -21,6 +21,8 @@ class TableThemeColors(
     val rowBackground: Long = 0xFFFFFFFF,
     /** 斑马纹行背景 */
     val rowBackgroundAlt: Long = 0xFFFAFAFA,
+    /** 选中行背景；对齐 info 浅底语义 */
+    val selectedRowBackground: Long = 0xFFEAF4FF,
     /** List 模式卡片背景 */
     val cardBackground: Long = 0xFFFFFFFF,
     /** List 模式卡片边框 */
@@ -45,6 +47,8 @@ class TableThemeColors(
     val statusTagInfoBackground: Long = 0xFFEAF4FF,
     /** Info 语义状态标签文字；取宿主 text_link 方向 */
     val statusTagInfoText: Long = 0xFF2E77E5,
+    /** 选择框未选中时的填充色 */
+    val selectionControlBackground: Long = rowBackground,
     /** 加载 / 空 / 错误状态层背景；默认全透明，只覆盖在表格区域之上 */
     val stateOverlayBackground: Long = 0x00FFFFFF,
     /** 状态层提示文字 */
@@ -67,6 +71,7 @@ class TableThemeColors(
             gridLine = 0xFF49454F,
             rowBackground = 0xFF1C1B1F,
             rowBackgroundAlt = 0xFF211F23,
+            selectedRowBackground = 0xFF0E2D4A,
             cardBackground = 0xFF242326,
             cardBorder = 0xFF49454F,
             statusTagBackground = 0xFF1B3A26,
@@ -79,6 +84,7 @@ class TableThemeColors(
             statusTagNeutralText = 0xFFCAC4D0,
             statusTagInfoBackground = 0xFF0E2D4A,
             statusTagInfoText = 0xFF90CAF9,
+            selectionControlBackground = 0xFF2B2930,
             stateOverlayBackground = 0x001C1B1F,
             stateText = 0xFFCAC4D0,
             actionText = 0xFF90CAF9,
@@ -94,12 +100,14 @@ class TableThemeColors(
             gridLine = 0xFF90CAF9,
             rowBackground = 0xFFEAF4FF,
             rowBackgroundAlt = 0xFFDCEEFF,
+            selectedRowBackground = 0xFFBBDEFB,
             cardBackground = 0xFFF4F9FF,
             cardBorder = 0xFF90CAF9,
             statusTagBackground = 0xFFC8E6C9,
             statusTagText = 0xFF2E7D32,
             statusTagBackgroundAlt = 0xFFFFE0B2,
             statusTagTextAlt = 0xFFE65100,
+            selectionControlBackground = 0xFFEAF4FF,
             stateOverlayBackground = 0x00EAF4FF,
             stateText = 0xFF365A75,
             actionText = 0xFF0D47A1,

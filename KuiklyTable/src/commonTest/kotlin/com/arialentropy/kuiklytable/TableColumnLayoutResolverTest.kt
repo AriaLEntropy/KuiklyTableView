@@ -18,7 +18,7 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 360f,
             autoIndexColumn = false,
             indexColumnWidth = 56f,
-            fixedColumnCount = 0,
+            fixedColumnSlots = 0,
         )
 
         // Then
@@ -38,7 +38,7 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 0f,
             autoIndexColumn = false,
             indexColumnWidth = 56f,
-            fixedColumnCount = 0,
+            fixedColumnSlots = 0,
         )
 
         // Then
@@ -61,7 +61,7 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 400f,
             autoIndexColumn = false,
             indexColumnWidth = 56f,
-            fixedColumnCount = 0,
+            fixedColumnSlots = 0,
         )
 
         // Then
@@ -87,7 +87,7 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 300f,
             autoIndexColumn = false,
             indexColumnWidth = 56f,
-            fixedColumnCount = 0,
+            fixedColumnSlots = 0,
         )
 
         // Then
@@ -109,7 +109,7 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 400f,
             autoIndexColumn = false,
             indexColumnWidth = 56f,
-            fixedColumnCount = 0,
+            fixedColumnSlots = 0,
         )
 
         // Then
@@ -131,7 +131,7 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 80f,
             autoIndexColumn = false,
             indexColumnWidth = 56f,
-            fixedColumnCount = 0,
+            fixedColumnSlots = 0,
         )
 
         // Then
@@ -140,7 +140,7 @@ class TableColumnLayoutResolverTest {
     }
 
     @Test
-    fun generatedIndexParticipatesInLayoutAndFixedPartition() {
+    fun generatedIndexBecomesTheFixedFirstColumn() {
         // Given
         val columns = listOf(
             column(key = "name", width = 100f),
@@ -153,18 +153,78 @@ class TableColumnLayoutResolverTest {
             viewportWidth = 236f,
             autoIndexColumn = true,
             indexColumnWidth = 56f,
-            fixedColumnCount = 2,
+            fixedColumnSlots = 1,
         )
 
         // Then
         assertEquals(236f, layout.contentWidth)
-        assertEquals(156f, layout.fixedWidth)
-        assertEquals(2, layout.fixed.size)
-        assertEquals(1, layout.scrollable.size)
+        assertEquals(56f, layout.fixedWidth)
+        assertEquals(1, layout.fixed.size)
+        assertEquals(2, layout.scrollable.size)
         assertTrue(layout.all[0].isGeneratedIndex)
         assertNull(layout.all[0].model)
         assertEquals(56f, layout.all[1].x)
         assertFalse(layout.all[1].isGeneratedIndex)
+    }
+
+    @Test
+    fun singleColumnIgnoresFixedColumnSlots() {
+        val column = column(key = "name", width = 180f)
+        val layout = TableColumnLayoutResolver.resolve(
+            columns = listOf(column),
+            viewportWidth = 360f,
+            autoIndexColumn = false,
+            indexColumnWidth = 56f,
+            fixedColumnSlots = 1,
+        )
+        assertTrue(layout.fixed.isEmpty())
+        assertEquals(1, layout.scrollable.size)
+        assertEquals(0f, layout.fixedWidth)
+        assertEquals(
+            0,
+            TableColumnLayoutResolver.effectiveFixedColumnSlots(
+                columns = listOf(column),
+                autoIndexColumn = false,
+                requestedSlots = 1,
+            ),
+        )
+    }
+
+    @Test
+    fun fixedSlotsRequireExplicitPositiveWidth() {
+        val columns = listOf(
+            column(key = "name", minWidth = 100f), // no width
+            column(key = "age", width = 80f),
+        )
+        val layout = TableColumnLayoutResolver.resolve(
+            columns = columns,
+            viewportWidth = 400f,
+            autoIndexColumn = false,
+            indexColumnWidth = 56f,
+            fixedColumnSlots = 1,
+        )
+        assertTrue(layout.fixed.isEmpty())
+        assertEquals(2, layout.scrollable.size)
+    }
+
+    @Test
+    fun fixedSlotsWithExplicitWidthPinFirstColumn() {
+        val columns = listOf(
+            column(key = "name", width = 120f),
+            column(key = "age", width = 80f),
+            column(key = "city", width = 100f),
+        )
+        val layout = TableColumnLayoutResolver.resolve(
+            columns = columns,
+            viewportWidth = 300f,
+            autoIndexColumn = false,
+            indexColumnWidth = 56f,
+            fixedColumnSlots = 1,
+        )
+        assertEquals(1, layout.fixed.size)
+        assertEquals(120f, layout.fixedWidth)
+        assertEquals(2, layout.scrollable.size)
+        assertEquals("name", layout.fixed.single().model?.key)
     }
 
     @Test

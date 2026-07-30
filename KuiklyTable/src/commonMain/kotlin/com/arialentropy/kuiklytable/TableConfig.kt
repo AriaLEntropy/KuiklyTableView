@@ -7,7 +7,7 @@ import com.tencent.kuikly.core.reactive.collection.ObservableList
 import com.tencent.kuikly.core.reactive.handler.observable
 import com.tencent.kuikly.core.reactive.handler.observableList
 
-class TableAttr<T> : ComposeAttr() {
+open class TableAttr<T> : ComposeAttr() {
     var columns: ObservableList<ColumnModel<T>> by observableList()
     var data: List<T> by observable(emptyList())
     /**
@@ -47,7 +47,17 @@ class TableAttr<T> : ComposeAttr() {
     var indexColumnTitle: String by observable("序号")
     var indexColumnWidth: Float by observable(56f)
     var fixedHeader: Boolean by observable(true)
-    var fixedColumnCount: Int by observable(0)
+    /**
+     * 是否固定第一列。开启时使用单纵向 List + 行内固定区。
+     *
+     * 约束：
+     * - 固定列必须配置显式正数 [ColumnModel.width]（DataTable 多选时选择列与第一业务列均需有 width）
+     * - 仅一列时忽略本开关，保持普通横向滚动
+     * - 建议显式 `rowHeight > 0`；不与 [TableRowRenderMode.Windowed] 组合
+     */
+    var fixedFirstColumn: Boolean by observable(false)
+    /** Internal fixed slot count; DataTable uses 2 when selection is enabled. */
+    internal var fixedColumnSlots: Int by observable(0)
     var displayMode: TableDisplayMode by observable(TableDisplayMode.Table)
     /**
      * Row DSL rendering strategy. Configure during Table creation; changing this value after
@@ -70,9 +80,14 @@ class TableAttr<T> : ComposeAttr() {
     var loadingMore: Boolean by observable(false)
     var loadMoreThresholdRows: Int by observable(3)
     var enableOverflowCellClick: Boolean by observable(true)
+    /**
+     * 当前选中行的 rowKey 集合。非空时对应行使用 [TableThemeColors.selectedRowBackground] 高亮。
+     * 由 KuiklyDataTable 写入；基础 Table 场景保持空列表即可。
+     */
+    var selectedRowKeys: List<Any> by observable(emptyList())
 }
 
-class TableEvent<T> : ComposeEvent() {
+open class TableEvent<T> : ComposeEvent() {
     var rowClick: ((T) -> Unit)? = null
     var cellClick: ((TableCellClickInfo<T>) -> Unit)? = null
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null

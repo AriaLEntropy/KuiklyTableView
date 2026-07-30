@@ -14,18 +14,19 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
         return {
             attr {
                 flexDirectionRow()
+                alignItemsCenter()
+                width(ctx.attr.columns.sumOf { it.width.toDouble() }.toFloat())
+                height(ctx.attr.headerStyle.height.coerceAtLeast(DEFAULT_HEADER_HEIGHT))
                 backgroundColor(Color(ctx.attr.themeColors.headerBackground))
-                if (ctx.attr.headerStyle.height > 0f) {
-                    height(ctx.attr.headerStyle.height)
-                    alignItemsCenter()
-                }
             }
             ctx.attr.columns.forEachIndexed { index, resolvedColumn ->
                 val isLastColumn = index == ctx.attr.columns.lastIndex
                 View {
                     attr {
                         width(resolvedColumn.width)
+                        height(ctx.attr.headerStyle.height.coerceAtLeast(DEFAULT_HEADER_HEIGHT))
                         flexDirectionRow()
+                        alignItemsCenter()
                         touchEnable(resolvedColumn.model?.sortable == true)
                         backgroundColor(Color(ctx.attr.themeColors.headerBackground))
                     }
@@ -98,7 +99,11 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
             is TableSortDirection.Ascending -> "↑"
             is TableSortDirection.Descending -> "↓"
             is TableSortDirection.None -> "↕"
-        }
+    }
+
+    companion object {
+        private const val DEFAULT_HEADER_HEIGHT = 44f
+    }
 }
 
 internal class TableHeaderRowAttr<T> : ComposeAttr() {
