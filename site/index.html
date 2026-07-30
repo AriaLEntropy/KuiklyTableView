@@ -143,6 +143,7 @@
     <tr><td><code>TableView</code> / KuiklyTable</td><td>基础展示、布局、分隔线、滚动、固定表头 / 左固定列、主题、renderer</td><td>L1 已交付</td></tr>
     <tr><td><code>DataTableView</code> / KuiklyDataTable</td><td>行选择、全选 / 半选、筛选、客户端分页；复用 L1 全部能力</td><td>L2 已交付</td></tr>
   </table>
+  <p class="note"><strong>能力关系</strong>：<code>KuiklyDataTable</code> 是 <code>KuiklyTable</code> 的组合封装（Kuikly 组合组件），<strong>拥有 KuiklyTable 的全部能力</strong>——列宽与对齐、排序、滚动与固定表头、主题、自定义渲染、分隔线与圆角、左侧固定列、状态与加载更多、展示模式、大数据窗口渲染对两者同样适用。L2 章节只讲新增能力（行选择、筛选与分页）。对应地，<code>DataTableAttr</code> / <code>DataTableEvent</code> 继承 <code>TableAttr</code> / <code>TableEvent</code>，只新增独有属性与事件。</p>
 </section>
 
 <section id="install">
@@ -505,6 +506,7 @@ event {
   <div class="split">
     <div>
       <h2>行选择（DataTable）</h2>
+      <p class="note">L2 章节只讲 DataTable 新增能力；上述 L1 全部章节（列宽 / 排序 / 滚动 / 主题 / 渲染 / 分隔线 / 固定列 / 状态 / 模式 / 大数据）对 DataTable 同样适用。</p>
       <p><code>DataTableView</code> 复用 <code>TableView</code>。开启 <code>enableRowSelection</code> 后注入选择列与行高亮；关闭时无选择列、清空高亮。选中身份是 <code>rowKey</code>：排序只改展示顺序，<code>selectedKeys</code> 按 rowKey 保持。</p>
       <pre><code class="language-kotlin">DataTableView&lt;User&gt; {
     attr {
@@ -639,7 +641,7 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
 
 <section id="api-data-attr">
   <h2>DataTableAttr</h2>
-  <p>继承 <code>TableAttr</code> 全部属性，新增：</p>
+  <p>按 Kuikly 组件惯例分为基础属性与独有属性：基础属性即 <a href="#api-attr"><code>TableAttr</code> 全部属性</a>（Kotlin 继承，直接可用）；独有属性如下表：</p>
   <table class="api">
     <tr><th>属性</th><th>类型</th><th>默认值</th><th>说明</th></tr>
     <tr><td><code>enableRowSelection</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>注入选择列 + 行高亮；关闭时清空</td></tr>
@@ -654,7 +656,7 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
 
 <section id="api-data-event">
   <h2>DataTableEvent</h2>
-  <p>继承 <code>TableEvent</code> 全部事件，新增：</p>
+  <p>基础事件即 <a href="#api-event"><code>TableEvent</code> 全部事件</a>（Kotlin 继承，直接可用）；独有事件如下表：</p>
   <table class="api">
     <tr><th>事件</th><th>说明</th></tr>
     <tr><td><code>selectionChange</code></td><td>勾选或表头全选变化后回调选中 keys</td></tr>
