@@ -195,7 +195,7 @@ internal class TableDataDemoPage : BasePager() {
                     }
                 }
 
-                configLabel("表格主题预设（只改表格，不改页面外观）", ctx)
+                configLabel("表格主题预设（只改表格本体，与 table_basic 同源 Light/Dark/Blue；页面铬固定浅色）", ctx)
                 View {
                     attr {
                         flexDirectionRow()
@@ -388,14 +388,17 @@ private fun ViewContainer<*, *>.DataToggleChip(
             alignItemsCenter()
             justifyContentCenter()
             borderRadius(16f)
+            // 与 table_basic ToggleChip 对齐：激活用浅灰底+主色描边，不用选中行浅蓝底
+            backgroundColor(
+                Color(if (active()) chrome.rowBackgroundAlt else chrome.cardBackground),
+            )
             border(
                 Border(
                     lineWidth = 1f,
                     lineStyle = BorderStyle.SOLID,
-                    color = Color(if (active()) chrome.actionText else chrome.gridLine),
+                    color = Color(if (active()) chrome.actionText else chrome.cardBorder),
                 ),
             )
-            backgroundColor(Color(if (active()) chrome.selectedRowBackground else chrome.rowBackground))
         }
         event { click { onClick() } }
         Text {

@@ -43,7 +43,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
                 DataTableSyncState(
                     fixedFirstColumn = attr.fixedFirstColumn,
                     fixedColumnSlots = if (attr.fixedFirstColumn && attr.enableRowSelection) 2 else if (attr.fixedFirstColumn) 1 else 0,
-                    themeIdentity = System.identityHashCode(attr.themeColors),
+                    themeIdentity = themeIdentityOf(attr.themeColors),
                     selectedKeys = attr.selectedKeys,
                     enableRowSelection = attr.enableRowSelection,
                     sortState = attr.sortState,
@@ -352,6 +352,20 @@ private data class DataTableSyncState<T>(
     val sortState: TableSortState,
     val page: DataTablePageResult<T>,
 )
+
+/** KMP 可用的主题指纹；避免 JVM-only 的 System.identityHashCode。 */
+private fun themeIdentityOf(theme: TableThemeColors): Int {
+    var h = theme.headerBackground.hashCode()
+    h = 31 * h + theme.headerText.hashCode()
+    h = 31 * h + theme.cellText.hashCode()
+    h = 31 * h + theme.gridLine.hashCode()
+    h = 31 * h + theme.rowBackground.hashCode()
+    h = 31 * h + theme.rowBackgroundAlt.hashCode()
+    h = 31 * h + theme.selectedRowBackground.hashCode()
+    h = 31 * h + theme.actionText.hashCode()
+    h = 31 * h + (theme.dividerColor?.hashCode() ?: 0)
+    return h
+}
 
 private fun <T> TableAttr<T>.applyFrom(source: DataTableAttr<T>) {
     tableWidth = source.tableWidth
