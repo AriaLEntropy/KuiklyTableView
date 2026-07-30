@@ -167,7 +167,7 @@ kotlin {
   <div class="split">
     <div>
       <h2>基础用法</h2>
-      <p>列由 <code>ColumnModel</code> 定义，数据经 <code>data</code> 传入，<code>rowKey</code> 提供稳定行标识。默认网格线、8dp 圆角、斑马纹与固定表头开箱即用。</p>
+      <p>列由 <code>ColumnModel</code> 定义，数据经 <code>data</code> 传入，<code>rowKey</code> 提供稳定行标识。开箱默认：<code>Grid</code> 网格线（外框 + 行线 + 列竖线）、8dp 圆角、斑马纹与固定表头。</p>
       <pre><code class="language-kotlin">data class User(val id: String, val name: String, val age: Int, val email: String)
 
 TableView&lt;User&gt; {
@@ -196,6 +196,8 @@ TableView&lt;User&gt; {
         rowKey = { it.id }
         zebraStripe = true
         fixedHeader = true
+        // lineMode 默认 TableLineMode.Grid：外框 + 行线 + 列竖线
+        // 无竖线：lineMode = TableLineMode.Horizontal；全部关闭：TableLineMode.None
     }
     event {
         rowClick = { user -&gt; /* 行点击 */ }
@@ -371,8 +373,12 @@ tableRef.scrollToTop(animated = true)</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_basic.png" alt="默认 Grid 分隔线" loading="lazy">
-        <figcaption>默认 Grid：外框 + 行列线</figcaption>
+        <img src="../assets/table_line_grid.png" alt="Grid：外框 + 行列竖线" loading="lazy">
+        <figcaption><code>Grid</code>（默认）：外框 + 行线 + 列竖线</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/table_line_horizontal.png" alt="Horizontal：仅横线无竖线" loading="lazy">
+        <figcaption><code>Horizontal</code>：仅表头底线与行线，无竖线</figcaption>
       </figure>
     </div>
   </div>

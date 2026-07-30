@@ -125,6 +125,7 @@ TableView<User> {
         rowKey = { it.id }
         zebraStripe = true
         fixedHeader = true
+        // lineMode 默认 TableLineMode.Grid：外框 + 行线 + 列竖线
     }
     event {
         rowClick = { user -> /* 行点击 */ }
