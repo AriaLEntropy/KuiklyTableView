@@ -92,7 +92,7 @@
   .media { position: sticky; top: calc(var(--header-h) + 20px); }
   .media figure { margin: 0 0 16px; }
   .media img {
-    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    width: clamp(300px, 40vw, 410px); border: 1px solid var(--border); border-radius: 8px;
     display: block; background: #fff;
   }
   .media figcaption { font-size: 13px; color: var(--fg-muted); text-align: center; margin-top: 6px; }
