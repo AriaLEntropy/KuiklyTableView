@@ -11,11 +11,12 @@
     --fg-muted: #59636e;
     --border: #d1d9e0;
     --code-bg: #f6f8fa;
-    --brand-from: #2b6ef2;
-    --brand-to: #7c5cff;
+    --brand-from: #537af7;
+    --brand-to: #7695f9;
     --brand: linear-gradient(120deg, var(--brand-from), var(--brand-to));
-    --accent: #2b6ef2;
-    --accent-soft: #e9f0ff;
+    --brand-title: linear-gradient(120deg, #3f5fd9, var(--brand-from));
+    --accent: #537af7;
+    --accent-soft: #eef2fe;
     --header-h: 56px;
     --nav-w: 230px;
   }
@@ -32,7 +33,7 @@
     position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 24px; color: #fff;
-    background: linear-gradient(90deg, #1b3a8f 0%, var(--brand-from) 55%, var(--brand-to) 100%);
+    background: linear-gradient(90deg, #3f5fd9 0%, var(--brand-from) 55%, var(--brand-to) 100%);
     z-index: 20;
   }
   .topbar .brand { font-weight: 600; font-size: 16px; color: #fff; }
@@ -61,12 +62,12 @@
   }
   section { margin-bottom: 72px; scroll-margin-top: calc(var(--header-h) + 16px); }
   .hero {
-    background: linear-gradient(135deg, #eef3ff 0%, #f4efff 100%);
+    background: linear-gradient(135deg, #edf2fe 0%, #f1f5ff 100%);
     border-radius: 16px; padding: 36px 40px 24px; margin-bottom: 64px;
   }
   .hero h1 {
     margin: 0 0 8px; font-size: 40px; display: inline-block;
-    background: var(--brand);
+    background: var(--brand-title);
     -webkit-background-clip: text; background-clip: text;
     color: transparent;
   }
