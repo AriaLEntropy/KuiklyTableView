@@ -1,14 +1,15 @@
 # KuiklyTable
 
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20HarmonyOS-brightgreen)](https://github.com/Tencent-TDS/KuiklyUI)
+[![Docs](https://img.shields.io/badge/Docs-%E6%96%87%E6%A1%A3%E7%AB%99-0969da)](https://arialentropy.github.io/KuiklyTableView/site/)
+
 基于 [KuiklyUI](https://github.com/Tencent-TDS/KuiklyUI) 的跨端表格组件，支持 Android、iOS、鸿蒙。
 
 仓库提供两级正式表格：`KuiklyTable`（L1 Basic）与 `KuiklyDataTable`（L2）。
 
-<div align="center">
-  <img src="assets/table_showcase_basic.png" alt="KuiklyTable 基础表格" width="220">
-  <img src="assets/table_datatable_selection.png" alt="KuiklyDataTable 行选择" width="220">
-  <img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="220">
-</div>
+<img src="assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" width="300">
 
 ## 组件族
 
@@ -16,7 +17,6 @@
 | --- | --- | --- | --- |
 | `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | `table_basic`（分章节验证） | L1 已交付 |
 | `DataTableView` / KuiklyDataTable | 行选择、全选/半选、与排序 rowKey 联动；筛选与客户端分页 | `table_data`（数据交互 / 基础组合 / 接入关系） | L2 已交付：行选择、筛选、客户端分页 |
-| KuiklyTreeTable | 树形数据 | — | 后续 |
 
 ## 效果预览
 
@@ -125,10 +125,6 @@ TableView<User> {
         rowKey = { it.id }
         zebraStripe = true
         fixedHeader = true
-        // lineMode 默认 Grid；cornerRadius 默认 8
-        // lineMode = TableLineMode.None
-        // lineMode = TableLineMode.Horizontal
-        // cornerRadius = TableCornerRadius.None
     }
     event {
         rowClick = { user -> /* 行点击 */ }
@@ -138,20 +134,7 @@ TableView<User> {
 }
 ```
 
-### DataTable 行选择 / 筛选 / 分页
-
-`DataTableView` 复用 `TableView`。管线：源 `data` → `filterPredicate` → 单列排序 → 客户端分页。选中身份是 `rowKey`。不提供内建全局搜索框。
-
-**行选择**
-
-| 配置 / 事件 | 说明 |
-| --- | --- |
-| `enableRowSelection` | 开：注入选择列 + 行高亮；关：无选择列、清空高亮 |
-| `selectedKeys` | 受控选中 rowKey 列表 |
-| `selectionColumnWidth` | 选择列宽，默认 48 |
-| `selectionChange` | 勾选或表头全选变化后回调 |
-| 表头复选框 | 未选 / 半选 / 全选；半选或未选点击 → 全选当前页（或当前展示行）；全选再点 → 清空当前可见选中 |
-| 排序联动 | `sortChange` 只改展示顺序；`selectedKeys` 按 rowKey 保持 |
+`DataTableView` 复用同一套列与数据源，叠加行选择、筛选与客户端分页：
 
 ```kotlin
 DataTableView<User> {
@@ -159,316 +142,54 @@ DataTableView<User> {
         flex(1f) // 撑满父容器，否则 Table 拿不到高度不会渲染
         enableRowSelection = true
         selectedKeys = currentSelectedKeys
-        data = users
-        rowKey = { it.id }
-        columns.addAll(
-            listOf(
-                ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f),
-                ColumnModel(
-                    key = "age",
-                    title = "年龄",
-                    accessor = { it.age.toString() },
-                    width = 60f,
-                    sortable = true,
-                    sortComparator = compareBy { it.age },
-                ),
-            )
-        )
+        filterPredicate = { it.status == "在职" } // null 表示不过滤
+        enablePagination = true
+        pageIndex = currentPage
+        pageSize = 10
+        // columns / data / rowKey 写法同 TableView
     }
     event {
         selectionChange = { keys -> currentSelectedKeys = keys }
-        sortChange = { state -> /* 排序变化；selectedKeys 按 rowKey 保持 */ }
+        pageChange = { index -> currentPage = index }
+        pageSizeChange = { size -> pageSize = size }
     }
 }
 ```
 
-**筛选与分页（同入口可配）**
+## 文档
 
-```kotlin
-attr {
-    enablePagination = true
-    pageIndex = currentPage
-    pageSize = 10
-    filterPredicate = { it.status == "在职" } // null 表示不过滤
-}
-event {
-    pageChange = { index -> currentPage = index }
-    pageSizeChange = { size -> pageSize = size }
-}
-```
+完整用法指南与 API 参考（左代码、右效果图对照）：
 
-Showcase：`table_data`（从 `table_home` 进入）。「数据交互」页签可开关选择 / 筛选 / 分页并验证 fallback；点「年龄」表头可验排序后选中按 rowKey 保持。
+**https://arialentropy.github.io/KuiklyTableView/site/**
 
-### 自定义单元格
+涵盖：列宽与对齐、排序、滚动与固定表头、主题、自定义渲染、分隔线与圆角、左侧固定列、状态与加载更多、展示模式、大数据窗口渲染、行选择、筛选与分页，以及 `TableAttr` / `TableEvent` / `ColumnModel` / `DataTableAttr` / `DataTableEvent` 完整 API 表格。
 
-未配置 `cellRenderer` 时用默认文本。单元格是否触发 `rowClick` / `cellClick` 由列上的 `enableRowClick`、`enableCellClick` 显式控制，与是否配置 renderer 无关。优先级：截断溢出提示 > `cellClick` > `rowClick`。操作列通常两开关都关，由 renderer 内 Button 自己处理点击和按压。
+文档源码在 `site/index.html`（单文件，GitHub Pages 托管）。
 
-Windows PC Web 兼容补丁：默认文本单元格（仅未配置 `cellRenderer`）会附加 HTML `title` 属性，鼠标悬停可看到完整文本；自定义 renderer 不会自动注入该属性。
+## 核心 API 摘要
 
-```kotlin
-ColumnModel<User>(
-    key = "status",
-    title = "状态",
-    accessor = { it.status },
-    width = 90f,
-    enableRowClick = true,
-    enableCellClick = false,
-    cellRenderer = { user, _ ->
-        // 使用方自行绘制彩色标签等业务内容
-        View {
-            attr {
-                flex(1f)
-                allCenter()
-            }
-            Text {
-                attr {
-                    text(user.status)
-                    fontSize(12f)
-                }
-            }
-        }
-    },
-)
+常用属性（完整表见文档站）：
 
-ColumnModel<User>(
-    key = "action",
-    title = "操作",
-    accessor = { "查看" },
-    width = 92f,
-    enableRowClick = false,
-    enableCellClick = false,
-    cellRenderer = { user, _ ->
-        // Button 自行处理点击 / 按压 / 禁用
-    },
-)
-```
-
-### 主题色（`TableThemeColors`）
-
-表格只消费你传入的 `themeColors`，不跟随 App 全局主题。推荐顺序：
-
-1. 先用预设：`TableThemeColors.Light` / `.Dark` / `.Blue`
-2. 需要微调时再 `copy` 覆盖个别语义色（不要在业务里散落裸 hex，除非你很清楚它对应哪一块 UI）
-
-```kotlin
-attr {
-    // 1) 换肤：一行切换预设
-    themeColors = TableThemeColors.Dark
-
-    // 2) 微调：只改表头底和选中行，其余仍跟 Dark
-    // themeColors = TableThemeColors.Dark.copy(
-    //     headerBackground = 0xFF2A2A2A,
-    //     selectedRowBackground = 0xFF1A3A5C,
-    // )
-}
-```
-
-色值是 `Long` ARGB（`0xAARRGGBB`）。各字段对应的表格区域：
-
-| 字段 | 作用在表格的哪里 |
+| 属性 | 说明 |
 | --- | --- |
-| `headerBackground` / `headerText` | 表头背景与表头文字 |
-| `rowBackground` / `rowBackgroundAlt` | 行背景 / 斑马纹行 |
-| `selectedRowBackground` | DataTable 选中行高亮 |
-| `cellText` / `cellTextSecondary` | 单元格主/次文本 |
-| `gridLine` | 历史网格色；`dividerColor` 缺省时回退到此值 |
-| `dividerColor` | 分隔线色（可选）；Grid/Horizontal 预设线优先用它 |
-| `frozenDividerColor` | 固定列右侧分隔色（可选） |
-| `cardBackground` / `cardBorder` | List 模式卡片 |
-| `statusTag*` | List 状态标签等语义色 |
-| `actionText` / `actionTextOnFill` | 交互强调色 / 强调底上的文字 |
-| `stateOverlayBackground` 等 | Loading 遮罩等状态层 |
+| `columns` / `data` / `rowKey` | 列定义 / 数据源 / 稳定行标识 |
+| `themeColors` | 语义色；预设 `Light` / `Dark` / `Blue`，可 `copy` 覆盖 |
+| `lineMode` / `cornerRadius` | 分隔线（默认 `Grid`）/ 圆角（默认 8dp） |
+| `fixedHeader` / `fixedFirstColumn` | 固定表头（默认开）/ 左侧固定列 |
+| `displayMode` | `Table` / `List` |
+| `rowRenderMode` | `Standard` / `Windowed(n)` 大数据窗口渲染 |
+| `loading` / `emptyText` / `hasMore` / `loadingMore` | 状态与加载更多 |
+| `enableRowSelection` / `selectedKeys` | DataTable 行选择与受控选中 |
+| `filterPredicate` | DataTable 筛选谓词 |
+| `enablePagination` / `pageIndex` / `pageSize` | DataTable 客户端分页 |
 
-Showcase 里「主题预设」**只应改表格**；页面标题和配置区属于 Demo 铬，不应当成组件 API。
-
-### 分隔线与圆角
-
-用 `lineMode` 控制表格线（外框 + 表头/行/列线），用 `cornerRadius` 控制圆角；两者互不影响。默认 `Grid` + `8dp`。
-
-| 模式 | 效果 | 写法 |
-| --- | --- | --- |
-| `Grid`（默认） | 外框 + 表头底线 + 行线 + 列线 | 可不写，或 `lineMode = TableLineMode.Grid` |
-| `Horizontal` | 仅表头底线与行线（无线框/列线） | `lineMode = TableLineMode.Horizontal` |
-| `None` | 全部关闭 | `lineMode = TableLineMode.None` |
-| `Custom` | 逐项指定颜色/宽度；某字段 `null` 表示关掉该线 | 见下方 |
-
-**预设线颜色**：`Grid` / `Horizontal` 走主题 `dividerColor`（未设则回退 `gridLine`）。改主题色即可统一换线色：
-
-```kotlin
-attr {
-    themeColors = TableThemeColors.Light.copy(dividerColor = 0xFF9E9E9E)
-    lineMode = TableLineMode.Grid
-    cornerRadius = TableCornerRadius.Default // 0 / 8 / 12，或任意 dp
-}
-```
-
-**自定义线**（颜色、宽度、开关都自己定）：
-
-```kotlin
-attr {
-    // 例如统一蓝色 2dp 网格；不想要外框就把 outer = null
-    lineMode = TableLineMode.Custom(
-        TableLineStyle(
-            outer = TableStroke(0xFF2E77E5, 2f),
-            header = TableStroke(0xFF2E77E5, 2f),
-            row = TableStroke(0xFF2E77E5, 2f),
-            column = TableStroke(0xFF2E77E5, 2f),
-            listRow = TableStroke(0xFF2E77E5, 2f), // List 模式行分隔
-        ),
-    )
-}
-```
-
-Showcase：`table_basic` →「分隔线与圆角」可切无线/仅横线/网格/自定义，自定义下有蓝/灰/绿/橙/紫预设色。斑马纹、选中、编辑不会隐式改写 `lineMode`。
-
-### 左侧固定列
-
-```kotlin
-attr {
-    fixedFirstColumn = true
-    rowHeight = 48f
-    columns.add(
-        ColumnModel(
-            key = "name",
-            title = "姓名",
-            accessor = { it.name },
-            width = 96f, // 固定列必须显式 width
-        ),
-    )
-    // 其余列…
-}
-```
-
-约束：
-
-- 被固定的列必须配置显式正数 `width`（DataTable 开启选择时：选择列 + 第一业务列都要有 width）
-- 只有 1 列时忽略 `fixedFirstColumn`，仍走普通横向滚动
-- 开启后可在表头右侧或表体右侧横滑；左列保持可见
-- 不与 `Windowed`、动态行高组合
-
-### 空态 / 加载中 / 加载更多
-
-```kotlin
-attr {
-    loading = isLoading
-    emptyText = "暂无数据"
-    // emptyRenderer = { /* 自定义空态 */ }
-    // loadingRenderer = { /* 自定义加载态 */ }
-    hasMore = pageHasMore
-    loadingMore = isLoadingMore
-}
-event {
-    loadMore = { fetchNextPage() }
-}
-```
-
-### 回顶
-
-```kotlin
-val tableRef = TableView<User> { /* ... */ }
-
-tableRef.scrollToTop(animated = true)
-```
-
-### List 模式
-
-```kotlin
-attr {
-    displayMode = TableDisplayMode.List
-    listPrimaryColumnKey = "name"
-    listStatusColumnKey = "status"
-}
-```
-
-### 大数据窗口渲染
-
-默认 `Standard` 会为每行创建 DSL 节点。数据量大时改用 `Windowed`，按窗口挂载行节点（基于 Kuikly `vforLazy`）：
-
-<p align="left">
-  <img src="assets/table_showcase_large_demo.gif" alt="Windowed 大数据虚拟滚动" width="280">
-</p>
-
-```kotlin
-attr {
-    data = users
-    rowHeight = 48f
-    fixedFirstColumn = false
-    rowRenderMode = TableRowRenderMode.Windowed(maxRenderedRows = 160)
-}
-```
-
-`Windowed` 只限制挂载的行节点，完整 `data` 仍在内存里，排序仍作用于全量数据。创建时选定模式后不要在同一 Table 上切换；暂不支持动态行高和固定列组合。
-
-`maxRenderedRows` 建议按可见行数 × 3 估算。设太小，快速滚动可能出现短暂空白。默认 60。
-
-## API 参考
-
-### TableView
-
-```kotlin
-fun <T> ViewContainer<*, *>.TableView(init: TableView<T>.() -> Unit)
-```
-
-| 方法 | 说明 |
-| --- | --- |
-| `scrollToTop(animated: Boolean = false)` | 滚动到顶部 |
-
-### TableAttr
-
-| 属性 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `columns` | `ObservableList<ColumnModel<T>>` | `[]` | 列定义 |
-| `data` | `List<T>` | `[]` | 数据源（组件不修改外部列表） |
-| `rowKey` | `((T) -> Any)?` | `null` | 稳定行标识；未配置时用源索引 |
-| `tableWidth` | `Float?` | `null` | `null` 表示沿父容器撑满 |
-| `zebraStripe` | `Boolean` | `true` | 斑马纹 |
-| `lineMode` | `TableLineMode` | `Grid` | `None` / `Horizontal` / `Grid` / `Custom(style)`；控制外框与内部线 |
-| `cornerRadius` | `Float` | `8f` | 根容器圆角（dp）；`0` 无圆角。可用 `TableCornerRadius` |
-| `cellPaddingH` | `Float` | `12f` | 水平内边距 |
-| `cellPaddingV` | `Float` | `10f` | 垂直内边距 |
-| `rowHeight` | `Float` | `0f` | `0` 表示内容自适应 |
-| `fixedHeader` | `Boolean` | `true` | 固定表头 |
-| `fixedFirstColumn` | `Boolean` | `false` | 是否固定第一列；被固定列须显式 `width`；单列时忽略；需固定行高，不与 Windowed 组合 |
-| `themeColors` | `TableThemeColors` | Light | 语义色；见上文「主题色」；预设 `Light`/`Dark`/`Blue` |
-| `displayMode` | `TableDisplayMode` | `Table` | `Table` / `List` |
-| `rowRenderMode` | `TableRowRenderMode` | `Standard` | 初始化期行渲染策略；`Windowed(n)` 限制挂载行数 |
-| `listPrimaryColumnKey` | `String?` | `null` | List 模式主字段列 |
-| `listStatusColumnKey` | `String?` | `null` | List 模式状态列 |
-| `loading` | `Boolean` | `false` | 加载中 |
-| `emptyText` / `loadingText` | `String` | 见默认文案 | 默认状态文案 |
-| `emptyRenderer` / `loadingRenderer` | DSL? | `null` | 自定义状态内容 |
-| `hasMore` / `loadingMore` | `Boolean` | `false` | 加载更多状态 |
-| `loadMoreThresholdRows` | `Int` | `3` | 距底部约 N 行触发 |
-| `enableOverflowCellClick` | `Boolean` | `true` | 截断文本点击 |
-
-### TableEvent
+常用事件：
 
 | 事件 | 说明 |
 | --- | --- |
-| `rowClick` | 行点击 |
-| `cellClick` | 单元格点击（含行列信息） |
-| `sortChange` | 排序状态变化 |
-| `overflowCellClick` | 截断单元格点击 |
-| `overflowTipDismiss` | 溢出提示关闭 |
-| `loadMore` | 触底加载更多 |
-
-### ColumnModel
-
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `key` | `String` | — | 列唯一标识 |
-| `title` | `String` | — | 表头文案 |
-| `accessor` | `(T) -> String` | — | 默认文本取值 |
-| `width` | `Float?` | `null` | 固定列宽；`null` 时用弹性宽度 |
-| `minWidth` | `Float` | `100f` | 最小宽度（弹性列） |
-| `flex` | `Float` | `1f` | 剩余空间权重 |
-| `alignment` | `ColumnAlignment` | `Start` | 默认左对齐；`Start` / `Center` / `End`；未显式设置时数值列也不居右 |
-| `sortable` | `Boolean` | `false` | 是否可排序 |
-| `sortComparator` | `Comparator<T>?` | `null` | 自定义比较器 |
-| `cellRenderer` | DSL? | `null` | 自定义单元格 |
-| `headerRenderer` | DSL? | `null` | 自定义表头 |
-| `enableRowClick` | `Boolean` | `true` | 该列是否允许触发 `rowClick` |
-| `enableCellClick` | `Boolean` | `false` | 该列是否允许触发 `cellClick` |
+| `rowClick` / `cellClick` / `sortChange` | 行 / 单元格点击、排序变化 |
+| `overflowCellClick` / `loadMore` | 截断文本点击、触底加载更多 |
+| `selectionChange` / `pageChange` / `pageSizeChange` | DataTable 选择与分页回调 |
 
 ## 示例工程
 
