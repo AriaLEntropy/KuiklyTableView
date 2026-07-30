@@ -25,6 +25,8 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
     private var tableRef: ViewRef<TableView<T>>? = null
     /** 管线输出的当前页行；用 observable + bindValueChange 保证 pageSize 等变化会推到 TableView。 */
     private var pageItems: List<T> by observable(emptyList())
+    /** 最近一次同步的管线结果。渲染路径（分页栏 / 表头复选框）只读它，不在 attr/vif 内重复跑完整管线。 */
+    private var syncedPage: DataTablePageResult<T>? by observable(null)
     /** Theme / layout switches remount renderer closures that capture structure-dependent content. */
     private var themeRenderBranch by observable(false)
     private var lastThemeIdentity: Int? = null
@@ -56,6 +58,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
                 @Suppress("UNCHECKED_CAST")
                 val state = value as DataTableSyncState<T>
                 pageItems = state.page.pageItems
+                syncedPage = state.page
                 val themeChanged = lastThemeIdentity != null && lastThemeIdentity != state.themeIdentity
                 val headerChanged = lastFixedHeader != null && lastFixedHeader != state.fixedHeader
                 if (themeChanged || headerChanged) {
@@ -109,6 +112,9 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
             ctx.renderInnerTable(container, withSelection = false)
         }
     }
+
+    /** 渲染路径读取入口：优先读已同步的 page；首次同步前兜底现场计算。 */
+    private fun readablePage(): DataTablePageResult<T> = syncedPage ?: currentPage()
 
     private fun currentPage(): DataTablePageResult<T> {
         val page = DataTablePipeline.buildPage(
@@ -181,7 +187,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
             }
             Text {
                 attr {
-                    val page = ctx.currentPage()
+                    val page = ctx.readablePage()
                     text("共 ${page.filteredTotal} 条 · ${page.pageIndex + 1}/${page.pageCount} 页")
                     fontSize(12f)
                     color(Color(theme.cellTextSecondary))
@@ -189,13 +195,13 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
                     marginBottom(8f)
                 }
             }
-            PaginationChip(label = { "上一页" }, enabled = { ctx.currentPage().pageIndex > 0 }, theme = theme) {
+            PaginationChip(label = { "上一页" }, enabled = { ctx.readablePage().pageIndex > 0 }, theme = theme) {
                 ctx.goToPage(ctx.attr.pageIndex - 1)
             }
             PaginationChip(
                 label = { "下一页" },
                 enabled = {
-                    val page = ctx.currentPage()
+                    val page = ctx.readablePage()
                     page.pageIndex < page.pageCount - 1
                 },
                 theme = theme,
@@ -241,7 +247,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
     }
 
     private fun toggleHeaderSelectAll() {
-        val keys = currentPage().pageKeys
+        val keys = readablePage().pageKeys
         val next = DataTableSelection.toggleSelectAll(keys, attr.selectedKeys)
         attr.selectedKeys = next
         event.selectionChange?.invoke(next)
@@ -255,7 +261,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
     }
 
     private fun headerSelectAllState(): DataTableSelectAllState =
-        DataTableSelection.selectAllState(currentPage().pageKeys, attr.selectedKeys)
+        DataTableSelection.selectAllState(readablePage().pageKeys, attr.selectedKeys)
 
     private fun selectionColumn(): ColumnModel<T> {
         val ctx = this
