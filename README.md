@@ -137,7 +137,7 @@ DataTableView<User> {
 
 **https://arialentropy.github.io/KuiklyTableView/site/**
 
-涵盖：列宽与对齐、排序、滚动与固定表头、主题、自定义渲染、分隔线与圆角、左侧固定列、状态与加载更多、展示模式、大数据窗口渲染、行选择、筛选与分页，以及 `TableAttr` / `TableEvent` / `ColumnModel` / `DataTableAttr` / `DataTableEvent` 完整 API 表格。
+涵盖：基础表格、列宽与对齐、排序、滚动、固定表头、样式主题、行高亮、自定义单元格 / 表头、超出省略、分隔线与圆角、固定列、加载状态、空表格、触底加载、展示模式、虚拟滚动、行选择、筛选、分页，以及 `TableAttr` / `TableEvent` / `ColumnModel` / `DataTableAttr` / `DataTableEvent` 完整 API 表格。
 
 文档源码在 `site/index.html`（单文件，GitHub Pages 托管）。
 
