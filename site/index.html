@@ -108,6 +108,7 @@
 <nav class="side">
   <div class="group">指南</div>
   <a href="#install">快速接入</a>
+  <div class="group">KuiklyTable（L1）</div>
   <a href="#basic">基础用法</a>
   <a href="#columns">列宽与对齐</a>
   <a href="#sorting">排序</a>
@@ -119,8 +120,9 @@
   <a href="#states">状态与加载更多</a>
   <a href="#display-mode">展示模式</a>
   <a href="#windowed">大数据窗口渲染</a>
-  <a href="#selection">行选择（DataTable）</a>
-  <a href="#filter-page">筛选与分页（DataTable）</a>
+  <div class="group">KuiklyDataTable（L2）</div>
+  <a href="#selection">行选择</a>
+  <a href="#filter-page">筛选与分页</a>
   <div class="group">API 参考</div>
   <a href="#api-tableview">TableView</a>
   <a href="#api-attr">TableAttr</a>
@@ -134,7 +136,13 @@
 
 <section class="hero" id="top">
   <h1>KuiklyTable</h1>
-  <p>基于 KuiklyUI 的跨端表格组件，支持 Android、iOS、鸿蒙。两级入口：<code>TableView</code>（L1 基础表格）与 <code>DataTableView</code>（L2 行选择 / 筛选 / 分页）。</p>
+  <p>基于 KuiklyUI 的跨端表格组件，支持 Android、iOS、鸿蒙。</p>
+  <p>仓库提供<strong>两级正式表格</strong>：<code>TableView</code> / <strong>KuiklyTable</strong>（L1 基础表格）与 <code>DataTableView</code> / <strong>KuiklyDataTable</strong>（L2 数据表格）。L2 复用 L1 的列布局、行渲染、主题与 renderer，叠加行选择、筛选与客户端分页，不重复实现基础能力。</p>
+  <table class="api">
+    <tr><th>入口</th><th>定位</th><th>状态</th></tr>
+    <tr><td><code>TableView</code> / KuiklyTable</td><td>基础展示、布局、分隔线、滚动、固定表头 / 左固定列、主题、renderer</td><td>L1 已交付</td></tr>
+    <tr><td><code>DataTableView</code> / KuiklyDataTable</td><td>行选择、全选 / 半选、筛选、客户端分页；复用 L1 全部能力</td><td>L2 已交付</td></tr>
+  </table>
 </section>
 
 <section id="install">
