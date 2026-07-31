@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
-$assets = "F:\projects\xiaoai\Tencent-TDS\Kuikly\KuiklyTableView\assets"
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$assets = Join-Path $repoRoot "assets"
 $tmp = Join-Path $assets "_capture"
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 

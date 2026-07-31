@@ -23,9 +23,9 @@
 
 ## 效果预览
 
-| 基础表格（默认网格线） | DataTable 行选择 | 客户端分页 |
-| :---: | :---: | :---: |
-| <img src="assets/table_showcase_base.png" alt="基础表格样式" width="280"> | <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页" width="280"> |
+| 基础表格（默认网格线） | DataTable 行选择 |
+| :---: | :---: | 
+| <img src="assets/table_showcase_base.png" alt="基础表格样式" width="280"> | <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> |
 
 更多效果（主题、自定义渲染、状态、排序三态、虚拟滚动、筛选）与交互录屏见[文档站](https://arialentropy.github.io/KuiklyTableView/site/)。
 
@@ -194,6 +194,25 @@ DataTableView<User> {
 ```
 
 `commonTest` 覆盖排序管线、列宽分配、分隔线解析、行渲染模式、加载更多去重、全选半选联动、筛选分页管线（7 个测试类）。
+
+## Agent Skills
+
+仓库内 `.agent/skills/` 提供面向 AI / 协作者的分阶段工程入口，链路为：
+
+```text
+愿景 → 需求 → 设计（UI/UX ‖ 概要/详细）→ 实现
+```
+
+| Skill | 作用 |
+| --- | --- |
+| `kuiklytable-vision` | 固定产品愿景、组件族与做/不做边界 |
+| `kuiklytable-requirements` | 从愿景提炼可验收需求与验收条件 |
+| `kuiklytable-uiux-design` | UI/UX 规则、Showcase / 文档站文案与配置面板约定 |
+| `kuiklytable-tech-design` | 概要设计与详细设计（模块边界、布局、滚动与 API 契约） |
+| `kuiklytable-implementation` | 按设计在 `KuiklyTable` / Showcase 落地并验证 |
+| `kuiklytable-redlines` | 仓库红线（官方边界、Issue / 截图 / 提交说明） |
+
+在支持 Agent Skills 的工具中打开本仓库即可发现上述 skill；日常接入组件仍以本文与[文档站](https://arialentropy.github.io/KuiklyTableView/site/)为准。
 
 ## 相关资源
 
