@@ -16,7 +16,7 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
                 flexDirectionRow()
                 alignItemsCenter()
                 width(ctx.attr.columns.sumOf { it.width.toDouble() }.toFloat())
-                height(ctx.attr.headerStyle.height.coerceAtLeast(DEFAULT_HEADER_HEIGHT))
+                height(TableHeaderMetrics.resolvedHeight(ctx.attr.headerStyle))
                 backgroundColor(Color(ctx.attr.themeColors.headerBackground))
             }
             ctx.attr.columns.forEachIndexed { index, resolvedColumn ->
@@ -24,7 +24,7 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
                 View {
                     attr {
                         width(resolvedColumn.width)
-                        height(ctx.attr.headerStyle.height.coerceAtLeast(DEFAULT_HEADER_HEIGHT))
+                        height(TableHeaderMetrics.resolvedHeight(ctx.attr.headerStyle))
                         flexDirectionRow()
                         alignItemsCenter()
                         touchEnable(resolvedColumn.model?.sortable == true)
@@ -86,7 +86,7 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
                             val dividerWidth = columnStroke.columnDividerWidth(isLastColumn)
                             width(dividerWidth)
                             if (dividerWidth > 0f) {
-                                height(ctx.attr.headerStyle.height.coerceAtLeast(DEFAULT_HEADER_HEIGHT))
+                                height(TableHeaderMetrics.resolvedHeight(ctx.attr.headerStyle))
                             }
                             backgroundColor(Color(columnStroke?.color ?: 0x00000000))
                         }
@@ -104,10 +104,6 @@ internal class TableHeaderRowView<T> : ComposeView<TableHeaderRowAttr<T>, TableH
             is TableSortDirection.Ascending -> "↑"
             is TableSortDirection.Descending -> "↓"
             is TableSortDirection.None -> "↕"
-    }
-
-    companion object {
-        private const val DEFAULT_HEADER_HEIGHT = 44f
     }
 }
 

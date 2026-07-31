@@ -23,7 +23,8 @@ open class TableAttr<T> : ComposeAttr() {
      * 但不改变经典 vfor/vforIndex 的底层节点 diff 行为。
      */
     var rowKey: ((T) -> Any)? by observable(null)
-    var zebraStripe: Boolean by observable(true)
+    /** 隔行变色（斑马纹）。默认关闭；开启后偶数行用 [TableThemeColors.rowBackgroundAlt]。 */
+    var zebraStripe: Boolean by observable(false)
     /**
      * 表格线模式。默认 [TableLineMode.Grid]：外框 + 表头/行/列线。
      * [TableLineMode.None] 关闭全部线；[TableLineMode.Horizontal] 仅横线族；
@@ -46,6 +47,11 @@ open class TableAttr<T> : ComposeAttr() {
     var autoIndexColumn: Boolean by observable(false)
     var indexColumnTitle: String by observable("序号")
     var indexColumnWidth: Float by observable(56f)
+    /**
+     * 纵滚时表头始终钉在表体上方，不参与纵向滚动。
+     *
+     * 保留该字段以兼容旧调用；写入 `false` 无效，布局仍按固定表头处理。
+     */
     var fixedHeader: Boolean by observable(true)
     /**
      * 是否固定第一列。开启时使用单纵向 List + 行内固定区。
@@ -84,8 +90,14 @@ open class TableAttr<T> : ComposeAttr() {
 open class TableEvent<T> : ComposeEvent() {
     var rowClick: ((T) -> Unit)? = null
     var cellClick: ((TableCellClickInfo<T>) -> Unit)? = null
+    /** 单元格长按；参数含完整 [TableCellLongPressInfo.text]。组件不内置复制。 */
+    var cellLongPress: ((TableCellLongPressInfo<T>) -> Unit)? = null
     var overflowCellClick: ((TableOverflowCellInfo<T>) -> Unit)? = null
     var overflowTipDismiss: (() -> Unit)? = null
+    /**
+     * 排序状态变化（仅 columnKey + 方向）。
+     * 比较规则不在此事件中传递，请写在对应列的 [ColumnModel.sortComparator]。
+     */
     var sortChange: ((TableSortState) -> Unit)? = null
     var loadMore: (() -> Unit)? = null
 }

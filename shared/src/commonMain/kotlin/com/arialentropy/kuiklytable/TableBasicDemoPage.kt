@@ -19,7 +19,7 @@ import kotlin.math.min
  * KuiklyTable 组件展示 Demo
  *
  * 验证 ST-1 + ST-2：列定义/行列渲染/对齐/斑马纹（ST-1），
- * 横纵双向滚动/固定表头/边框/内边距/行高配置（ST-2）。
+ * 横纵双向滚动/边框/内边距/行高配置（ST-2）；表头纵滚固定，不提供随内容滚动开关。
  * 配置面板用可点击选项（observable + click，参照 Kuikly 官方 AppSettingPage 模式）。
  */
 @Page("table_basic", supportInLocal = true)
@@ -55,7 +55,7 @@ internal class TableBasicDemoPage : BasePager() {
             status = if (i % 3 == 0) "离职" else if (i % 2 == 0) "休假" else "在职",
         )
 
-    // 年龄列：3 列和 8 列模式共用；对齐默认 Start，章节内可改
+    // 年龄：展示用 toString，排序必须按 Int，否则 "9" > "10" 这种字符串序会错
     private val ageColumn = ColumnModel<User>(
         key = "age",
         title = "年龄",
@@ -65,12 +65,15 @@ internal class TableBasicDemoPage : BasePager() {
         sortComparator = compareBy { it.age },
     )
 
+    // 姓名：展示为「员工N」；不配 comparator 会按字符串排成 员工1、员工10、员工2…
+    // Demo 用与编号同源的 id 做规则，证明「规则在列上、与 sortChange 事件解耦」
     private val nameColumn = ColumnModel<User>(
         key = "name",
         title = "姓名",
         accessor = { it.name },
         width = 80f,
         sortable = true,
+        sortComparator = compareBy { it.id },
     )
     private val emailColumn = ColumnModel<User>(
         key = "email",
@@ -159,6 +162,54 @@ internal class TableBasicDemoPage : BasePager() {
         ),
     )
 
+    /**
+     * 基础章列宽对照样例：姓名/年龄设 width（固定）；邮箱 width=null + minWidth/flex（弹性）。
+     * 哪一列走弹性由接入方决定，此处仅作混用示例。
+     */
+    private val flexibleWidthColumns = listOf(
+        ColumnModel<User>(
+            key = "flexName",
+            title = "姓名",
+            accessor = { it.name },
+            width = 72f,
+        ),
+        ColumnModel<User>(
+            key = "flexAge",
+            title = "年龄",
+            accessor = { it.age.toString() },
+            width = 56f,
+        ),
+        ColumnModel<User>(
+            key = "flexEmail",
+            title = "邮箱",
+            accessor = { it.email },
+            minWidth = 120f,
+            flex = 1f,
+        ),
+    )
+
+    /** 基础章列宽对照样例：三列均显式 width，验证「无弹性列 → 剩余 viewport 留空」。 */
+    private val fixedWidthColumns = listOf(
+        ColumnModel<User>(
+            key = "fixedName",
+            title = "姓名",
+            accessor = { it.name },
+            width = 72f,
+        ),
+        ColumnModel<User>(
+            key = "fixedAge",
+            title = "年龄",
+            accessor = { it.age.toString() },
+            width = 56f,
+        ),
+        ColumnModel<User>(
+            key = "fixedEmail",
+            title = "邮箱",
+            accessor = { it.email },
+            width = 140f,
+        ),
+    )
+
     private val alignmentColumn = ColumnModel<User>(
         key = "alignment",
         title = "姓名",
@@ -169,17 +220,18 @@ internal class TableBasicDemoPage : BasePager() {
     private val sortingColumns = listOf(
         ColumnModel<User>(
             key = "plainName",
-            title = "姓名（普通列）",
+            title = "姓名（不可排序）",
             accessor = { it.name },
             minWidth = 140f,
             sortable = false,
         ),
         ColumnModel<User>(
             key = "sortableAge",
-            title = "年龄（可排序）",
+            title = "年龄（数字）",
             accessor = { it.age.toString() },
             minWidth = 140f,
             sortable = true,
+            // 规则挂在列上：按 Int，不是按 accessor 字符串 "20"
             sortComparator = compareBy { it.age },
         ),
     )
@@ -201,16 +253,16 @@ internal class TableBasicDemoPage : BasePager() {
                 }
                 View {
                     attr {
-                        size(32f, 32f)
-                        borderRadius(16f)
-                         backgroundColor(Color(this@TableBasicDemoPage.currentTheme().actionText))
+                        size(28f, 28f)
+                        borderRadius(14f)
+                        backgroundColor(Color(this@TableBasicDemoPage.currentTheme().actionText))
                         allCenter()
                     }
                     Text {
                         attr {
                             text(user.name.take(1))
-                            fontSize(14f)
-                             color(Color(this@TableBasicDemoPage.currentTheme().actionTextOnFill))
+                            fontSize(12f)
+                            color(Color(this@TableBasicDemoPage.currentTheme().actionTextOnFill))
                             fontWeightBold()
                         }
                     }
@@ -224,28 +276,39 @@ internal class TableBasicDemoPage : BasePager() {
         key = "action",
         title = "操作",
         accessor = { "查看" },
-        width = 92f,
+        width = 80f,
         enableRowClick = false,
         enableCellClick = false,
         cellRenderer = { user, _ ->
             val disabled = user.status == "离职"
             val theme = this@TableBasicDemoPage.currentTheme()
-            Button {
+            View {
                 attr {
-                    width(68f)
-                    height(44f)
-                    borderRadius(4f)
-                    backgroundColor(Color(if (disabled) theme.statusTagNeutralBackground else theme.actionText))
-                    touchEnable(!disabled)
-                    if (!disabled) highlightBackgroundColor(Color(0x33000000))
-                    titleAttr {
-                        text(if (disabled) "不可用" else "查看")
-                        fontSize(13f)
-                        color(Color(if (disabled) theme.statusTagNeutralText else theme.actionTextOnFill))
-                    }
+                    flex(1f)
+                    alignItemsCenter()
+                    justifyContentCenter()
                 }
-                event {
-                    click { this@TableBasicDemoPage.bridgeModule.toast("按钮操作: ${user.name}") }
+                // 不用原生 Button：其最小高度偏大，demo 操作列改用轻量 View
+                View {
+                    attr {
+                        width(48f)
+                        height(22f)
+                        borderRadius(4f)
+                        allCenter()
+                        backgroundColor(Color(if (disabled) theme.statusTagNeutralBackground else theme.actionText))
+                    }
+                    Text {
+                        attr {
+                            text(if (disabled) "不可用" else "查看")
+                            fontSize(11f)
+                            color(Color(if (disabled) theme.statusTagNeutralText else theme.actionTextOnFill))
+                        }
+                    }
+                    if (!disabled) {
+                        event {
+                            click { this@TableBasicDemoPage.bridgeModule.toast("按钮操作: ${user.name}") }
+                        }
+                    }
                 }
             }
         },
@@ -255,14 +318,15 @@ internal class TableBasicDemoPage : BasePager() {
     private var wideTable by observable(true)          // 3列 / 5列 / 7列（横向滚动）
     private var activeColumns: ObservableList<ColumnModel<User>> by observableList()
     private var selectedColumn by observable<ColumnModel<User>>(ageColumn)
-    private var zebraOn by observable(true)             // 斑马纹
     private var tableLineMode: TableLineMode by observable(TableLineMode.Grid)
     private var customLineColor: Long by observable(0xFF2E77E5)
     private var tableCornerRadius: Float by observable(TableCornerRadius.Default)
     private var cornerRadiusInputRef: ViewRef<InputView>? = null
     private var compactPadding by observable(false)     // 紧凑内边距
     private var fixedRowHeight by observable(false)     // 固定行高
-    private var fixedHeaderOn by observable(true)
+    private var scrollFixedFirstColumn by observable(false)
+    /** 列宽对照：false = 固定 width；true = minWidth + flex（默认） */
+    private var columnWidthFlexible by observable(true)
     private var sortState by observable(TableSortState())
     private var sortingDemoSortState by observable(TableSortState())
     private var themeMode: DemoThemeMode by observable(DemoThemeMode.Light)
@@ -273,9 +337,10 @@ internal class TableBasicDemoPage : BasePager() {
     private var demoEnableCellClick by observable(false)
     private var overflowTipVisible by observable(false)
     private var overflowTipText by observable("")
-    private var overflowTipLeft by observable(24f)
-    private var overflowTipTop by observable(220f)
-    private var overflowTipArrowLeft by observable(40f)
+    private var overflowTipLeft by observable(0f)
+    private var overflowTipTop by observable(0f)
+    private var overflowTipArrowLeft by observable(0f)
+    private var overflowTipBubbleWidth by observable(200f)
     private var scrollDemoTableRef: ViewRef<TableView<User>>? = null
     private var scrollDemoLimit by observable(20)
     private var scrollDemoLoadingMore by observable(false)
@@ -300,7 +365,6 @@ internal class TableBasicDemoPage : BasePager() {
                 vif({ ctx.activeSection == "自定义" }) { ctx.renderRendererSection(this) }
                 vif({ ctx.activeSection == "状态" }) { ctx.renderStateSection(this) }
             }
-            ctx.renderOverflowTip(this)
         }
     }
 
@@ -426,16 +490,10 @@ internal class TableBasicDemoPage : BasePager() {
                     }
                     Text {
                         attr {
-                            text("排序：点击姓名或年龄表头切换升序、降序、取消；当前 ${ctx.sortDescription()}")
+                            text("排序：姓名规则=按 id（避免「员工10」字符串乱序）；年龄规则=按 Int。点表头只改 sortState，规则不走事件。当前 ${ctx.sortDescription()}")
                             fontSize(12f)
                             color(Color(ctx.currentTheme().cellTextSecondary))
                             marginBottom(6f)
-                        }
-                    }
-                    View {
-                        attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP) }
-                        ToggleChip(label = { "固定表头 ${if (ctx.fixedHeaderOn) "开" else "关"}" }, active = { ctx.fixedHeaderOn }, theme = { ctx.currentTheme() }) {
-                            ctx.fixedHeaderOn = !ctx.fixedHeaderOn
                         }
                     }
                 }
@@ -443,9 +501,6 @@ internal class TableBasicDemoPage : BasePager() {
                 ConfigGroup("表格样式", theme = { ctx.currentTheme() }) {
                     View {
                         attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); alignItemsCenter() }
-                        ToggleChip(label = { "斑马纹 ${if (ctx.zebraOn) "开" else "关"}" }, active = { ctx.zebraOn }, theme = { ctx.currentTheme() }) {
-                            ctx.zebraOn = !ctx.zebraOn
-                        }
                         listOf("无线", "仅横线", "网格", "自定义").forEach { mode ->
                             ToggleChip(label = { mode }, active = { ctx.tableLineModeLabel() == mode }, theme = { ctx.currentTheme() }) {
                                 ctx.tableLineMode = ctx.lineModeForLabel(mode)
@@ -481,7 +536,7 @@ internal class TableBasicDemoPage : BasePager() {
                         flex(1f) // 让 TableView（ComposeView）撑满父容器，内部 List 的 flex 才能拿到高度
                         columns = ctx.activeColumns
                         rowKey = { user -> user.id }
-                        zebraStripe = ctx.zebraOn
+                        zebraStripe = false
                         lineMode = ctx.tableLineMode
                         cornerRadius = ctx.tableCornerRadius
                         cellPaddingH = if (ctx.compactPadding) 8f else 12f
@@ -490,7 +545,7 @@ internal class TableBasicDemoPage : BasePager() {
                         data = ctx.currentData()
                         sortState = ctx.sortState
                         autoIndexColumn = false
-                        fixedHeader = ctx.fixedHeaderOn
+                        fixedHeader = true
                         fixedFirstColumn = false
                         themeColors = ctx.currentTheme()
                         loading = ctx.tableState == "加载"
@@ -544,7 +599,7 @@ internal class TableBasicDemoPage : BasePager() {
                 View {
                     attr {
                         absolutePosition(left = ctx.overflowTipLeft, top = ctx.overflowTipTop)
-                        width(ctx.overflowTipWidth())
+                        width(ctx.overflowTipBubbleWidth)
                         paddingLeft(12f)
                         paddingRight(12f)
                         paddingTop(8f)
@@ -570,7 +625,7 @@ internal class TableBasicDemoPage : BasePager() {
                         absolutePosition(left = ctx.overflowTipLeft + ctx.overflowTipArrowLeft, top = ctx.overflowTipTop - 6f)
                         zIndex(31)
                         size(16f, 8f)
-                        src("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAICAYAAADwdn+XAAAANElEQVR42mNgwAOUlJTewTADqQBZM8mGYNNMtCH4NBM0hBjNOA0hRTOGIeRohhtCiWYQBgBrGmjtRbMqEAAAAABJRU5ErkJggg==")
+                        src(TIP_ARROW_UP_BASE64)
                     }
                 }
             }
@@ -627,11 +682,94 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.Scroller {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
-            SectionIntro("基础表格", "多个固定示例直接对照，不需要记忆切换前后的样式。", { ctx.currentTheme() })
-            ExampleCard("默认样式", "3 列 × 4 行；默认 1dp 主题色外框与 8dp 圆角，水平分隔线与自适应行高。", { ctx.currentTheme() }) {
+            SectionIntro(
+                "基础表格",
+                "列定义、默认外观、列宽策略、分隔线、圆角、对齐、单列撑满、溢出与单列排序。",
+                { ctx.currentTheme() },
+            )
+            ExampleCard(
+                "默认样式",
+                "开箱默认：zebraStripe=false、lineMode=Grid、cornerRadius=8、rowHeight=0（内容自适应）。",
+                { ctx.currentTheme() },
+            ) {
                 ctx.renderTablePreview(this, ctx.basicColumns, { ctx.users.take(4) }, height = 248f, zebra = { false }, theme = ctx.currentTheme())
             }
-            ExampleCard("分隔线与圆角", "线模式与圆角互不影响；可切换无线 / 仅横线 / 网格 / 自定义。", { ctx.currentTheme() }) {
+            ExampleCard(
+                "斑马纹",
+                "zebraStripe=true 开启隔行底色；颜色来自主题 rowBackgroundAlt。",
+                { ctx.currentTheme() },
+            ) {
+                ctx.renderTablePreview(
+                    this,
+                    ctx.basicColumns,
+                    { ctx.users.take(4) },
+                    height = 248f,
+                    zebra = { true },
+                    theme = ctx.currentTheme(),
+                )
+            }
+            ExampleCard(
+                "单元格超出省略",
+                "默认单行 ellipsis；截断时可触发 overflow。cellLongPress 由使用方接宿主能力（本页接剪贴板复制全文）。",
+                { ctx.currentTheme() },
+            ) {
+                ctx.renderOverflowDemo(this)
+            }
+            ExampleCard(
+                "列宽：固定与弹性",
+                "按列配置、可同表混用：width 非空则固定且优先于 minWidth；width 为空则从 minWidth 起步，按 flex 分剩余 viewport。全部为固定列时剩余区域留空。",
+                { ctx.currentTheme() },
+            ) {
+                View {
+                    attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(8f) }
+                    SegmentOption("固定 width", active = { !ctx.columnWidthFlexible }, theme = { ctx.currentTheme() }) {
+                        ctx.columnWidthFlexible = false
+                    }
+                    SegmentOption("弹性 minWidth+flex", active = { ctx.columnWidthFlexible }, theme = { ctx.currentTheme() }) {
+                        ctx.columnWidthFlexible = true
+                    }
+                }
+                Text {
+                    attr {
+                        text(
+                            if (ctx.columnWidthFlexible) {
+                                "当前：姓名/年龄设 width（固定）；邮箱 width=null，minWidth+flex 参与剩余分配"
+                            } else {
+                                "当前：三列均设 width（固定优先）；无弹性列，剩余 viewport 留空"
+                            },
+                        )
+                        fontSize(11f)
+                        color(Color(ctx.currentTheme().cellTextSecondary))
+                        marginBottom(8f)
+                    }
+                }
+                // remount：切换列定义时重建表格，避免列宽布局残留
+                vif({ ctx.columnWidthFlexible }) {
+                    ctx.renderTablePreview(
+                        this,
+                        ctx.flexibleWidthColumns,
+                        { ctx.users.take(4) },
+                        height = 248f,
+                        theme = ctx.currentTheme(),
+                        fillPreviewWidth = true,
+                    )
+                }
+                vif({ !ctx.columnWidthFlexible }) {
+                    ctx.renderTablePreview(
+                        this,
+                        ctx.fixedWidthColumns,
+                        { ctx.users.take(4) },
+                        height = 248f,
+                        theme = ctx.currentTheme(),
+                        fillPreviewWidth = true,
+                    )
+                }
+            }
+            ExampleCard(
+                "分隔线",
+                "lineMode：None / Horizontal / Grid / Custom。与 cornerRadius 独立。",
+                { ctx.currentTheme() },
+            ) {
                 View {
                     attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(8f) }
                     listOf("无线", "仅横线", "网格", "自定义").forEach { mode ->
@@ -660,6 +798,24 @@ internal class TableBasicDemoPage : BasePager() {
                         }
                     }
                 }
+                vif({ ctx.tableLineModeLabel() to ctx.customLineColor }) {
+                    ctx.renderTablePreview(
+                        this,
+                        ctx.basicColumns,
+                        { ctx.users.take(4) },
+                        height = 248f,
+                        lineMode = { ctx.tableLineMode },
+                        cornerRadius = { TableCornerRadius.Default },
+                        fixedRowHeight = { true },
+                        theme = ctx.currentTheme(),
+                    )
+                }
+            }
+            ExampleCard(
+                "圆角",
+                "cornerRadius：None=0 / Default=8 / Large=12，或任意 dp。与 lineMode 独立。",
+                { ctx.currentTheme() },
+            ) {
                 View {
                     attr { flexDirectionRow(); alignItemsCenter(); marginBottom(8f) }
                     listOf(
@@ -696,25 +852,24 @@ internal class TableBasicDemoPage : BasePager() {
                         }
                     }
                 }
-                vif({
-                    ctx.tableLineModeLabel() to
-                        ctx.formatCornerRadius(ctx.tableCornerRadius) to
-                        ctx.customLineColor
-                }) {
+                vif({ ctx.formatCornerRadius(ctx.tableCornerRadius) }) {
                     ctx.renderTablePreview(
                         this,
                         ctx.basicColumns,
                         { ctx.users.take(4) },
                         height = 248f,
-                        lineMode = { ctx.tableLineMode },
+                        lineMode = { TableLineMode.Grid },
                         cornerRadius = { ctx.tableCornerRadius },
-                        zebra = { true },
                         fixedRowHeight = { true },
                         theme = ctx.currentTheme(),
                     )
                 }
             }
-            ExampleCard("列对齐与单列撑满", "该列配置 width=180，但作为唯一列时会使用 Table 全宽；选择对齐方式观察实时变化。", { ctx.currentTheme() }) {
+            ExampleCard(
+                "列对齐与单列撑满",
+                "仅一个业务列且无自动序号时，列宽覆盖为 Table viewport（忽略自身 width/minWidth/flex）。对齐 Start / Center / End，默认 Start。",
+                { ctx.currentTheme() },
+            ) {
                 View {
                     attr { flexDirectionRow(); marginBottom(8f) }
                     listOf("左对齐", "居中", "右对齐").forEach { alignment ->
@@ -735,7 +890,11 @@ internal class TableBasicDemoPage : BasePager() {
                 }
                 ctx.renderTablePreview(this, listOf(ctx.alignmentColumn), { ctx.users.take(3) }, height = 210f, zebra = { false }, theme = ctx.currentTheme())
             }
-            ExampleCard("普通列与排序列", "姓名是普通列；点击年龄表头依次切换未排序、升序、降序。当前：${ctx.sortingDemoDescription()}", { ctx.currentTheme() }) {
+            ExampleCard(
+                "普通列与排序列",
+                "sortable + sortComparator 挂在 ColumnModel；sortChange 只回写升/降/取消状态。无 comparator 时按 accessor 字符串比较。当前：${ctx.sortingDemoDescription()}",
+                { ctx.currentTheme() },
+            ) {
                 ctx.renderTablePreview(
                     this,
                     ctx.sortingColumns,
@@ -754,9 +913,24 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.View {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
-            SectionIntro("双向滚动", "5 列 × 50 行。横向滚动时表头同步，纵向滚动验证固定表头、滚动控制和轻量加载更多。", { ctx.currentTheme() })
-            SettingSwitch("固定表头", if (ctx.fixedHeaderOn) "表头固定在列表上方" else "表头随内容滚动", ctx.fixedHeaderOn, { ctx.currentTheme() }) {
-                ctx.fixedHeaderOn = it
+            SectionIntro(
+                "双向滚动",
+                "表头纵滚固定（fixedHeader=false 无效）；横滑表头与表体同步。fixedFirstColumn 须显式 width + 固定行高；另含 scrollToTop 与触底加载更多。",
+                { ctx.currentTheme() },
+            )
+            SettingSwitch(
+                "固定列",
+                {
+                    if (ctx.scrollFixedFirstColumn) {
+                        "fixedFirstColumn=true：首列显式 width + rowHeight；横滑时其余列移动"
+                    } else {
+                        "fixedFirstColumn=false：普通横向滚动"
+                    }
+                },
+                { ctx.scrollFixedFirstColumn },
+                { ctx.currentTheme() },
+            ) {
+                ctx.scrollFixedFirstColumn = it
             }
             View {
                 attr { flexDirectionRow(); flexWrap(FlexWrap.WRAP); marginBottom(10f) }
@@ -769,19 +943,37 @@ internal class TableBasicDemoPage : BasePager() {
                     ctx.scrollDemoTableRef?.view?.scrollToTop(animated = true)
                 }
             }
-            ctx.renderTablePreview(
-                this,
-                listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
-                { ctx.users.take(ctx.scrollDemoLimit) },
-                height = null,
-                fixedHeader = { ctx.fixedHeaderOn },
-                fixedRowHeight = { true },
-                theme = ctx.currentTheme(),
-                hasMore = { ctx.scrollDemoLimit < ctx.users.size },
-                loadingMore = { ctx.scrollDemoLoadingMore },
-                onLoadMore = { ctx.loadMoreScrollRows() },
-                tableRef = { ctx.scrollDemoTableRef = it },
-            )
+            // 固定列开/关 remount，避免 pinned 与普通横滚热切换布局残留
+            vif({ ctx.scrollFixedFirstColumn }) {
+                ctx.renderTablePreview(
+                    this,
+                    listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
+                    { ctx.users.take(ctx.scrollDemoLimit) },
+                    height = null,
+                    fixedFirstColumn = { true },
+                    fixedRowHeight = { true },
+                    theme = ctx.currentTheme(),
+                    hasMore = { ctx.scrollDemoLimit < ctx.users.size },
+                    loadingMore = { ctx.scrollDemoLoadingMore },
+                    onLoadMore = { ctx.loadMoreScrollRows() },
+                    tableRef = { ctx.scrollDemoTableRef = it },
+                )
+            }
+            vif({ !ctx.scrollFixedFirstColumn }) {
+                ctx.renderTablePreview(
+                    this,
+                    listOf(ctx.nameColumn, ctx.ageColumn, ctx.wideEmailColumn, ctx.cityColumn, ctx.statusTextColumn),
+                    { ctx.users.take(ctx.scrollDemoLimit) },
+                    height = null,
+                    fixedFirstColumn = { false },
+                    fixedRowHeight = { true },
+                    theme = ctx.currentTheme(),
+                    hasMore = { ctx.scrollDemoLimit < ctx.users.size },
+                    loadingMore = { ctx.scrollDemoLoadingMore },
+                    onLoadMore = { ctx.loadMoreScrollRows() },
+                    tableRef = { ctx.scrollDemoTableRef = it },
+                )
+            }
         }
     }
 
@@ -789,14 +981,18 @@ internal class TableBasicDemoPage : BasePager() {
         val ctx = this
         container.Scroller {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
-            SectionIntro("主题定制", "相同结构使用三套语义色，直接比较而不是切换整页主题。", { ctx.currentTheme() })
-            ExampleCard("Light", "默认浅色语义角色。", { ctx.currentTheme() }) {
+            SectionIntro(
+                "主题定制",
+                "attr.themeColors 覆盖本表配色；内置 Light / Dark / Blue 三套预设，个别颜色用预设.copy(...)。",
+                { ctx.currentTheme() },
+            )
+            ExampleCard("Light", "TableThemeColors.Light：默认浅色预设。", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(this, ctx.columns3, { ctx.users.take(3) }, 210f, theme = TableThemeColors.Light)
             }
-            ExampleCard("Dark", "暗色背景、文字和分隔线保持可读。", { ctx.currentTheme() }) {
+            ExampleCard("Dark", "TableThemeColors.Dark：深色预设。", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(this, ctx.columns3, { ctx.users.take(3) }, 210f, theme = TableThemeColors.Dark)
             }
-            ExampleCard("Blue", "展示使用方整体覆盖语义色。", { ctx.currentTheme() }) {
+            ExampleCard("Blue", "TableThemeColors.Blue：蓝色预设。", { ctx.currentTheme() }) {
                 ctx.renderTablePreview(this, ctx.columns3, { ctx.users.take(3) }, 210f, theme = TableThemeColors.Blue)
             }
         }
@@ -808,10 +1004,14 @@ internal class TableBasicDemoPage : BasePager() {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(20f) }
             SectionIntro(
                 "自定义 renderer",
-                "对照默认文本与使用方传入的 cellRenderer。点击由列上 enableRowClick / enableCellClick 显式控制，与是否配置 renderer 无关。",
+                "cellRenderer 可选；未配置走默认 Text。行/单元格点击由 enableRowClick / enableCellClick 显式控制，与是否配置 renderer 无关。",
                 { ctx.currentTheme() },
             )
-            ExampleCard("默认文本", "未配置 cellRenderer，状态列以普通 Text 展示。", { ctx.currentTheme() }) {
+            ExampleCard(
+                "默认文本",
+                "未配置 cellRenderer：accessor 结果以默认 Text 渲染（fallback）。",
+                { ctx.currentTheme() },
+            ) {
                 ctx.renderTablePreview(
                     this,
                     listOf(
@@ -831,19 +1031,25 @@ internal class TableBasicDemoPage : BasePager() {
             }
             ExampleCard(
                 "传入业务 View",
-                "cellRenderer 传入头像、彩色标签和操作按钮；操作列关闭 row/cell 点击，按钮自行处理。",
+                "cellRenderer 由使用方绘制单元格；自定义内容不自动带 Web title。操作列通常关闭 enableRowClick / enableCellClick，由内部控件自行处理点击。",
                 { ctx.currentTheme() },
             ) {
                 SettingSwitch(
                     "姓名列 enableRowClick",
-                    if (ctx.demoEnableRowClick) "开启：点姓名列走 rowClick" else "关闭：点姓名列不走行点击",
-                    ctx.demoEnableRowClick,
+                    {
+                        if (ctx.demoEnableRowClick) "true：命中该列可触发 rowClick"
+                        else "false：命中该列不走行点击"
+                    },
+                    { ctx.demoEnableRowClick },
                     { ctx.currentTheme() },
                 ) { enabled -> ctx.demoEnableRowClick = enabled }
                 SettingSwitch(
                     "姓名列 enableCellClick",
-                    if (ctx.demoEnableCellClick) "开启：点姓名列优先走 cellClick" else "关闭：不单独发 cellClick",
-                    ctx.demoEnableCellClick,
+                    {
+                        if (ctx.demoEnableCellClick) "true：命中该列优先触发 cellClick"
+                        else "false：不单独发 cellClick"
+                    },
+                    { ctx.demoEnableCellClick },
                     { ctx.currentTheme() },
                 ) { enabled -> ctx.demoEnableCellClick = enabled }
                 ctx.renderTablePreview(
@@ -858,12 +1064,31 @@ internal class TableBasicDemoPage : BasePager() {
                             flex = 1f,
                             enableRowClick = ctx.demoEnableRowClick,
                             enableCellClick = ctx.demoEnableCellClick,
+                            cellRenderer = { user, _ ->
+                                val theme = this@TableBasicDemoPage.currentTheme()
+                                View {
+                                    attr {
+                                        flex(1f)
+                                        justifyContentCenter()
+                                    }
+                                    Text {
+                                        attr {
+                                            text(user.name)
+                                            fontSize(14f)
+                                            color(Color(theme.cellText))
+                                            lines(1)
+                                            textOverFlowTail()
+                                        }
+                                    }
+                                }
+                            },
                         ),
                         ctx.statusTagColumn,
                         ctx.actionColumn,
                     ),
                     { ctx.users.take(3) },
-                    270f,
+                    240f,
+                    fixedRowHeight = { true },
                     theme = ctx.currentTheme(),
                 )
             }
@@ -876,7 +1101,7 @@ internal class TableBasicDemoPage : BasePager() {
             attr { flex(1f); paddingLeft(16f); paddingRight(16f); paddingBottom(16f) }
             SectionIntro(
                 "状态反馈",
-                "切换正常 / 加载中 / 无数据；可开关自定义 Empty、Loading 内容，对照默认状态层。",
+                "loading / empty 由状态层承接；可传 emptyRenderer / loadingRenderer 覆盖默认。loading 期间保留旧内容并降低交互。",
                 { ctx.currentTheme() },
             )
             View {
@@ -893,12 +1118,14 @@ internal class TableBasicDemoPage : BasePager() {
             }
             SettingSwitch(
                 "自定义 Empty / Loading",
-                if (ctx.customStateRendererOn) {
-                    "使用方绘制状态内容；切到「加载中」或「无数据」可见"
-                } else {
-                    "关闭时使用 Table 默认空态图形与文案"
+                {
+                    if (ctx.customStateRendererOn) {
+                        "已配置 emptyRenderer / loadingRenderer"
+                    } else {
+                        "未配置：使用 Table 默认空态 / 加载态"
+                    }
                 },
-                ctx.customStateRendererOn,
+                { ctx.customStateRendererOn },
                 { ctx.currentTheme() },
             ) { enabled ->
                 ctx.customStateRendererOn = enabled
@@ -908,12 +1135,12 @@ internal class TableBasicDemoPage : BasePager() {
                 }
             }
             vif({ ctx.tableState == "正常" }) {
-                ctx.renderTablePreview(this, ctx.columns3, { ctx.users.take(6) }, null, theme = ctx.currentTheme())
+                ctx.renderTablePreview(this, ctx.basicColumns, { ctx.users.take(6) }, null, theme = ctx.currentTheme())
             }
             vif({ ctx.tableState == "加载" }) {
                 ctx.renderTablePreview(
                     this,
-                    ctx.columns3,
+                    ctx.basicColumns,
                     { ctx.users.take(6) },
                     null,
                     loading = { true },
@@ -924,7 +1151,7 @@ internal class TableBasicDemoPage : BasePager() {
             vif({ ctx.tableState == "空" }) {
                 ctx.renderTablePreview(
                     this,
-                    ctx.columns3,
+                    ctx.basicColumns,
                     { emptyList() },
                     null,
                     theme = ctx.currentTheme(),
@@ -934,6 +1161,14 @@ internal class TableBasicDemoPage : BasePager() {
         }
     }
 
+    /**
+     * Showcase 在纵向 Scroller 内时，子 View 默认按内容收缩，Table 拿不到真实容器宽，
+     * flex 列就分不到「剩余空间」。必须走组件官方 [TableAttr.tableWidth]，
+     * 写成页宽减去章节左右 padding（Scroller paddingLeft/Right 各 16）。
+     */
+    private fun previewContentWidth(): Float =
+        (pagerData.pageViewWidth - 32f).coerceAtLeast(200f)
+
     private fun renderTablePreview(
         container: ViewContainer<*, *>,
         columns: List<ColumnModel<User>>,
@@ -941,13 +1176,12 @@ internal class TableBasicDemoPage : BasePager() {
         height: Float?,
         lineMode: () -> TableLineMode = { TableLineMode.Grid },
         cornerRadius: () -> Float = { TableCornerRadius.Default },
-        zebra: () -> Boolean = { true },
+        zebra: () -> Boolean = { false },
         fixedRowHeight: () -> Boolean = { false },
-        fixedHeader: () -> Boolean = { true },
         fixedFirstColumn: () -> Boolean = { false },
         theme: TableThemeColors,
         loading: () -> Boolean = { false },
-        overflowEnabled: () -> Boolean = { true },
+        overflowEnabled: () -> Boolean = { false },
         controlledSortState: () -> TableSortState = { sortState },
         onSortChange: (TableSortState) -> Unit = { state -> sortState = state },
         customStateRenderer: () -> Boolean = { false },
@@ -955,16 +1189,22 @@ internal class TableBasicDemoPage : BasePager() {
         loadingMore: () -> Boolean = { false },
         onLoadMore: (() -> Unit)? = null,
         tableRef: ((ViewRef<TableView<User>>) -> Unit)? = null,
+        /**
+         * true（默认）：设 tableWidth=预览区宽，弹性列才能分到剩余空间；
+         * 全固定列时表框仍满宽，框内右侧可留白。
+         */
+        fillPreviewWidth: Boolean = true,
     ) {
         val ctx = this
+        val previewWidth = ctx.previewContentWidth()
         container.TableView<User> {
             ref {
                 @Suppress("UNCHECKED_CAST")
                 tableRef?.invoke(it as ViewRef<TableView<User>>)
             }
             attr {
-                flex(1f)
-                tableWidth = null
+                // 必须用 tableWidth：body 根节点只认它；单设 ComposeAttr.width 在 Scroller 里常塌成内容宽
+                tableWidth = if (fillPreviewWidth) previewWidth else null
                 if (height == null) flex(1f) else height(height)
                 this.columns = ObservableList(columns.toMutableList())
                 this.data = data()
@@ -978,7 +1218,7 @@ internal class TableBasicDemoPage : BasePager() {
                 rowHeight = if (fixedRowHeight()) 48f else 0f
                 sortState = controlledSortState()
                 autoIndexColumn = false
-                this.fixedHeader = fixedHeader()
+                this.fixedHeader = true
                 this.fixedFirstColumn = fixedFirstColumn()
                 themeColors = theme
                 this.loading = loading()
@@ -1002,6 +1242,12 @@ internal class TableBasicDemoPage : BasePager() {
                 cellClick = { info ->
                     ctx.bridgeModule.toast("单元格点击: ${info.columnKey} / ${info.rowData.name}")
                 }
+                cellLongPress = { info ->
+                    if (info.text.isNotEmpty()) {
+                        ctx.bridgeModule.copyToPasteboard(info.text)
+                        ctx.bridgeModule.toast("已复制")
+                    }
+                }
                 overflowCellClick = { info -> ctx.showOverflowTip(info) }
                 overflowTipDismiss = { ctx.hideOverflowTip() }
                 sortChange = onSortChange
@@ -1017,7 +1263,6 @@ internal class TableBasicDemoPage : BasePager() {
         setTimeout(120) {
             scrollDemoLimit = min(scrollDemoLimit + 8, users.size)
             scrollDemoLoadingMore = false
-            bridgeModule.toast("已加载至 $scrollDemoLimit / ${users.size} 行")
         }
     }
 
@@ -1085,8 +1330,52 @@ internal class TableBasicDemoPage : BasePager() {
         }
     }
 
+    /** 专用溢出演示：浮层锚在表格容器内，坐标相对单元格，避免页面级硬编码偏移。 */
+    private fun renderOverflowDemo(container: ViewContainer<*, *>) {
+        val ctx = this
+        // 姓名/年龄固定 width；邮箱 width=null + minWidth/flex。长邮箱在剩余宽内仍可能截断。
+        val overflowColumns = listOf(
+            ColumnModel<User>(
+                key = "ovName",
+                title = "姓名",
+                accessor = { it.name },
+                width = 72f,
+            ),
+            ColumnModel<User>(
+                key = "ovAge",
+                title = "年龄",
+                accessor = { it.age.toString() },
+                width = 56f,
+            ),
+            ColumnModel<User>(
+                key = "ovEmail",
+                title = "邮箱",
+                accessor = { it.email },
+                minWidth = 120f,
+                flex = 1f,
+            ),
+        )
+        container.View {
+            attr {
+                positionRelative()
+                width(ctx.previewContentWidth())
+                height(248f)
+            }
+            ctx.renderTablePreview(
+                this,
+                overflowColumns,
+                { ctx.users.take(4) },
+                height = 248f,
+                theme = ctx.currentTheme(),
+                overflowEnabled = { true },
+            )
+            ctx.renderOverflowTip(this)
+        }
+    }
+
     private fun renderOverflowTip(container: ViewContainer<*, *>) {
         val ctx = this
+        val tipColor = Color(0xEE222222)
         container.View {
             attr {
                 absolutePositionAllZero()
@@ -1095,17 +1384,42 @@ internal class TableBasicDemoPage : BasePager() {
                 touchEnable(ctx.overflowTipVisible)
             }
             event { click { ctx.hideOverflowTip() } }
+            // 箭头 + 气泡同一绝对锚点；复制改由单元格 cellLongPress，浮层只展示全文
             View {
                 attr {
                     absolutePosition(left = ctx.overflowTipLeft, top = ctx.overflowTipTop)
-                    width(ctx.overflowTipWidth())
-                    padding(8f)
-                    paddingLeft(12f)
-                    paddingRight(12f)
-                    borderRadius(8f)
-                    backgroundColor(Color(0xEE222222))
+                    width(ctx.overflowTipBubbleWidth)
                 }
-                Text { attr { text(ctx.overflowTipText); fontSize(13f); color(Color.WHITE) } }
+                event {
+                    click {
+                        // 消费浮层点击，避免点文字就关
+                    }
+                }
+                Image {
+                    attr {
+                        marginLeft(ctx.overflowTipArrowLeft)
+                        size(TIP_ARROW_WIDTH, TIP_ARROW_HEIGHT)
+                        src(TIP_ARROW_UP_BASE64)
+                    }
+                }
+                View {
+                    attr {
+                        paddingTop(8f)
+                        paddingBottom(8f)
+                        paddingLeft(10f)
+                        paddingRight(10f)
+                        borderRadius(8f)
+                        backgroundColor(tipColor)
+                    }
+                    Text {
+                        attr {
+                            text(ctx.overflowTipText)
+                            fontSize(12f)
+                            lineHeight(17f)
+                            color(Color.WHITE)
+                        }
+                    }
+                }
             }
         }
     }
@@ -1190,12 +1504,12 @@ internal class TableBasicDemoPage : BasePager() {
     }
 
     private fun exampleDescription(): String = when (activeExample) {
-        "基础样式" -> "验证多行多列、行列边框、内边距和任意列对齐"
-        "双向滚动" -> "5 列 × 50 行数据，验证横纵滚动和固定表头"
-        "主题定制" -> "验证表头、边框、行背景等语义颜色可整体覆盖"
-        "自定义渲染" -> "验证单元格 renderer 插槽由使用方绘制内容"
-        "无数据" -> "在内容区显示无数据占位"
-        "加载中" -> "保留旧内容并显示加载遮罩，期间禁止交互"
+        "基础样式" -> "列定义、边框、内边距与列对齐"
+        "双向滚动" -> "表头纵滚固定；横滑同步；可选固定列与触底加载"
+        "主题定制" -> "themeColors 覆盖表头、边框、行背景等配色"
+        "自定义渲染" -> "cellRenderer 插槽；未配置走默认 Text"
+        "无数据" -> "empty 状态层（可 emptyRenderer 覆盖）"
+        "加载中" -> "loading 状态层：保留旧内容并降低交互"
         else -> "选择一个场景查看对应能力"
     }
 
@@ -1242,39 +1556,29 @@ internal class TableBasicDemoPage : BasePager() {
     }
 
     private fun showOverflowTip(info: TableOverflowCellInfo<User>) {
+        // 仅用组件给出的相对 Table 根坐标；浮层须放在 Table 外包 positionRelative 容器内
+        val bubbleWidth = max(info.estimatedCellWidth, 160f).coerceAtMost(280f)
+        val tipLeft = max(0f, info.estimatedCellX)
+        val cellCenter = info.estimatedCellX + info.estimatedCellWidth / 2f
         overflowTipText = info.text
-        overflowTipLeft = overflowTipLeft(info)
-        overflowTipTop = overflowTipTop(info)
-        overflowTipArrowLeft = overflowTipArrowLeft(info, overflowTipLeft)
+        overflowTipBubbleWidth = bubbleWidth
+        overflowTipLeft = tipLeft
+        overflowTipTop = info.estimatedCellY + info.estimatedCellHeight + TIP_GAP
+        overflowTipArrowLeft = min(
+            max(cellCenter - tipLeft - TIP_ARROW_HALF_WIDTH, 8f),
+            bubbleWidth - TIP_ARROW_WIDTH - 8f,
+        )
         overflowTipVisible = true
     }
 
-    private fun overflowTipWidth(): Float = min(320f, pagerData.pageViewWidth - TIP_SCREEN_MARGIN * 2f)
-
-    private fun overflowTipLeft(info: TableOverflowCellInfo<User>): Float {
-        val width = overflowTipWidth()
-        val desiredLeft = TABLE_LEFT + info.estimatedCellX + info.estimatedCellWidth / 2f - width / 2f
-        return min(max(desiredLeft, TIP_SCREEN_MARGIN), pagerData.pageViewWidth - width - TIP_SCREEN_MARGIN)
-    }
-
-    private fun overflowTipTop(info: TableOverflowCellInfo<User>): Float {
-        val cellTop = TABLE_TOP_ESTIMATE + info.estimatedCellY
-        return min(cellTop + info.estimatedCellHeight + TIP_GAP, pagerData.pageViewHeight - TIP_HEIGHT_ESTIMATE - TIP_SCREEN_MARGIN)
-    }
-
-    private fun overflowTipArrowLeft(info: TableOverflowCellInfo<User>, tipLeft: Float): Float {
-        val cellCenter = TABLE_LEFT + info.estimatedCellX + info.estimatedCellWidth / 2f
-        return min(max(cellCenter - tipLeft - TIP_ARROW_HALF_WIDTH, 16f), overflowTipWidth() - TIP_ARROW_WIDTH - 8f)
-    }
-
     companion object {
-        private const val TABLE_LEFT = 16f
-        private const val TABLE_TOP_ESTIMATE = 390f
-        private const val TIP_SCREEN_MARGIN = 16f
-        private const val TIP_HEIGHT_ESTIMATE = 50f
-        private const val TIP_GAP = 6f
-        private const val TIP_ARROW_WIDTH = 16f
-        private const val TIP_ARROW_HALF_WIDTH = 8f
+        /** 气泡与单元格之间的视觉间距（浮层自身 UI，不是页面布局猜测）。 */
+        private const val TIP_GAP = 2f
+        private const val TIP_ARROW_WIDTH = 14f
+        private const val TIP_ARROW_HEIGHT = 7f
+        private const val TIP_ARROW_HALF_WIDTH = 7f
+        private const val TIP_ARROW_UP_BASE64 =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAHCAYAAAA4R3wZAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAA4SURBVChTY2DAA5SUlOTQxQgCJSWlSCUlpXcgGl0OJ0DSBMOENWPRRFgzHk24NROhCVMzCZrgmgGyDjlJ4g18hQAAAABJRU5ErkJggg=="
     }
 
 }
@@ -1372,8 +1676,8 @@ private fun ViewContainer<*, *>.ExampleCard(
 
 private fun ViewContainer<*, *>.SettingSwitch(
     title: String,
-    description: String,
-    checked: Boolean,
+    description: () -> String,
+    checked: () -> Boolean,
     theme: () -> TableThemeColors,
     onChange: (Boolean) -> Unit,
 ) {
@@ -1387,12 +1691,19 @@ private fun ViewContainer<*, *>.SettingSwitch(
         View {
             attr { flex(1f); marginRight(12f) }
             Text { attr { text(title); fontSize(13f); color(Color(theme().cellText)) } }
-            Text { attr { text(description); fontSize(11f); color(Color(theme().cellTextSecondary)); marginTop(2f) } }
+            Text {
+                attr {
+                    text(description())
+                    fontSize(11f)
+                    color(Color(theme().cellTextSecondary))
+                    marginTop(2f)
+                }
+            }
         }
         Switch {
             attr {
                 size(40f, 24f)
-                isOn(checked)
+                isOn(checked())
                 onColor(Color(theme().actionText))
                 unOnColor(Color(theme().gridLine))
             }

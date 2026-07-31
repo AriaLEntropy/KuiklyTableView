@@ -1,8 +1,8 @@
 package com.arialentropy.kuiklytable
 
 import com.tencent.kuikly.core.base.*
+import com.tencent.kuikly.core.base.event.layoutFrameDidChange
 import com.tencent.kuikly.core.directives.vforIndex
-import com.tencent.kuikly.core.directives.vforLazy
 import com.tencent.kuikly.core.directives.vif
 import com.tencent.kuikly.core.layout.Frame
 import com.tencent.kuikly.core.reactive.collection.ObservableList
@@ -22,6 +22,12 @@ import kotlin.math.max
 class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     private var displayRows: ObservableList<TableDisplayRow<T>> by observableList()
+    private var windowRows: ObservableList<TableDisplayRow<T>> by observableList()
+    private var windowTopSpacer by observable(0f)
+    private var windowBottomSpacer by observable(0f)
+    private var windowStart = 0
+    private var listViewportHeight = 0f
+    private var listScrollY = 0f
     private var viewportWidth by observable(0f)
     /** 非 observable：避免横滑每帧触发可见行 ReactiveObserver 重跑 attr。 */
     private var horizontalScrollX = 0f
@@ -40,7 +46,11 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
     override fun createEvent(): TableEvent<T> = TableEvent()
 
     fun scrollToTop(animated: Boolean = false) {
+        listScrollY = 0f
         setVerticalContentOffset(0f, animated)
+        if (attr.rowRenderMode is TableRowRenderMode.Windowed) {
+            refreshWindowedSlice()
+        }
     }
 
     /** 供 DataTable 等外层在管线 / 配置变化时同步到 Table。 */
@@ -105,14 +115,25 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
 
     override fun layoutFrameDidChanged(frame: Frame) {
         super.layoutFrameDidChanged(frame)
-        if (frame.width > 0f && frame.width != viewportWidth) {
-            viewportWidth = frame.width
+        if (frame.width <= 0f) return
+        // 已配置 tableWidth 时，避免 Scroller 内首帧/塌缩测量把视口写回「内容自然宽」
+        val configured = attr.tableWidth
+        val next = if (configured != null && configured > 0f && frame.width + 0.5f < configured) {
+            configured
+        } else {
+            frame.width
+        }
+        if (next != viewportWidth) {
+            viewportWidth = next
         }
     }
 
     override fun body(): ViewBuilder {
         val ctx = this
         val tableAttr = ctx.attr
+        // Scroller 等父级未给出拉伸宽时，layoutFrame 可能先落到内容自然宽；
+        // 若业务配置了 tableWidth，先用它种下视口，弹性列首帧就能吃到剩余宽。
+        seedViewportFromTableWidth()
         return {
             View {
                 attr {
@@ -136,13 +157,13 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     }
                     // pinnedMode 为开时仍可能因单列/缺 width 而无效；以 resolved fixed 为准
                     vif({
-                        ctx.viewportWidth > 0f &&
+                        ctx.effectiveViewportWidth() > 0f &&
                             (!ctx.pinnedMode || ctx.resolvedColumnLayout().fixed.isEmpty())
                     }) {
                         ctx.renderPlainTableLayout(this, ctx.resolvedColumnLayout())
                     }
                     vif({
-                        ctx.viewportWidth > 0f &&
+                        ctx.effectiveViewportWidth() > 0f &&
                             ctx.pinnedMode &&
                             ctx.resolvedColumnLayout().fixed.isNotEmpty()
                     }) {
@@ -187,10 +208,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
             }
             View {
                 attr { width(layout.contentWidth) }
-                if (tableAttr.fixedHeader) {
-                    ctx.renderHeaderRow(this, layout)
-                    ctx.renderHeaderDivider(this)
-                }
+                ctx.renderHeaderRow(this, layout)
+                ctx.renderHeaderDivider(this)
                 ctx.renderBodyRows(this, layout)
             }
         }
@@ -216,10 +235,8 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 flex(1f)
                 flexDirectionColumn()
             }
-            if (tableAttr.fixedHeader) {
-                ctx.renderPinnedHeaderRow(this, layout, scrollableWidth)
-                ctx.renderHeaderDivider(this)
-            }
+            ctx.renderPinnedHeaderRow(this, layout, scrollableWidth)
+            ctx.renderHeaderDivider(this)
             ctx.renderPinnedBodyScroller(this, layout, scrollableWidth)
         }
     }
@@ -235,13 +252,13 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 flexDirectionRow()
                 alignItemsCenter()
                 width(ctx.effectiveViewportWidth())
-                height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                height(TableHeaderMetrics.resolvedHeight(ctx.attr.headerStyle))
                 backgroundColor(Color(ctx.attr.themeColors.headerBackground))
             }
             View {
                 attr {
                     width(layout.fixedWidth)
-                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                    height(TableHeaderMetrics.resolvedHeight(ctx.attr.headerStyle))
                     backgroundColor(Color(ctx.attr.themeColors.headerBackground))
                     overflow(true)
                     zIndex(2)
@@ -260,7 +277,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 attr {
                     flex(1f)
                     flexDirectionRow()
-                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
+                    height(TableHeaderMetrics.resolvedHeight(ctx.attr.headerStyle))
                     bouncesEnable(false)
                     showScrollerIndicator(true)
                 }
@@ -336,15 +353,14 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
             }
             event {
-                scroll { params ->
+                scroll(sync = true) { params ->
                     ctx.event.overflowTipDismiss?.invoke()
-                    ctx.maybeTriggerLoadMore(params)
+                    ctx.onBodyListScroll(params)
                 }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
-            }
-            if (!tableAttr.fixedHeader) {
-                ctx.renderPinnedInListHeaderRow(this, layout, scrollableWidth)
-                ctx.renderHeaderDivider(this)
+                layoutFrameDidChange { frame ->
+                    ctx.onBodyListViewportChanged(frame.height)
+                }
             }
             vif({ ctx.displayRows.isEmpty() }) {
                 ctx.renderEmptyPlaceholder(this, width = layout.contentWidth)
@@ -361,7 +377,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                     require(!tableAttr.fixedFirstColumn) {
                         "TableRowRenderMode.Windowed does not support fixed columns"
                     }
-                    listView.vforLazy({ ctx.displayRows }, renderMode.maxRenderedRows) { row, _, _ ->
+                    ctx.renderWindowedRowLoop(listView) { row ->
                         View {
                             ctx.renderPinnedBodyRow(this, row, layout, scrollableWidth)
                         }
@@ -372,62 +388,7 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
-    /** 表头随内容纵滚时：与表体同行结构，固定区走 +scrollX，不再嵌套独立 H-Scroller。 */
-    private fun renderPinnedInListHeaderRow(
-        container: ViewContainer<*, *>,
-        layout: TableResolvedColumnLayout<T>,
-        scrollableWidth: Float,
-    ) {
-        val ctx = this
-        container.View {
-            attr {
-                flexDirectionRow()
-                width(layout.contentWidth)
-                height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
-                backgroundColor(Color(ctx.attr.themeColors.headerBackground))
-            }
-            View {
-                ref {
-                    ctx.registerPinnedFixedContent(it)
-                }
-                attr {
-                    flexDirectionRow()
-                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
-                    zIndex(2)
-                    transform(
-                        translate = Translate(
-                            percentageX = ctx.pinnedFixedTranslatePercentage(ctx.horizontalScrollX),
-                            percentageY = 0f,
-                        ),
-                    )
-                }
-                View {
-                    attr {
-                        width(layout.fixedWidth)
-                        height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
-                        backgroundColor(Color(ctx.attr.themeColors.headerBackground))
-                        overflow(true)
-                    }
-                    TableHeaderRowView<T> {
-                        attr { ctx.applyHeaderRowAttr(this, layout.fixed) }
-                        event { columnClick = { ctx.toggleSort(it) } }
-                    }
-                }
-                ctx.renderFrozenColumnDivider(this)
-            }
-            View {
-                attr {
-                    width(scrollableWidth)
-                    height(ctx.attr.headerStyle.height.coerceAtLeast(44f))
-                    flexDirectionRow()
-                }
-                TableHeaderRowView<T> {
-                    attr { ctx.applyHeaderRowAttr(this, layout.scrollable) }
-                    event { columnClick = { ctx.toggleSort(it) } }
-                }
-            }
-        }
-    }
+    /** 表头随内容纵滚路径已移除：产品约定表头不参与纵滚。 */
 
     private fun renderPinnedBodyRow(
         container: ViewContainer<*, *>,
@@ -559,15 +520,14 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 backgroundColor(Color(tableAttr.themeColors.rowBackground))
             }
             event {
-                scroll { params ->
+                scroll(sync = true) { params ->
                     ctx.event.overflowTipDismiss?.invoke()
-                    ctx.maybeTriggerLoadMore(params)
+                    ctx.onBodyListScroll(params)
                 }
                 dragBegin { ctx.event.overflowTipDismiss?.invoke() }
-            }
-            if (!tableAttr.fixedHeader) {
-                ctx.renderHeaderRow(this, layout, region)
-                ctx.renderHeaderDivider(this)
+                layoutFrameDidChange { frame ->
+                    ctx.onBodyListViewportChanged(frame.height)
+                }
             }
             vif({ ctx.displayRows.isEmpty() }) {
                 ctx.renderEmptyPlaceholder(this, width = layout.contentWidth)
@@ -593,9 +553,33 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 require(!attr.fixedFirstColumn) {
                     "TableRowRenderMode.Windowed does not support fixed columns"
                 }
-                listView.vforLazy({ displayRows }, renderMode.maxRenderedRows) { row, _, _ ->
+                ctx.renderWindowedRowLoop(listView) { row ->
                     View { ctx.renderTableRowWrapper(this, row, layout, region) }
                 }
+            }
+        }
+    }
+
+    private fun renderWindowedRowLoop(
+        listView: ListView<*, *>,
+        rowContent: ViewContainer<*, *>.(TableDisplayRow<T>) -> Unit,
+    ) {
+        val ctx = this
+        // Seed slice before first layoutFrame / scroll so the initial paint is not empty.
+        ctx.refreshWindowedSlice()
+        listView.View {
+            attr {
+                height(ctx.windowTopSpacer)
+                touchEnable(false)
+            }
+        }
+        listView.vforIndex({ ctx.windowRows }) { row, _, _ ->
+            this.rowContent(row)
+        }
+        listView.View {
+            attr {
+                height(ctx.windowBottomSpacer)
+                touchEnable(false)
             }
         }
     }
@@ -638,6 +622,68 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         ) {
             displayRows = ObservableList(rows.toMutableList())
             syncLoadMoreTriggerState(previousRows, rows)
+            if (attr.rowRenderMode is TableRowRenderMode.Windowed) {
+                // Keep scrollY; recompute slice so sort/filter stay aligned with current offset.
+                refreshWindowedSlice(forceRowSync = true)
+            }
+        }
+    }
+
+    private fun onBodyListScroll(params: ScrollParams) {
+        listScrollY = params.offsetY
+        if (attr.rowRenderMode is TableRowRenderMode.Windowed) {
+            refreshWindowedSlice()
+        }
+        maybeTriggerLoadMore(params)
+    }
+
+    private fun onBodyListViewportChanged(height: Float) {
+        if (height <= 0f || height == listViewportHeight) return
+        listViewportHeight = height
+        if (attr.rowRenderMode is TableRowRenderMode.Windowed) {
+            refreshWindowedSlice()
+        }
+    }
+
+    private fun listContentLeadingHeight(): Float = 0f
+
+    /**
+     * With correct spacers, row N always sits at `N * rowStride`, so [listScrollY] already maps to
+     * the right index. Only mutate window state when the slice actually moves — replacing the
+     * ObservableList every scroll frame recreates ~N row trees and GC-stalls into a blank viewport.
+     */
+    private fun refreshWindowedSlice(forceRowSync: Boolean = false) {
+        val mode = attr.rowRenderMode as? TableRowRenderMode.Windowed ?: return
+        val metrics = TableWindowPipeline.computeWindow(
+            scrollY = listScrollY,
+            viewportHeight = listViewportHeight,
+            totalRows = displayRows.size,
+            rowStride = estimatedRowScrollHeight(),
+            maxRenderedRows = mode.maxRenderedRows,
+            contentLeading = listContentLeadingHeight(),
+        )
+        if (windowTopSpacer != metrics.topSpacer) {
+            windowTopSpacer = metrics.topSpacer
+        }
+        if (windowBottomSpacer != metrics.bottomSpacer) {
+            windowBottomSpacer = metrics.bottomSpacer
+        }
+        val sliceMoved = metrics.start != windowStart || metrics.count != windowRows.size
+        windowStart = metrics.start
+        if (forceRowSync || sliceMoved) {
+            syncWindowRows(metrics.start, metrics.count)
+        }
+    }
+
+    private fun syncWindowRows(start: Int, count: Int) {
+        val end = (start + count).coerceAtMost(displayRows.size)
+        val slice = if (count <= 0 || start >= displayRows.size || start >= end) {
+            emptyList()
+        } else {
+            displayRows.subList(start, end).toList()
+        }
+        windowRows.diffUpdate(slice) { old, new ->
+            old.key == new.key && old.displayIndex == new.displayIndex && old.item === new.item
         }
     }
 
@@ -661,10 +707,17 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
                 themeColors = ctx.attr.themeColors
                 enableOverflowCellClick = ctx.attr.enableOverflowCellClick
                 selectedRowKeys = ctx.attr.selectedRowKeys
+                bodyOriginY = TableHeaderMetrics.blockHeight(
+                    style = ctx.attr.headerStyle,
+                    lineMode = ctx.attr.lineMode,
+                    theme = ctx.attr.themeColors,
+                )
+                tableRoot = ctx
             }
             event {
                 rowClick = { ctx.event.rowClick?.invoke(it) }
                 cellClick = { ctx.event.cellClick?.invoke(it) }
+                cellLongPress = { ctx.event.cellLongPress?.invoke(it) }
                 overflowCellClick = { ctx.event.overflowCellClick?.invoke(it) }
             }
         }
@@ -746,8 +799,22 @@ class TableView<T> : ComposeView<TableAttr<T>, TableEvent<T>>() {
         }
     }
 
-    private fun effectiveViewportWidth(): Float = if (viewportWidth > 0f) viewportWidth else {
-        TableColumnLayoutResolver.naturalWidth(attr.columns, attr.autoIndexColumn, attr.indexColumnWidth)
+    private fun seedViewportFromTableWidth() {
+        val configured = attr.tableWidth ?: return
+        if (configured > 0f && viewportWidth <= 0f) {
+            viewportWidth = configured
+        }
+    }
+
+    private fun effectiveViewportWidth(): Float {
+        if (viewportWidth > 0f) return viewportWidth
+        val configured = attr.tableWidth
+        if (configured != null && configured > 0f) return configured
+        return TableColumnLayoutResolver.naturalWidth(
+            attr.columns,
+            attr.autoIndexColumn,
+            attr.indexColumnWidth,
+        )
     }
 
     private fun resolvedColumnLayout(): TableResolvedColumnLayout<T> = TableColumnLayoutResolver.resolve(

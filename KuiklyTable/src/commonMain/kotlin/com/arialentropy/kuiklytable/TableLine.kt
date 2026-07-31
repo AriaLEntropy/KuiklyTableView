@@ -46,8 +46,21 @@ sealed class TableLineMode {
 
 internal fun TableThemeColors.effectiveDividerColor(): Long = dividerColor ?: gridLine
 
+/**
+ * 固定列右侧分隔色。未显式设 [frozenDividerColor] 时，在普通分隔色上略加深（保持色相），
+ * 避免与 Grid 列线糊成一条。
+ */
 internal fun TableThemeColors.effectiveFrozenDividerColor(): Long =
-    frozenDividerColor ?: effectiveDividerColor()
+    frozenDividerColor ?: darkenArgb(effectiveDividerColor(), factor = 0.72f)
+
+/** 保持 alpha，将 RGB 按 [factor]（0~1）压暗。 */
+internal fun darkenArgb(argb: Long, factor: Float): Long {
+    val a = (argb ushr 24) and 0xFF
+    val r = (((argb ushr 16) and 0xFF) * factor).toInt().coerceIn(0, 255)
+    val g = (((argb ushr 8) and 0xFF) * factor).toInt().coerceIn(0, 255)
+    val b = ((argb and 0xFF) * factor).toInt().coerceIn(0, 255)
+    return (a shl 24) or (r.toLong() shl 16) or (g.toLong() shl 8) or b.toLong()
+}
 
 internal fun TableLineMode.resolve(theme: TableThemeColors): TableLineStyle {
     val hair = TableStroke(theme.effectiveDividerColor(), 1f)

@@ -14,10 +14,10 @@
 
 ## 组件族
 
-| 入口 | 定位 | Showcase | 状态 |
-| --- | --- | --- | --- |
-| `TableView` / KuiklyTable | 基础展示、布局、分隔线、滚动、固定表头/左固定列、主题、renderer | `table_basic`（分章节验证） | 已交付 |
-| `DataTableView` / KuiklyDataTable | **拥有 KuiklyTable 全部能力**，叠加行选择、全选/半选、筛选与客户端分页 | `table_data`（数据交互 / 大量数据 / 接入关系） | 已交付：行选择、筛选、客户端分页 |
+| 入口 | 定位 | Showcase |
+| --- | --- | --- |
+| `TableView` / KuiklyTable | 基础展示、布局、分隔线、横纵滚动（表头纵滚固定）/左固定列、主题、renderer | `table_basic`（分章节验证） |
+| `DataTableView` / KuiklyDataTable | **拥有 KuiklyTable 全部能力**，叠加行选择、全选/半选、筛选与客户端分页 | `table_data`（数据交互 / 大量数据 / 接入关系） |
 
 `KuiklyDataTable` 是 `KuiklyTable` 的组合封装（Kuikly 组合组件）：排序、主题、固定列、自定义渲染、虚拟滚动等 KuiklyTable 能力在 DataTable 上同样可用；`DataTableAttr` / `DataTableEvent` 继承 `TableAttr` / `TableEvent`，只新增独有属性与事件。
 
@@ -25,7 +25,7 @@
 
 | 基础表格（默认网格线） | DataTable 行选择 | 客户端分页 |
 | :---: | :---: | :---: |
-| <img src="assets/table_showcase_basic.png" alt="基础表格样式" width="280"> | <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页" width="280"> |
+| <img src="assets/table_showcase_base.png" alt="基础表格样式" width="280"> | <img src="assets/table_datatable_selection.png" alt="DataTable 行选择高亮" width="280"> | <img src="assets/table_datatable_pagination.png" alt="客户端分页" width="280"> |
 
 更多效果（主题、自定义渲染、状态、排序三态、虚拟滚动、筛选）与交互录屏见[文档站](https://arialentropy.github.io/KuiklyTableView/site/)。
 
@@ -34,8 +34,8 @@
 | 类别 | 能力 |
 | --- | --- |
 | 基础结构 | `TableView` / `ColumnModel`；固定列宽与弹性 `minWidth + flex`；列对齐默认 `Start` |
-| 滚动 | 横纵双向滚动；可选固定表头；左侧固定列（单 List，需固定行高） |
-| 样式与主题 | 默认网格线 + 8dp 圆角（`lineMode` 可切可自定义）；斑马纹、行高、内边距；Light / Dark 预设 + 语义色覆盖 |
+| 滚动 | 横纵双向滚动（表头纵滚固定、横滑同步）；左侧固定列（单 List，需固定行高） |
+| 样式与主题 | 默认网格线 + 8dp 圆角（`lineMode` 可切可自定义）；斑马纹默认关；行高、内边距；Light / Dark / Blue 预设，可用 `copy` 覆盖个别语义色 |
 | 自定义渲染 | `cellRenderer` / `headerRenderer`，未配置回退默认文本 |
 | 交互 | 表头三态排序、行/单元格点击、截断溢出点击、回顶 |
 | 状态 | 加载中 / 空数据（可自定义）；`loadMore` 触底回调 |
@@ -88,20 +88,27 @@ TableView<User> {
         columns.addAll(
             listOf(
                 ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f),
-                ColumnModel(key = "age", title = "年龄", accessor = { it.age.toString() }, width = 60f, sortable = true),
+                ColumnModel(
+                    key = "age",
+                    title = "年龄",
+                    accessor = { it.age.toString() },
+                    width = 60f,
+                    sortable = true,
+                    sortComparator = compareBy { it.age }, // 规则在列上；勿只靠 accessor 字符串
+                ),
                 ColumnModel(key = "email", title = "邮箱", accessor = { it.email }, minWidth = 140f, flex = 2f),
             )
         )
         data = users
         rowKey = { it.id }
-        zebraStripe = true
-        fixedHeader = true
+        // zebraStripe 默认 false；隔行变色设 true
+        // 表头纵滚固定（fixedHeader=false 无效）
         // lineMode 默认 TableLineMode.Grid：外框 + 行线 + 列竖线
     }
     event {
         rowClick = { user -> /* 行点击 */ }
         cellClick = { info -> /* 单元格点击 */ }
-        sortChange = { state -> /* 排序变化 */ }
+        sortChange = { state -> /* 仅 columnKey + 方向；比较器见列 sortComparator */ }
     }
 }
 ```
@@ -137,7 +144,7 @@ DataTableView<User> {
 
 **https://arialentropy.github.io/KuiklyTableView/site/**
 
-涵盖：基础表格、列宽与对齐、排序、滚动、固定表头、样式主题、行高亮、自定义单元格 / 表头、超出省略、分隔线与圆角、固定列、加载状态、空表格、触底加载、虚拟滚动、行选择、筛选、分页，以及 `TableAttr` / `TableEvent` / `ColumnModel` / `DataTableAttr` / `DataTableEvent` 完整 API 表格。
+涵盖：基础表格、列宽与对齐、排序、横纵滚动、样式主题、斑马纹、自定义单元格 / 表头、超出省略、分隔线、圆角、固定列、加载状态、空表格、触底加载、虚拟滚动、行选择、筛选、分页，以及 `TableAttr` / `TableEvent` / `ColumnModel` / `DataTableAttr` / `DataTableEvent` 完整 API 表格。
 
 文档源码在 `site/index.html`（单文件，GitHub Pages 托管）。
 
@@ -149,8 +156,8 @@ DataTableView<User> {
 | --- | --- |
 | `columns` / `data` / `rowKey` | 列定义 / 数据源 / 稳定行标识 |
 | `themeColors` | 语义色；预设 `Light` / `Dark` / `Blue`，可 `copy` 覆盖 |
-| `lineMode` / `cornerRadius` | 分隔线（默认 `Grid`）/ 圆角（默认 8dp） |
-| `fixedHeader` / `fixedFirstColumn` | 固定表头（默认开）/ 左侧固定列 |
+| `lineMode` / `cornerRadius` / `zebraStripe` | 分隔线（默认 `Grid`）/ 圆角（默认 8dp）/ 斑马纹（默认关） |
+| `fixedHeader` / `fixedFirstColumn` | 纵滚表头固定（`false` 无效）/ 左侧固定列 |
 | `rowRenderMode` | `Standard` / `Windowed(n)` 虚拟滚动（需固定 `rowHeight`） |
 | `loading` / `emptyText` / `hasMore` / `loadingMore` | 状态与加载更多 |
 | `enableRowSelection` / `selectedKeys` | DataTable 行选择与受控选中 |
@@ -162,7 +169,7 @@ DataTableView<User> {
 | 事件 | 说明 |
 | --- | --- |
 | `rowClick` / `cellClick` / `sortChange` | 行 / 单元格点击、排序变化 |
-| `overflowCellClick` / `loadMore` | 截断文本点击、触底加载更多 |
+| `cellLongPress` / `overflowCellClick` / `loadMore` | 单元格长按（含完整文案）、截断文本点击、触底加载更多 |
 | `selectionChange` / `pageChange` / `pageSizeChange` | DataTable 选择与分页回调 |
 
 ## 示例工程
@@ -170,7 +177,7 @@ DataTableView<User> {
 1. Android Studio 打开本仓库
 2. 运行 `androidApp`
 3. 默认进入 `table_home`；再进入：
-   - `table_basic`：按章节（基础 / 滚动 / 主题 / 自定义 / 状态）对照验证
+   - `table_basic`：基础 / 滚动 / 主题 / 自定义 / 状态对照验证
    - `table_data`：选择、筛选、分页；「大量数据」可开关虚拟滚动（3000 行 Windowed）
    - `table_data`：配置区分「数据交互 / 大量数据 / 接入关系」页签，表格占剩余高度
 

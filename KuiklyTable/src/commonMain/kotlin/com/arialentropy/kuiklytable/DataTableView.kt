@@ -166,6 +166,7 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
                 }
                 overflowCellClick = ctx.event.overflowCellClick
                 overflowTipDismiss = ctx.event.overflowTipDismiss
+                cellLongPress = ctx.event.cellLongPress
                 sortChange = { state ->
                     ctx.attr.sortState = state
                     ctx.event.sortChange?.invoke(state)
@@ -219,9 +220,12 @@ class DataTableView<T> : ComposeView<DataTableAttr<T>, DataTableEvent<T>>() {
                     ctx.pageSizeMenuOpen = !ctx.pageSizeMenuOpen
                 }
                 vif({ ctx.pageSizeMenuOpen }) {
+                    val optionCount = ctx.attr.pageSizeOptions.size.coerceAtLeast(1)
+                    val menuHeight = 8f + optionCount * 34f
                     View {
                         attr {
-                            absolutePosition(left = 0f, top = 46f)
+                            // 向上展开，避免贴底被系统导航栏裁切
+                            absolutePosition(left = 0f, top = -(menuHeight + 4f))
                             zIndex(20)
                             borderRadius(10f)
                             backgroundColor(Color(theme.cardBackground))

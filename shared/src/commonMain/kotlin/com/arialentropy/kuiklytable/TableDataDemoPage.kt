@@ -60,7 +60,6 @@ internal class TableDataDemoPage : BasePager() {
     private var enableRowSelection by observable(true)
     private var enablePagination by observable(true)
     private var enableWindowed by observable(false)
-    private var fixedHeader by observable(true)
     private var fixedFirstColumn by observable(false)
     private var pageIndex by observable(0)
     private var pageSize by observable(10)
@@ -112,7 +111,7 @@ internal class TableDataDemoPage : BasePager() {
                 Text {
                     attr {
                         marginTop(4f)
-                        text("选择、筛选、分页是数据层；虚拟滚动是视图层。两者可组合，通过 rowKey 保持交互状态。")
+                        text("行选择 / 筛选 / 分页属数据层；rowRenderMode 属视图层。二者正交，交互状态经 rowKey 保持。")
                         fontSize(12f)
                         color(Color(ctx.pageChrome.cellTextSecondary))
                         lines(2)
@@ -151,15 +150,21 @@ internal class TableDataDemoPage : BasePager() {
                                     ctx.fixedFirstColumn = false
                                     ctx.pageIndex = 0
                                 }
+                                // 虚拟滚动演示默认关分页，避免 GIF/截图被分页栏干扰
+                                ctx.enablePagination = false
                                 ctx.activePanel = panel
                                 ctx.lastEvent =
-                                    "大量数据：${LARGE_ROW_COUNT} 行 + Windowed($VIRTUAL_SCROLL_WINDOW)"
+                                    "大量数据：${LARGE_ROW_COUNT} 行 + Windowed($VIRTUAL_SCROLL_WINDOW)，分页已关"
                             } else {
                                 // 先切页签（data 回落到 100 行），再关 Windowed
                                 ctx.activePanel = panel
                                 if (ctx.enableWindowed) {
                                     ctx.enableWindowed = false
                                     ctx.lastEvent = "已回到数据交互数据集（$DEMO_ROW_COUNT 行）"
+                                }
+                                if (panel == "数据交互" && !ctx.enablePagination) {
+                                    ctx.enablePagination = true
+                                    ctx.pageIndex = 0
                                 }
                             }
                         }
@@ -214,8 +219,8 @@ internal class TableDataDemoPage : BasePager() {
                     ctx.users
                 }
                 rowKey = { it.id }
-                zebraStripe = true
-                fixedHeader = ctx.fixedHeader
+                zebraStripe = false
+                fixedHeader = true
                 // Windowed 需要固定行高；普通模式也固定 48，便于与固定列组合演示
                 rowHeight = 48f
                 fixedFirstColumn = if (windowed) false else ctx.fixedFirstColumn
@@ -232,6 +237,10 @@ internal class TableDataDemoPage : BasePager() {
                         accessor = { it.name },
                         width = 96f,
                         sortable = true,
+                        // 展示「员工N」；按编号数值排，避免字符串「员工10」插在「员工2」前
+                        sortComparator = compareBy {
+                            it.id.removePrefix("u").toIntOrNull() ?: 0
+                        },
                     ),
                 )
                 columns.add(
@@ -338,7 +347,7 @@ internal class TableDataDemoPage : BasePager() {
                 sortChange = { state ->
                     ctx.sortState = state
                     ctx.lastEvent =
-                        "sortChange: ${state.columnKey ?: "-"}；选中仍为 ${ctx.selectedKeys.joinToString()}"
+                        "sortChange 仅状态: ${state.columnKey ?: "-"} / ${state.direction}（规则在列 sortComparator）"
                 }
                 pageChange = { index ->
                     ctx.pageIndex = index
@@ -361,9 +370,9 @@ internal class TableDataDemoPage : BasePager() {
                 title = "行选择",
                 description = {
                     if (ctx.enableRowSelection) {
-                        "表头复选框：未选 / 半选 / 全选；排序后 rowKey 保持"
+                        "enableRowSelection=true：注入选择列；表头未选/半选/全选；选中态经 rowKey 跨排序保持"
                     } else {
-                        "关闭后无选择列、清空高亮"
+                        "enableRowSelection=false：无选择列，清空 selectedKeys"
                     }
                 },
                 checked = { ctx.enableRowSelection },
@@ -377,9 +386,9 @@ internal class TableDataDemoPage : BasePager() {
                 title = "客户端分页",
                 description = {
                     if (ctx.enablePagination) {
-                        "共 $DEMO_ROW_COUNT 行，按 pageSize 切片；关闭后展示筛选后全量"
+                        "enablePagination=true：按 pageIndex / pageSize 切片展示"
                     } else {
-                        "已关闭：展示筛选后全量行"
+                        "enablePagination=false：展示 filterPredicate 后的全量行"
                     }
                 },
                 checked = { ctx.enablePagination },
@@ -417,7 +426,7 @@ internal class TableDataDemoPage : BasePager() {
         container.apply {
             DataGuideText(
                 "大量数据",
-                "用 ${LARGE_ROW_COUNT} 行验证虚拟滚动；筛选/分页仍可开关。开启后只挂载窗口内行节点。",
+                "rowRenderMode=Windowed(n)：自研切片+spacer 限制挂载行节点；需固定 rowHeight，不与 fixedFirstColumn 组合；创建后勿热切换。分页与窗口正交。",
                 ctx.pageChrome,
             )
             configLabel("虚拟滚动", ctx)
@@ -425,9 +434,9 @@ internal class TableDataDemoPage : BasePager() {
                 title = "虚拟滚动",
                 description = {
                     if (ctx.enableWindowed) {
-                        "当前：${LARGE_ROW_COUNT} 行全量在内存，只挂载约 $VIRTUAL_SCROLL_WINDOW 行节点"
+                        "Windowed($VIRTUAL_SCROLL_WINDOW)：displayRows 仍全量在内存，仅限制 DSL 挂载行数"
                     } else {
-                        "大量数据页须保持开启；关闭后 Standard 会为 ${LARGE_ROW_COUNT} 行逐行建节点并可能崩溃"
+                        "Standard：按 displayRows 全量建 DSL 节点（本页大数据集须保持 Windowed）"
                     }
                 },
                 checked = { ctx.enableWindowed },
@@ -450,23 +459,12 @@ internal class TableDataDemoPage : BasePager() {
             }
             configLabel("滚动组合", ctx)
             DataSettingSwitch(
-                title = "固定表头",
-                description = {
-                    if (ctx.fixedHeader) "表头固定在列表上方" else "表头随内容滚动"
-                },
-                checked = { ctx.fixedHeader },
-                chrome = ctx.pageChrome,
-            ) { on ->
-                ctx.fixedHeader = on
-                ctx.lastEvent = if (on) "已固定表头" else "表头随内容滚动"
-            }
-            DataSettingSwitch(
                 title = "固定列",
                 description = {
                     when {
-                        ctx.enableWindowed -> "虚拟滚动开启时不可用"
-                        ctx.fixedFirstColumn -> "已固定选择列和首个业务列"
-                        else -> "关闭后普通横向滚动"
+                        ctx.enableWindowed -> "Windowed 与 fixedFirstColumn 互斥"
+                        ctx.fixedFirstColumn -> "fixedFirstColumn=true：固定选择列 + 首个业务列（须显式 width）"
+                        else -> "fixedFirstColumn=false：普通横向滚动"
                     }
                 },
                 checked = { ctx.fixedFirstColumn },
@@ -480,6 +478,23 @@ internal class TableDataDemoPage : BasePager() {
                     ctx.lastEvent =
                         if (on) "已固定选择列和首个业务列" else "已恢复普通横向滚动"
                 }
+            }
+            configLabel("分页（可选）", ctx)
+            DataSettingSwitch(
+                title = "客户端分页",
+                description = {
+                    if (ctx.enablePagination) {
+                        "enablePagination=true：先 filter，再按 pageSize 切片（与 Windowed 正交）"
+                    } else {
+                        "enablePagination=false：Windowed 在筛选后的全量 displayRows 上滑动窗口"
+                    }
+                },
+                checked = { ctx.enablePagination },
+                chrome = ctx.pageChrome,
+            ) { on ->
+                ctx.enablePagination = on
+                ctx.pageIndex = 0
+                ctx.lastEvent = if (on) "大量数据页已开分页" else "大量数据页已关分页"
             }
             configLabel("表格主题", ctx)
             View {
@@ -500,7 +515,7 @@ internal class TableDataDemoPage : BasePager() {
             DataGuideText("4. 筛选条件", "filterPredicate 为 null 时不过滤；条件变化后由页面把 pageIndex 重置为 0。", ctx.pageChrome)
             DataGuideText(
                 "5. 虚拟滚动",
-                "rowRenderMode = Windowed(n) 限制挂载行节点；需固定 rowHeight，不与固定列组合；创建后勿热切换。",
+                "rowRenderMode = Windowed(n) 用自研切片+spacer 限制挂载行节点；需固定 rowHeight，不与固定列组合；创建后勿热切换。",
                 ctx.pageChrome,
             )
         }
@@ -527,7 +542,7 @@ private sealed class DataDemoThemeMode {
 
 private const val DEMO_ROW_COUNT = 100
 private const val LARGE_ROW_COUNT = 3_000
-private const val VIRTUAL_SCROLL_WINDOW = 40
+private const val VIRTUAL_SCROLL_WINDOW = 90
 
 /** 布尔配置用 Kuikly Switch，与 table_basic SettingSwitch 对齐；多选项仍用 chip。 */
 private fun ViewContainer<*, *>.DataSettingSwitch(

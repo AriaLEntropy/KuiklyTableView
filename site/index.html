@@ -74,6 +74,8 @@
   main a { color: var(--accent); text-decoration: none; }
   main a:hover { text-decoration: underline; }
   ul { margin: 8px 0; padding-left: 22px; }
+  ol { margin: 8px 0; padding-left: 22px; }
+  ol li, ul li { margin: 4px 0; }
   code {
     background: var(--code-bg); border-radius: 4px; padding: 1px 5px;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -85,7 +87,7 @@
   }
   pre code { background: none; padding: 0; font-size: 13px; line-height: 1.55; }
   .split {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 40px; align-items: start;
   }
   .media { position: sticky; top: calc(var(--header-h) + 20px); }
@@ -107,11 +109,33 @@
     padding: 8px 14px; border-radius: 0 6px 6px 0; color: var(--fg-muted);
     font-size: 14px; margin: 12px 0;
   }
+  a.back-top {
+    position: fixed; right: 24px; bottom: 28px; z-index: 30;
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: var(--accent);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+    text-decoration: none; font-size: 18px; line-height: 1;
+    opacity: 0; pointer-events: none; transform: translateY(8px);
+    transition: opacity .2s ease, transform .2s ease, background .15s ease, border-color .15s ease;
+  }
+  a.back-top.visible {
+    opacity: 1; pointer-events: auto; transform: translateY(0);
+  }
+  a.back-top:hover {
+    background: var(--accent-soft); border-color: #b7d0ff;
+    text-decoration: none;
+  }
+  a.back-top:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
   @media (max-width: 960px) {
     nav.side { display: none; }
     main { margin-left: 0; padding: calc(var(--header-h) + 20px) 20px 64px; }
     .split { grid-template-columns: minmax(0, 1fr); }
     .media { position: static; max-width: 420px; }
+    a.back-top { right: 16px; bottom: 20px; }
   }
 </style>
 </head>
@@ -125,19 +149,18 @@
 <nav class="side">
   <div class="group">指南</div>
   <a href="#install">快速接入</a>
+  <a href="#config">配置自由度</a>
   <div class="group">KuiklyTable 基础表格</div>
   <a href="#basic">基础表格</a>
   <a href="#columns">列宽与对齐的表格</a>
   <a href="#sorting">可排序的表格</a>
-  <a href="#scroll">横纵滚动的表格</a>
-  <a href="#fixed-header">固定表头的表格</a>
+  <a href="#scroll">双向滚动的表格</a>
   <a href="#theme">可自定义样式的表格</a>
-  <a href="#zebra">行高亮的表格</a>
-  <a href="#renderer">自定义单元格的表格</a>
-  <a href="#header-renderer">自定义表头的表格</a>
+  <a href="#zebra">斑马纹的表格</a>
+  <a href="#renderer">自定义单元格的表格</a> 
   <a href="#overflow">单元格超出省略的表格</a>
-  <a href="#lines">分隔线与圆角的表格</a>
-  <a href="#frozen">固定列的表格</a>
+  <a href="#lines">分隔线的表格</a>
+  <a href="#corners">圆角的表格</a>
   <a href="#loading">加载状态的表格</a>
   <a href="#empty">空表格</a>
   <a href="#load-more">触底加载的表格</a>
@@ -162,11 +185,11 @@
   <p>基于 KuiklyUI 的跨端表格组件，支持 Android、iOS、鸿蒙。</p>
   <p>仓库提供<strong>两级正式表格</strong>：<code>TableView</code> / <strong>KuiklyTable</strong>（基础表格）与 <code>DataTableView</code> / <strong>KuiklyDataTable</strong>（数据表格）。<code>KuiklyDataTable</code> 复用 <code>KuiklyTable</code> 的列布局、行渲染、主题与 renderer，叠加行选择、筛选与客户端分页，不重复实现基础能力。</p>
   <table class="api">
-    <tr><th>入口</th><th>定位</th><th>状态</th></tr>
-    <tr><td><code>TableView</code> / KuiklyTable</td><td>基础展示、布局、分隔线、滚动、固定表头 / 左固定列、主题、renderer</td><td>已交付</td></tr>
-    <tr><td><code>DataTableView</code> / KuiklyDataTable</td><td>行选择、全选 / 半选、筛选、客户端分页；复用 KuiklyTable 全部能力</td><td>已交付</td></tr>
+    <tr><th>入口</th><th>定位</th></tr>
+    <tr><td><code>TableView</code> / KuiklyTable</td><td>基础展示、布局、分隔线、双向滚动（表头纵滚固定）/ 左固定列、主题、renderer</td></tr>
+    <tr><td><code>DataTableView</code> / KuiklyDataTable</td><td>行选择、全选 / 半选、筛选、客户端分页；复用 KuiklyTable 全部能力</td></tr>
   </table>
-  <p class="note"><strong>能力关系</strong>：<code>KuiklyDataTable</code> 是 <code>KuiklyTable</code> 的组合封装（Kuikly 组合组件），<strong>拥有 KuiklyTable 的全部能力</strong>——列宽与对齐、排序、滚动、固定表头、样式主题、行高亮、自定义单元格 / 表头、超出省略、分隔线与圆角、固定列、加载 / 空态、触底加载、虚拟滚动对两者同样适用。KuiklyDataTable 章节只讲新增能力（行选择、筛选与分页）。对应地，<code>DataTableAttr</code> / <code>DataTableEvent</code> 继承 <code>TableAttr</code> / <code>TableEvent</code>，只新增独有属性与事件。</p>
+  <p class="note"><strong>能力关系</strong>：<code>KuiklyDataTable</code> 是 <code>KuiklyTable</code> 的组合封装（Kuikly 组合组件），<strong>拥有 KuiklyTable 的全部能力</strong>——列宽与对齐、排序、双向滚动、样式主题、斑马纹、自定义单元格 / 表头、超出省略、分隔线、圆角、固定列、加载 / 空态、触底加载、虚拟滚动对两者同样适用。KuiklyDataTable 章节只讲新增能力（行选择、筛选与分页）。对应地，<code>DataTableAttr</code> / <code>DataTableEvent</code> 继承 <code>TableAttr</code> / <code>TableEvent</code>，只新增独有属性与事件。</p>
 </section>
 
 <section id="install">
@@ -194,11 +217,43 @@ kotlin {
 }</code></pre>
 </section>
 
+<section id="config">
+  <h2>配置自由度</h2>
+  <p>读 API 表时，「自由度」列只用下面三类标签。具体传值与默认值以各 API 表为准；怎么用见功能章步骤。</p>
+  <table class="api">
+    <tr><th>标签</th><th>含义</th><th>例子</th></tr>
+    <tr><td><strong>仅枚举 / 开关</strong></td><td>只能在给定选项里选，不能发明新取值</td><td>对齐左/中/右；斑马开/关</td></tr>
+    <tr><td><strong>预设 + 可自定义</strong></td><td>有推荐预设或常量，也可换成任意合法值 / 自己拼</td><td>主题 Light/Dark/Blue 或 <code>copy</code>；线 Grid/Horizontal/None 或 <code>Custom</code>；圆角 0/8/12 或任意 dp</td></tr>
+    <tr><td><strong>完全自定义</strong></td><td>没有封闭选项集，由业务决定内容</td><td>列标题、renderer、筛选函数、<code>pageSizeOptions</code> 列表</td></tr>
+  </table>
+  <p class="note">字段真相源：<a href="#api-attr">TableAttr</a>、<a href="#api-column">ColumnModel</a>、<a href="#api-data-attr">DataTableAttr</a>。</p>
+</section>
+
 <section id="basic">
   <div class="split">
     <div>
       <h2>基础表格</h2>
-      <p>列由 <code>ColumnModel</code> 定义，数据经 <code>data</code> 传入，<code>rowKey</code> 提供稳定行标识。开箱默认：<code>Grid</code> 网格线（外框 + 行线 + 列竖线）、8dp 圆角、斑马纹与固定表头。</p>
+      <p>一张表开箱就能用：右侧示例是<strong>默认外观</strong>——网格线（外框 + 行线 + 列竖线）、8dp 圆角、纵滚时表头固定（表头不参与纵向滚动）。默认<strong>无</strong>斑马纹；隔行变色见<a href="#zebra">斑马纹的表格</a>。这些都可以按需改，见下方步骤与后续专章。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>准备行数据模型，并为每一列写列定义：至少要有列标识（字符串）、表头标题（字符串）、单元格取值（返回字符串的函数）。</li>
+        <li>把三样东西交给表格：
+          <ul>
+            <li>列定义列表 → <code>columns</code></li>
+            <li>行数据 → <code>data</code>（默认空列表）</li>
+            <li>稳定行标识 → <code>rowKey</code>（不传则用源数据下标）</li>
+          </ul>
+        </li>
+        <li>需要时改默认外观（取值与标签见<a href="#api-attr">TableAttr</a>）：
+          <ul>
+            <li>隔行变色 <code>zebraStripe</code>（默认关；见<a href="#zebra">斑马纹的表格</a>）</li>
+            <li>线模式 <code>lineMode</code>（Grid / Horizontal / None / Custom；见<a href="#lines">分隔线的表格</a>）</li>
+            <li>圆角 <code>cornerRadius</code>（常量 0/8/12，或任意 dp；见<a href="#corners">圆角的表格</a>）</li>
+            <li>整表配色 <code>themeColors</code>（Light / Dark / Blue，或 copy / 自建）</li>
+          </ul>
+        </li>
+        <li>需要交互时再接事件（可选）：点行 <code>rowClick</code>、点单元格 <code>cellClick</code>、排序变化 <code>sortChange</code> 等。</li>
+      </ol>
       <pre><code class="language-kotlin">data class User(val id: String, val name: String, val age: Int, val email: String)
 
 TableView&lt;User&gt; {
@@ -225,22 +280,22 @@ TableView&lt;User&gt; {
         )
         data = users
         rowKey = { it.id }
-        zebraStripe = true
-        fixedHeader = true
+        // zebraStripe 默认 false；要隔行变色设 true，见「斑马纹的表格」
+        // 表头纵滚固定（fixedHeader=false 无效）
         // lineMode 默认 TableLineMode.Grid：外框 + 行线 + 列竖线
         // 无竖线：lineMode = TableLineMode.Horizontal；全部关闭：TableLineMode.None
     }
     event {
         rowClick = { user -&gt; /* 行点击 */ }
         cellClick = { info -&gt; /* 单元格点击 */ }
-        sortChange = { state -&gt; /* 排序变化 */ }
+        sortChange = { state -&gt; /* 仅 columnKey + 方向；规则见列 sortComparator */ }
     }
 }</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_basic.png" alt="基础表格样式" loading="lazy">
-        <figcaption>默认网格线 + 圆角 + 斑马纹</figcaption>
+        <img src="../assets/table_showcase_base.png" alt="基础表格默认样式" loading="lazy">
+        <figcaption>默认：网格线 + 圆角</figcaption>
       </figure>
     </div>
   </div>
@@ -250,8 +305,18 @@ TableView&lt;User&gt; {
   <div class="split">
     <div>
       <h2>列宽与对齐的表格</h2>
-      <p>两种列宽策略可混用：固定 <code>width</code>，或弹性 <code>minWidth + flex</code>（剩余空间按权重分配且不小于最小宽）。</p>
-      <p>对齐默认 <code>Start</code>（左对齐）；未显式设置时数值列也不会自动居右。</p>
+      <p>列宽有两种策略，可在同一张表里混用：<strong>固定像素宽</strong>，或<strong>弹性列</strong>（吃剩余宽度，且不小于最小宽）。单元格文字默认左对齐；数值列也不会自动居右，要对齐需显式配置。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>列宽两种策略互斥：
+          <ul>
+            <li>固定宽：写 <code>width = 正数 dp</code>（例如 <code>80f</code>）。有 <code>width</code> 时不再走弹性。</li>
+            <li>弹性列：<code>width</code> 保持 <code>null</code>（默认），再设 <code>minWidth</code>（默认 <code>100f</code>）和 <code>flex</code>（默认 <code>1f</code>）。</li>
+          </ul>
+        </li>
+        <li><strong>哪一列做成弹性由接入方决定</strong>。Showcase 对照里用「邮箱」做弹性列（长内容更易看出拉满容器）；短列也可弹性，只是观感较弱。</li>
+        <li>对齐只能三选一（默认左）：<code>Start</code> / <code>Center</code> / <code>End</code>。数值列不会自动居右，要右对齐须显式写 <code>End</code>。</li>
+      </ol>
       <pre><code class="language-kotlin">// 固定宽
 ColumnModel(key = "name", title = "姓名", accessor = { it.name }, width = 80f)
 
@@ -268,8 +333,12 @@ ColumnModel(
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_basic.png" alt="列宽与对齐" loading="lazy">
-        <figcaption>固定列宽与弹性列混排</figcaption>
+        <img src="../assets/table_showcase_columns1.png" alt="固定 width：三列显式 width" loading="lazy">
+        <figcaption>固定 width：三列显式 width；无弹性列时剩余 viewport 留空</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/table_showcase_columns2.png" alt="弹性 minWidth+flex：混用固定列与弹性列" loading="lazy">
+        <figcaption>弹性 minWidth+flex：可与固定列混用，弹性列分剩余空间</figcaption>
       </figure>
     </div>
   </div>
@@ -279,22 +348,44 @@ ColumnModel(
   <div class="split">
     <div>
       <h2>可排序的表格</h2>
-      <p>列上开启 <code>sortable</code> 后，表头点击在 升序 → 降序 → 无 三态间循环。<code>sortComparator</code> 提供自定义比较（如按数值而非文本）。排序只影响展示顺序，不修改传入的 <code>data</code>。</p>
-      <pre><code class="language-kotlin">ColumnModel(
+      <p>排序拆成两件事，不要混在一起：</p>
+      <ul>
+        <li><strong>规则</strong>写在列上 <code>ColumnModel.sortComparator</code>（怎么比）。</li>
+        <li><strong>事件</strong> <code>sortChange</code> 只告诉你当前排哪一列、升/降/取消（状态），<strong>不携带</strong>比较器。</li>
+      </ul>
+      <p>点可排序列表头：升序 → 降序 → 取消。Table 用该列规则重排<strong>展示行</strong>，不改你传入的原始 <code>data</code>。未传 <code>sortComparator</code> 时按 <code>accessor</code> 字符串比——数字列会出现 "10" 排在 "9" 前，务必自传规则。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>列上 <code>sortable = true</code>，并写清规则，例如年龄 <code>sortComparator = compareBy { it.age }</code>（按 Int，不是 "20" 字符串）。</li>
+        <li>需要受控时：在 <code>sortChange</code> 里把 <code>state</code> 写回 <code>sortState</code>；这里只处理「排谁 / 什么方向」。</li>
+        <li>换规则：改列上的 <code>sortComparator</code>，不必改事件签名。</li>
+      </ol>
+      <pre><code class="language-kotlin">// 1) 规则在列上
+ColumnModel(
     key = "age",
     title = "年龄",
-    accessor = { it.age.toString() },
+    accessor = { it.age.toString() }, // 只影响展示文案
     sortable = true,
-    sortComparator = compareBy&lt;User&gt; { it.age },
-)</code></pre>
-      <pre><code class="language-kotlin">event {
-    sortChange = { state -&gt; /* 当前排序列与方向 */ }
+    sortComparator = compareBy&lt;User&gt; { it.age }, // 按数字比
+)
+// 姓名若展示「员工N」且要按编号：compareBy { it.id }（或解析编号），勿依赖默认字符串序
+</code></pre>
+      <pre><code class="language-kotlin">// 2) 事件只通知状态（与规则解耦）
+event {
+    sortChange = { state -&gt;
+        // state.columnKey / state.direction
+        // 不要指望从这里拿到 Comparator
+    }
 }</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_sort_demo.gif" alt="表头三态排序" loading="lazy">
-        <figcaption>表头点击三态排序</figcaption>
+        <img src="../assets/table_showcase_sort_demo.png" alt="可排序列未排序态" loading="lazy">
+        <figcaption>未排序：sortable 列显示 ↕；不可排序列无箭头</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/table_showcase_sort_demo2.png" alt="按年龄降序" loading="lazy">
+        <figcaption>降序 ↓：按列上 sortComparator 重排展示行</figcaption>
       </figure>
     </div>
   </div>
@@ -303,8 +394,24 @@ ColumnModel(
 <section id="scroll">
   <div class="split">
     <div>
-      <h2>横纵滚动的表格</h2>
-      <p>列总宽超出表格宽度时横向滚动，表头与内容横向同步；行数超出高度时纵向滚动。表格默认沿父容器撑满，也可用 <code>tableWidth</code> 显式指定宽度。</p>
+      <h2>双向滚动的表格</h2>
+      <p>列总宽超出可视宽度时可以左右滑，表头会跟着<strong>横滑</strong>对齐；行数超出高度时可以上下滑，表头<strong>纵滚固定</strong>（不参与纵向滚动）。右侧动图即该行为。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>先让表格父容器有明确高度（或用 <code>flex(1f)</code> 撑满），否则纵向滚不起来。</li>
+        <li>列宽之和大于可视宽度就会出现横滚。可选：显式指定表格总宽 <code>tableWidth</code>：
+          <ul>
+            <li><code>null</code>（默认）→ 沿父容器撑满</li>
+            <li>正数 dp（如 <code>600f</code>）→ 表格按该宽度布局</li>
+          </ul>
+        </li>
+        <li>要「回到顶部」：保留表格引用后调用 <code>scrollToTop(animated)</code>：
+          <ul>
+            <li><code>animated = true</code> → 带动画回顶</li>
+            <li><code>animated = false</code>（默认）→ 立刻跳到顶部</li>
+          </ul>
+        </li>
+      </ol>
       <pre><code class="language-kotlin">attr {
     // tableWidth = 600f // 默认 null：沿父容器撑满
 }</code></pre>
@@ -312,28 +419,11 @@ ColumnModel(
       <pre><code class="language-kotlin">val tableRef = TableView&lt;User&gt; { /* ... */ }
 tableRef.scrollToTop(animated = true)</code></pre>
     </div>
+    
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_scroll_demo.gif" alt="横纵双向滚动" loading="lazy">
-        <figcaption>横纵双向滚动，表头同步</figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<section id="fixed-header">
-  <div class="split">
-    <div>
-      <h2>固定表头的表格</h2>
-      <p><code>fixedHeader</code> 默认开启：纵向滚动时表头固定在顶部，不随内容滚出。</p>
-      <pre><code class="language-kotlin">attr {
-    fixedHeader = true // 默认 true；设为 false 表头随内容滚动
-}</code></pre>
-    </div>
-    <div class="media">
-      <figure>
-        <img src="../assets/table_showcase_scroll_demo.gif" alt="纵滚时表头固定" loading="lazy">
-        <figcaption>纵滚时表头固定（fixedHeader 默认开）</figcaption>
+        <img src="../assets/table_showcase_scroll_demo.gif" alt="双向滚动的表格" loading="lazy">
+        <figcaption>双向滚动的表格</figcaption>
       </figure>
     </div>
   </div>
@@ -343,23 +433,56 @@ tableRef.scrollToTop(animated = true)</code></pre>
   <div class="split">
     <div>
       <h2>可自定义样式的表格</h2>
-      <p>表格只消费传入的 <code>themeColors</code>，不跟随 App 全局主题。预设 <code>Light</code> / <code>Dark</code> / <code>Blue</code>，需要微调时 <code>copy</code> 覆盖个别语义色。色值为 <code>Long</code> ARGB（<code>0xAARRGGBB</code>）。</p>
+      <p>每张表可以单独配色，不跟 App 全局主题走。内置三套预设：浅色 / 深色 / 蓝色；也可以在某一套预设上只改某几块颜色（表头底、选中行底、分隔线等）。色值类型是 <code>Long</code> ARGB（形如 <code>0xAARRGGBB</code>）。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>给这张表传入 <code>themeColors</code>（只影响当前表）。</li>
+        <li>整表换肤——三套预设之一：
+          <ul>
+            <li><code>TableThemeColors.Light</code>（默认，等价于 <code>TableThemeColors()</code>）</li>
+            <li><code>TableThemeColors.Dark</code></li>
+            <li><code>TableThemeColors.Blue</code></li>
+          </ul>
+        </li>
+        <li>只改某几块颜色：对预设 <code>copy(...)</code>，或 <code>TableThemeColors(...)</code> 自建全套。色值为 <code>Long</code> ARGB（<code>0xAARRGGBB</code>）。改动很小会几乎看不出——这是预期；要对比明显就多改几项，或先换预设再微调。</li>
+        <li>行多选时的选中行底色是字段 <code>selectedRowBackground</code>；开启行选择后才看得见。详见<a href="#selection">可选中行的表格</a>。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
     // 1) 一行切换预设
     themeColors = TableThemeColors.Dark
+}
 
+attr {
     // 2) 只改表头底与选中行，其余跟随 Dark
-    // themeColors = TableThemeColors.Dark.copy(
-    //     headerBackground = 0xFF2A2A2A,
-    //     selectedRowBackground = 0xFF1A3A5C,
-    // )
+    themeColors = TableThemeColors.Dark.copy(
+        headerBackground = 0xFF2A2A2A,
+        selectedRowBackground = 0xFF1A3A5C,
+    )
 }</code></pre>
-      <p>常用语义色：<code>headerBackground</code> / <code>rowBackground(Alt)</code> / <code>selectedRowBackground</code> / <code>cellText(Secondary)</code> / <code>dividerColor</code> / <code>gridLine</code>。</p>
+      <p>常用颜色对照（中文含义 → 字段名；值均为 <code>Long</code> ARGB）：</p>
+      <ul>
+        <li>表头底色 / 表头文字 → <code>headerBackground</code> / <code>headerText</code></li>
+        <li>普通行底 / 斑马纹隔行底 → <code>rowBackground</code> / <code>rowBackgroundAlt</code>（需 <code>zebraStripe = true</code>）</li>
+        <li>选中行底色 → <code>selectedRowBackground</code></li>
+        <li>选择框未选中时的填充 → <code>selectionControlBackground</code></li>
+        <li>主文本 / 次要文本 → <code>cellText</code> / <code>cellTextSecondary</code></li>
+        <li>分隔线颜色 → <code>dividerColor</code>（可传具体色值，或 <code>null</code> 表示回退 <code>gridLine</code>）</li>
+        <li>状态标签预设色 → <code>statusTag*</code>（成功 / 警告 / 危险 / 中性 / 信息 各有底色与文字色）</li>
+      </ul>
+      <p>完整字段见文末 API 表。</p>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_theme.png" alt="Light / Dark / Blue 主题" loading="lazy">
-        <figcaption>Light / Dark / Blue 三套预设</figcaption>
+        <img src="../assets/table_showcase_theme_light.png" alt="Light 浅色预设" loading="lazy">
+        <figcaption>Light：默认浅色预设</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/table_showcase_theme_dark.png" alt="Dark 深色预设" loading="lazy">
+        <figcaption>Dark：深色预设</figcaption>
+      </figure>
+      <figure>
+        <img src="../assets/table_showcase_theme_blue.png" alt="Blue 蓝色预设" loading="lazy">
+        <figcaption>Blue：蓝色预设</figcaption>
       </figure>
     </div>
   </div>
@@ -368,16 +491,22 @@ tableRef.scrollToTop(animated = true)</code></pre>
 <section id="zebra">
   <div class="split">
     <div>
-      <h2>行高亮的表格</h2>
-      <p>斑马纹默认开启：隔行底色来自主题 <code>rowBackgroundAlt</code>，便于逐行对照阅读。行选择产生的选中高亮见<a href="#selection">可选中行的表格</a>。</p>
+      <h2>斑马纹的表格</h2>
+      <p>隔行变色由 <code>zebraStripe</code> 控制，<strong>默认关闭</strong>（开箱无斑马纹见<a href="#basic">基础表格</a>）。开启后偶数行使用主题 <code>rowBackgroundAlt</code>。行选择的选中底色不是斑马纹，见<a href="#selection">可选中行的表格</a>。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>设 <code>zebraStripe = true</code> 开启隔行底色。</li>
+        <li>隔行颜色改主题 <code>rowBackgroundAlt</code>（ARGB），或整表换 <code>Light</code> / <code>Dark</code> / <code>Blue</code>。</li>
+        <li>要关回默认：不写该字段，或显式 <code>zebraStripe = false</code>。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
-    zebraStripe = true // 默认 true；设 false 关闭
+    zebraStripe = true // 默认 false；设 true 开启隔行底色
 }</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_basic.png" alt="斑马纹行高亮" loading="lazy">
-        <figcaption>斑马纹隔行底色（zebraStripe 默认开）</figcaption>
+        <img src="../assets/table_showcase_zebra.png" alt="开启斑马纹的表格" loading="lazy">
+        <figcaption>zebraStripe = true：隔行使用 rowBackgroundAlt</figcaption>
       </figure>
     </div>
   </div>
@@ -387,7 +516,25 @@ tableRef.scrollToTop(animated = true)</code></pre>
   <div class="split">
     <div>
       <h2>自定义单元格的表格</h2>
-      <p><code>cellRenderer</code> 接管单元格内容；未配置时回退默认文本。默认文本单元格在 Web 端带 HTML <code>title</code> 悬停提示，自定义 renderer 不自动注入。</p>
+      <p>某一列可以自己画单元格内容（头像、彩色标签、操作按钮等）；不传自定义绘制时，仍显示默认文本。Web 端默认文本自带悬停完整文案；自定义绘制不会自动带这个提示。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li><strong>何时用</strong>：默认纯文本不够看——需要标签、按钮、头像等。</li>
+        <li><strong>怎么配</strong>：在该列传入单元格绘制函数 <code>cellRenderer</code>：
+          <ul>
+            <li>类型：<code>((T, ColumnModel&lt;T&gt;) -&gt; Unit)?</code></li>
+            <li>可传值：函数体（自定义 UI）或 <code>null</code>（默认，走纯文本）</li>
+          </ul>
+        </li>
+        <li>同列常一起配的布尔项（默认都是 <code>true</code>）：
+          <ul>
+            <li><code>enableRowClick</code>：<code>true</code> / <code>false</code> — 点该列是否冒泡行点击</li>
+            <li><code>enableCellClick</code>：<code>true</code> / <code>false</code> — 点该列是否触发单元格点击</li>
+          </ul>
+          操作列通常两者都设 <code>false</code>，由绘制函数自己处理按钮。
+        </li>
+        <li><strong>不配时</strong>：不写绘制函数 = 回退默认文本（关自定义 = fallback）。自定义内容不参与溢出截断检测，也不自动带 Web 悬停提示。</li>
+      </ol>
       <pre><code class="language-kotlin">ColumnModel&lt;User&gt;(
     key = "status",
     title = "状态",
@@ -415,49 +562,77 @@ tableRef.scrollToTop(animated = true)</code></pre>
   </div>
 </section>
 
-<section id="header-renderer">
-  <h2>自定义表头的表格</h2>
-  <p><code>headerRenderer</code> 接管表头内容（参数为该列 <code>ColumnModel</code>）；未配置时回退默认文本。与排序组合时，排序箭头由组件绘制，自定义内容不参与排序点击。</p>
-  <pre><code class="language-kotlin">ColumnModel&lt;User&gt;(
-    key = "status",
-    title = "状态",
-    accessor = { it.status },
-    width = 90f,
-    headerRenderer = { column -&gt;
-        View {
-            attr { flex(1f); allCenter() }
-            Text {
-                attr { text("★ ${column.title}"); fontSize(12f) }
+ 
+<section id="overflow">
+  <div class="split">
+    <div>
+      <h2>单元格超出省略的表格</h2>
+      <p>默认文本太长时会单行省略号截断。组件负责判断「是否被截断」，并在点击时把完整文案与<strong>相对 Table 根</strong>的估算矩形告诉你；浮层怎么画由业务决定。Web 端默认文本还有浏览器自带的悬停提示。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>默认文本超长会自动省略；若该列用了 <code>cellRenderer</code>，则不走溢出检测。</li>
+        <li>开关 <code>enableOverflowCellClick</code>：<code>true</code>（默认）可点截断格；<code>false</code> 不触发。</li>
+        <li>在 <code>overflowCellClick</code> 里用 <code>info.estimatedCellX / Y / Width / Height</code> 画浮层：
+          <ul>
+            <li>把浮层放在 <strong>Table 外包的 <code>positionRelative</code> 容器</strong>里</li>
+            <li><strong>直接使用</strong>上述字段定位（点击时优先为单元格实测矩形，经 <code>convertFrame</code> 转到 Table 根；测量失败才回退估算）</li>
+            <li>不要再加状态栏 / 页头 / 固定 <code>390</code> 之类硬编码偏移</li>
+          </ul>
+        </li>
+        <li>浮层内容由业务定（Showcase：贴单元格的深色气泡 + 三角指向，只展示全文）。</li>
+        <li>复制完整内容：接 <code>cellLongPress</code>，用 <code>info.text</code> 调宿主剪贴板（组件不内置复制）。</li>
+        <li>关闭时机接 <code>overflowTipDismiss</code>（再点 / 滚动 / 点别处）。</li>
+      </ol>
+      <pre><code class="language-kotlin">// 浮层锚在 Table 外包容器内
+View {
+    attr { positionRelative(); /* 与 Table 同高 */ }
+    TableView&lt;User&gt; {
+        event {
+            overflowCellClick = { info -&gt;
+                if (!info.isOverflow) return@overflowCellClick
+                // tipLeft = info.estimatedCellX
+                // tipTop  = info.estimatedCellY + info.estimatedCellHeight + gap
+                showOverflowTip(info)
+            }
+            overflowTipDismiss = { hideOverflowTip() }
+            cellLongPress = { info -&gt;
+                // 宿主 BridgeModule.copyToPasteboard(info.text)
             }
         }
-    },
-)</code></pre>
-</section>
-
-<section id="overflow">
-  <h2>单元格超出省略的表格</h2>
-  <p>默认文本单元格超长自动截断为单行省略。组件负责检测截断并上报点击事件与估算位置（<code>TableOverflowCellInfo</code>：完整文本、所在行列、单元格坐标），提示浮层由业务绘制——Showcase 演示了完整实现。Web 端默认文本单元格自带 HTML <code>title</code> 悬停提示，无需处理。</p>
-  <pre><code class="language-kotlin">event {
-    // 截断单元格被点击：info 含完整文本与估算位置，业务据此绘制浮层
-    overflowCellClick = { info -&gt;
-        if (info.isOverflow) showOverflowTip(info.text, info.estimatedCellX, info.estimatedCellY)
     }
-    // 提示关闭时机（再次点击 / 滚动 / 点击其他位置）
-    overflowTipDismiss = { hideOverflowTip() }
+    // 在此容器内 absolutePosition 绘制 tip
 }</code></pre>
-  <p class="note">点击优先级：截断溢出提示 &gt; <code>cellClick</code> &gt; <code>rowClick</code>；自定义 <code>cellRenderer</code> 的单元格不参与溢出检测。</p>
+      <p class="note">点击优先级：截断溢出提示 &gt; <code>cellClick</code> &gt; <code>rowClick</code>；自定义 <code>cellRenderer</code> 的单元格不参与溢出检测。长按走独立的 <code>cellLongPress</code>。</p>
+    </div>
+    <div class="media">
+      <figure>
+        <img src="../assets/table_showcase_overflow.png" alt="单元格超出省略与全文浮层" loading="lazy">
+        <figcaption>截断省略；点击弹出全文浮层</figcaption>
+      </figure>
+    </div>
+  </div>
 </section>
 
 <section id="lines">
   <div class="split">
     <div>
-      <h2>分隔线与圆角的表格</h2>
-      <p><code>lineMode</code> 控制表格线（外框 / 表头线 / 行线 / 列线），<code>cornerRadius</code> 控制根容器圆角，两者互不影响。默认 <code>Grid</code> + 8dp。预设线色走主题 <code>dividerColor</code>（未设回退 <code>gridLine</code>）。</p>
+      <h2>分隔线的表格</h2>
+      <p>线怎么画由 <code>lineMode</code> 控制，与圆角无关。默认 <code>Grid</code>：外框 + 表头线 + 行线 + 列竖线。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>预设：
+          <ul>
+            <li><code>Grid</code>（默认）→ 外框 + 表头 + 行 + 列</li>
+            <li><code>Horizontal</code> → 仅表头底线与行线</li>
+            <li><code>None</code> → 全部关闭</li>
+          </ul>
+        </li>
+        <li>自定义：<code>Custom(TableLineStyle(...))</code>；每一项是 <code>TableStroke(color, width)</code> 或 <code>null</code>（关那一根）。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
-    lineMode = TableLineMode.Grid // 默认：外框 + 表头线 + 行线 + 列线
-    // TableLineMode.Horizontal   // 仅表头底线与行线
-    // TableLineMode.None         // 全部关闭
-    cornerRadius = TableCornerRadius.Default // 0 / 8 / 12 或任意 dp
+    lineMode = TableLineMode.Grid // 默认
+    // TableLineMode.Horizontal
+    // TableLineMode.None
 }</code></pre>
       <p><code>Custom</code> 模式逐项指定颜色、宽度，字段为 <code>null</code> 表示关掉该线：</p>
       <pre><code class="language-kotlin">lineMode = TableLineMode.Custom(
@@ -472,52 +647,52 @@ tableRef.scrollToTop(animated = true)</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_line_grid.png" alt="Grid：外框 + 行列竖线" loading="lazy">
-        <figcaption><code>Grid</code>（默认）：外框 + 行线 + 列竖线</figcaption>
-      </figure>
-      <figure>
-        <img src="../assets/table_line_horizontal.png" alt="Horizontal：仅横线无竖线" loading="lazy">
-        <figcaption><code>Horizontal</code>：仅表头底线与行线，无竖线</figcaption>
+        <img src="../assets/table_showcase_line.png" alt="lineMode = Grid" loading="lazy">
+        <figcaption>lineMode = Grid（默认）：外框 + 表头线 + 行线 + 列竖线</figcaption>
       </figure>
     </div>
   </div>
 </section>
 
-<section id="frozen">
+<section id="corners">
   <div class="split">
     <div>
-      <h2>固定列的表格</h2>
-      <p>开启 <code>fixedFirstColumn</code> 后，横向滚动时第一列保持可见；DataTable 开启选择时固定「选择列 + 第一业务列」。</p>
+      <h2>圆角的表格</h2>
+      <p>外框圆角由 <code>cornerRadius</code> 控制，与 <code>lineMode</code> 独立。默认 8dp；设为 0 关闭圆角。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>常量：<code>TableCornerRadius.None</code>（0）/ <code>Default</code>（8，默认）/ <code>Large</code>（12）。</li>
+        <li>或任意 <code>Float</code> dp。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
-    fixedFirstColumn = true
-    rowHeight = 48f // 固定列要求固定行高
-    columns.add(
-        ColumnModel(
-            key = "name",
-            title = "姓名",
-            accessor = { it.name },
-            width = 96f, // 固定列必须显式 width
-        ),
-    )
+    cornerRadius = TableCornerRadius.Default // 0 / 8 / 12 或任意 dp
 }</code></pre>
-      <ul>
-        <li>被固定的列必须配置显式正数 <code>width</code></li>
-        <li>只有 1 列时忽略，仍走普通横向滚动</li>
-        <li>不与 <code>Windowed</code>、动态行高组合</li>
-      </ul>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_fixed_verify_before.png" alt="固定首列示例" loading="lazy">
-        <figcaption>开启 fixedFirstColumn：横滑时「姓名」列固定在视口左侧，其余列正常滚动</figcaption>
+        <img src="../assets/table_showcase_cornerRadius.png" alt="默认 8dp 圆角" loading="lazy">
+        <figcaption>cornerRadius = 8（默认）</figcaption>
       </figure>
     </div>
   </div>
 </section>
 
+ 
+
 <section id="loading">
   <h2>加载状态的表格</h2>
-  <p><code>loading</code> 开启遮罩加载态：保留旧内容并禁止下方交互，避免加载期间误触。可用 <code>loadingRenderer</code> 自定义加载内容。</p>
+  <p>打开「加载中」后，表格上方会盖一层遮罩：旧内容还在，但点不到下面，避免加载时误触。遮罩里的转圈和文案可以整段换成自己的。</p>
+  <p><strong>使用步骤</strong></p>
+  <ol>
+    <li>开关 <code>loading</code>：
+      <ul>
+        <li><code>false</code>（默认）→ 正常显示数据区</li>
+        <li><code>true</code> → 显示加载态（请求开始开、结束关）</li>
+      </ul>
+    </li>
+    <li>文案 <code>loadingText</code>：任意字符串，默认 <code>"加载中…"</code>（仅在未自定义绘制时生效）。</li>
+    <li>可选 <code>loadingRenderer</code>：绘制函数或 <code>null</code>（默认用内置指示 + <code>loadingText</code>）。</li>
+  </ol>
   <pre><code class="language-kotlin">attr {
     loading = isLoading
     // loadingRenderer = { /* 自定义加载态 */ }
@@ -528,7 +703,13 @@ tableRef.scrollToTop(animated = true)</code></pre>
   <div class="split">
     <div>
       <h2>空表格</h2>
-      <p><code>data</code> 为空时显示占位文案 <code>emptyText</code>；可用 <code>emptyRenderer</code> 自定义空态内容。</p>
+      <p>没有行数据时（或筛选后一行不剩）会显示空态占位。可以只改提示文案，也可以整块换成自己的空态界面。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>传入空列表（或筛选结果为空）即出现空态；无需额外开关。</li>
+        <li>文案 <code>emptyText</code>：任意字符串，默认 <code>"暂无数据"</code>。</li>
+        <li>可选 <code>emptyRenderer</code>：绘制函数或 <code>null</code>（默认用内置空态图形 + <code>emptyText</code>）。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
     data = emptyList()
     emptyText = "暂无数据"
@@ -537,7 +718,7 @@ tableRef.scrollToTop(animated = true)</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_state.png" alt="空数据状态" loading="lazy">
+        <img src="../assets/table_showcase_state_empty.png" alt="空数据状态" loading="lazy">
         <figcaption>空数据状态</figcaption>
       </figure>
     </div>
@@ -546,7 +727,18 @@ tableRef.scrollToTop(animated = true)</code></pre>
 
 <section id="load-more">
   <h2>触底加载的表格</h2>
-  <p><code>loadMore</code> 是触底回调：组件只负责触发与展示底部加载状态，分页和请求由业务层负责。<code>loadMoreThresholdRows</code> 控制距底部约 N 行时提前触发。</p>
+  <p>滚到接近底部时，组件会回调「加载更多」并显示底部加载态；下一页数据怎么请求、如何拼进列表，由业务自己做。可以调「距底还有几行就提前触发」。</p>
+  <p><strong>使用步骤</strong></p>
+  <ol>
+    <li>两个布尔状态（由业务维护）：
+      <ul>
+        <li><code>hasMore</code>：<code>true</code> = 还有下一页可拉；<code>false</code>（默认）= 没有更多</li>
+        <li><code>loadingMore</code>：<code>true</code> = 正在加载更多（避免连发）；<code>false</code>（默认）</li>
+      </ul>
+    </li>
+    <li>事件 <code>loadMore</code>：滚近底部时回调；请求中保持 <code>loadingMore = true</code>。</li>
+    <li>提前量 <code>loadMoreThresholdRows</code>：正整数，默认 <code>3</code>（距底约 N 行再触发）。</li>
+  </ol>
   <pre><code class="language-kotlin">attr {
     hasMore = pageHasMore
     loadingMore = isLoadingMore
@@ -561,13 +753,22 @@ event {
   <div class="split">
     <div>
       <h2>可选中行的表格</h2>
-      <p class="note">KuiklyDataTable 章节讲数据交互；KuiklyTable 的列宽 / 排序 / 滚动 / 主题 / 渲染 / 分隔线 / 固定列 / 状态能力对 DataTable 同样适用。虚拟滚动见下方专章。</p>
-      <p><code>DataTableView</code> 复用 <code>TableView</code>。开启 <code>enableRowSelection</code> 后注入选择列与行高亮；关闭时无选择列、清空高亮。选中身份是 <code>rowKey</code>：排序只改展示顺序，<code>selectedKeys</code> 按 rowKey 保持。</p>
+      <p class="note">本章讲 DataTable 的数据交互；列宽、排序、滚动、主题、自定义单元格、分隔线、固定列、状态层等基础能力与 KuiklyTable 相同。虚拟滚动见下方专章。</p>
+      <p>打开「行选择」后，表格左侧会出现选择列，选中行会换底色高亮；关掉则去掉选择列并清空高亮。选中身份跟「稳定行标识」走：排序只改展示顺序，已选中的行不会丢。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li><code>enableRowSelection = true</code> 开启选择列（默认 <code>false</code>；需稳定 <code>rowKey</code>）。</li>
+        <li>用 <code>selectedKeys</code> + <code>selectionChange</code> 做受控同步（默认空列表）。</li>
+        <li>选择列宽 <code>selectionColumnWidth</code> 任意 dp，默认 <code>48f</code>。</li>
+        <li>选中行底色改主题 <code>selectedRowBackground</code>（ARGB），或换 <code>Dark</code> / <code>Blue</code>。详见<a href="#theme">可自定义样式的表格</a>。</li>
+      </ol>
       <pre><code class="language-kotlin">DataTableView&lt;User&gt; {
     attr {
         flex(1f) // 撑满父容器，否则拿不到高度不渲染
         enableRowSelection = true
         selectedKeys = currentSelectedKeys
+        // 可选：只改选中行底色，其余跟随 Light
+        // themeColors = TableThemeColors.Light.copy(selectedRowBackground = 0xFFBBDEFB)
         data = users
         rowKey = { it.id }
         columns.addAll(/* 同 TableView */)
@@ -595,15 +796,27 @@ event {
   <div class="split">
     <div>
       <h2>可筛选的表格</h2>
-      <p><code>filterPredicate</code> 在管线最前：源 <code>data</code> → 筛选 → 单列排序 → 分页。<code>null</code> 表示不过滤。不提供内建全局搜索框，业务层可自行过滤后重传 <code>data</code>。筛选条件变化会重置到第一页。</p>
+      <p>筛选发生在数据处理的最前面：原始数据 → 筛选 → 单列排序 → 分页。不传筛选条件表示不过滤。组件不内建搜索框，筛选项由业务自己做，再把条件或过滤后的数据交给表格。条件一变，若开了分页会回到第一页。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>配置项 <code>filterPredicate</code>：
+          <ul>
+            <li>类型：<code>((T) -&gt; Boolean)?</code></li>
+            <li><code>null</code>（默认）→ 不过滤，显示全部行</li>
+            <li>函数 → 返回 <code>true</code> 的行保留，返回 <code>false</code> 的行隐藏</li>
+          </ul>
+        </li>
+        <li>界面上的筛选项（芯片、输入框等）由业务自己做，再把条件赋给 <code>filterPredicate</code>。</li>
+        <li>条件变化后，若开了分页（<code>enablePagination = true</code>），会自动回到第一页。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
     filterPredicate = { it.status == "在职" } // null 表示不过滤
 }</code></pre>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_datatable_filter.png" alt="按在职筛选" loading="lazy">
-        <figcaption>filterPredicate 按状态筛选</figcaption>
+        <img src="../assets/table_datatable_filter.gif" alt="按在职筛选" loading="lazy">
+        <figcaption>筛选前后行变化（动图）</figcaption>
       </figure>
     </div>
   </div>
@@ -613,7 +826,13 @@ event {
   <div class="split">
     <div>
       <h2>可分页的表格</h2>
-      <p><code>enablePagination</code> 开启客户端分页：<code>pageIndex</code> / <code>pageSize</code> 受控传入，<code>pageChange</code> / <code>pageSizeChange</code> 回写。翻页自动回顶；筛选或页大小变化会重置到第一页。</p>
+      <p>打开客户端分页后，底部会出现分页栏：总条数、当前页、上一页 / 下一页，以及「每页多少条」下拉。当前页码和每页条数由你传入，翻页或改每页条数时表格会回调让你写回；翻页会自动回顶；筛选或改每页条数会回到第一页。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li><code>enablePagination = true</code> 显示底部分页栏（默认 <code>false</code>）。</li>
+        <li>受控：<code>pageIndex</code>（从 0 起）与 <code>pageSize</code>（默认 <code>10</code>），在 <code>pageChange</code> / <code>pageSizeChange</code> 里写回。</li>
+        <li>下拉选项 <code>pageSizeOptions</code>：默认 <code>[5, 10, 20]</code>，可换成任意正整数列表（如 <code>[10, 25, 50]</code>）。</li>
+      </ol>
       <pre><code class="language-kotlin">attr {
     enablePagination = true
     pageIndex = currentPage
@@ -624,16 +843,16 @@ event {
     pageChange = { index -&gt; currentPage = index }
     pageSizeChange = { size -&gt; pageSize = size }
 }</code></pre>
-      <p>每页行数以「N 条/页 ▾」下拉选择器切换，选项由 <code>pageSizeOptions</code> 配置。</p>
+      <p>右侧第一张图是分页栏整体；第二张动图是点开「N 条/页」后的选项列表。</p>
     </div>
     <div class="media">
       <figure>
         <img src="../assets/table_datatable_pagination.png" alt="客户端分页" loading="lazy">
-        <figcaption>客户端分页：每页行数为下拉选择器</figcaption>
+        <figcaption>客户端分页栏：总条数、翻页、「N 条/页」</figcaption>
       </figure>
       <figure>
-        <img src="../assets/table_datatable_pagesize.png" alt="每页行数下拉展开" loading="lazy">
-        <figcaption>「N 条/页 ▾」下拉展开，选项来自 pageSizeOptions</figcaption>
+        <img src="../assets/table_datatable_pagesize.gif" alt="每页行数下拉展开" loading="lazy">
+        <figcaption>点开「N 条/页」：选项来自你配置的列表（默认 5 / 10 / 20）</figcaption>
       </figure>
     </div>
   </div>
@@ -643,27 +862,39 @@ event {
   <div class="split">
     <div>
       <h2>虚拟滚动的表格</h2>
-      <p>虚拟滚动限制挂载的行节点数，与筛选 / 分页正交。Showcase 在 <code>table_data</code>「大量数据」页签中开关验证。</p>
+      <p>数据行很多时，不必把每一行的界面节点都挂上：虚拟滚动只渲染窗口附近的行，用来减轻卡顿。实现上由 Table 自研「切片 + 上下 spacer」维护滚动高度，随纵滑移动窗口；完整数据仍在内存。它和筛选、分页是两套事——可以同时开，也可以像 Showcase「大量数据」页那样关掉分页、只看连续纵滑。</p>
+      <p><strong>使用步骤</strong></p>
+      <ol>
+        <li>设固定行高 <code>rowHeight</code> 为正数 dp（例如 <code>48f</code>）；默认 <code>0f</code> 表示按内容，Windowed 下必须改为正数。</li>
+        <li><code>rowRenderMode</code>：
+          <ul>
+            <li><code>Standard</code>（默认）→ 每行挂 DSL 节点</li>
+            <li><code>Windowed(maxRenderedRows)</code> → 最多挂 N 行（切片 + spacer）；N 为正整数，省略时用常量 <code>60</code>；建议约 <code>可见行数 × 3</code></li>
+          </ul>
+        </li>
+        <li>创建时选定模式；中途切换需重建表格，不要热切换。</li>
+        <li>不要和 <code>fixedFirstColumn = true</code> 一起开；完整数据仍在内存，只是少挂行节点。</li>
+      </ol>
       <pre><code class="language-kotlin">DataTableView&lt;User&gt; {
     attr {
         data = largeUsers          // 例如 3000 行
         filterPredicate = { it.status == "在职" }
         rowHeight = 48f            // Windowed 需要固定行高
         fixedFirstColumn = false   // 暂不与固定列组合
-        rowRenderMode = TableRowRenderMode.Windowed(40)
+        rowRenderMode = TableRowRenderMode.Windowed(90)
     }
 }</code></pre>
       <ul>
-        <li>只限制 View 节点；完整 <code>data</code> 仍在内存，筛选 / 排序作用于全量</li>
-        <li>分页切的是数据切片，虚拟滚动管的是挂载行数——可同时开</li>
-        <li>创建时选定模式；运行时切换需 remount，不要在同一实例上热切换</li>
-        <li><code>maxRenderedRows</code> 建议可见行数 × 3，默认 60；演示用 40</li>
+        <li>只限制界面节点数量；完整数据仍在内存，筛选 / 排序仍作用于全量</li>
+        <li>分页切的是「数据切片」，虚拟滚动管的是「挂了多少行 View」——可以同时开，也可以只开虚拟滚动</li>
+        <li>创建时选定模式；运行时切换需重建表格，不要热切换</li>
+        <li>窗口大小建议约「一屏可见行数 × 3」，组件默认 60；Showcase 演示用 90</li>
       </ul>
     </div>
     <div class="media">
       <figure>
-        <img src="../assets/table_showcase_large_demo.gif" alt="Windowed 虚拟滚动" loading="lazy">
-        <figcaption>3000 行 Windowed：只挂载窗口内行节点</figcaption>
+        <img src="../assets/table_showcase_large_demo.gif" alt="虚拟滚动" loading="lazy">
+        <figcaption>3000 行虚拟滚动：只挂载窗口内行节点（演示时默认关分页）</figcaption>
       </figure>
     </div>
   </div>
@@ -681,28 +912,29 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
 
 <section id="api-attr">
   <h2>TableAttr</h2>
+  <p class="note">「自由度」标签含义见<a href="#config">配置自由度</a>。</p>
   <table class="api">
-    <tr><th>属性</th><th>类型</th><th>默认值</th><th>说明</th></tr>
-    <tr><td><code>columns</code></td><td><code>ObservableList&lt;ColumnModel&lt;T&gt;&gt;</code></td><td><code>[]</code></td><td>列定义</td></tr>
-    <tr><td><code>data</code></td><td><code>List&lt;T&gt;</code></td><td><code>[]</code></td><td>数据源（组件不修改外部列表）</td></tr>
-    <tr><td><code>rowKey</code></td><td><code>((T) -&gt; Any)?</code></td><td><code>null</code></td><td>稳定行标识；未配置时用源索引</td></tr>
-    <tr><td><code>tableWidth</code></td><td><code>Float?</code></td><td><code>null</code></td><td><code>null</code> 表示沿父容器撑满</td></tr>
-    <tr><td><code>zebraStripe</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>斑马纹</td></tr>
-    <tr><td><code>lineMode</code></td><td><code>TableLineMode</code></td><td><code>Grid</code></td><td><code>None</code> / <code>Horizontal</code> / <code>Grid</code> / <code>Custom(style)</code></td></tr>
-    <tr><td><code>cornerRadius</code></td><td><code>Float</code></td><td><code>8f</code></td><td>根容器圆角（dp）；<code>0</code> 无圆角</td></tr>
-    <tr><td><code>cellPaddingH</code></td><td><code>Float</code></td><td><code>12f</code></td><td>水平内边距</td></tr>
-    <tr><td><code>cellPaddingV</code></td><td><code>Float</code></td><td><code>10f</code></td><td>垂直内边距</td></tr>
-    <tr><td><code>rowHeight</code></td><td><code>Float</code></td><td><code>0f</code></td><td><code>0</code> 表示内容自适应</td></tr>
-    <tr><td><code>fixedHeader</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>固定表头</td></tr>
-    <tr><td><code>fixedFirstColumn</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>固定第一列；被固定列须显式 <code>width</code>；需固定行高，不与 Windowed 组合</td></tr>
-    <tr><td><code>themeColors</code></td><td><code>TableThemeColors</code></td><td>Light</td><td>语义色；预设 <code>Light</code> / <code>Dark</code> / <code>Blue</code></td></tr>
-    <tr><td><code>rowRenderMode</code></td><td><code>TableRowRenderMode</code></td><td><code>Standard</code></td><td><code>Windowed(n)</code> 虚拟滚动；需固定 <code>rowHeight</code>，不与固定列组合</td></tr>
-    <tr><td><code>loading</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>加载中</td></tr>
-    <tr><td><code>emptyText</code> / <code>loadingText</code></td><td><code>String</code></td><td>默认文案</td><td>状态文案</td></tr>
-    <tr><td><code>emptyRenderer</code> / <code>loadingRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>自定义状态内容</td></tr>
-    <tr><td><code>hasMore</code> / <code>loadingMore</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>加载更多状态</td></tr>
-    <tr><td><code>loadMoreThresholdRows</code></td><td><code>Int</code></td><td><code>3</code></td><td>距底部约 N 行触发</td></tr>
-    <tr><td><code>enableOverflowCellClick</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>截断文本点击</td></tr>
+    <tr><th>属性</th><th>类型</th><th>默认值</th><th>自由度</th><th>说明</th></tr>
+    <tr><td><code>columns</code></td><td><code>ObservableList&lt;ColumnModel&lt;T&gt;&gt;</code></td><td><code>[]</code></td><td>完全自定义</td><td>列定义</td></tr>
+    <tr><td><code>data</code></td><td><code>List&lt;T&gt;</code></td><td><code>[]</code></td><td>完全自定义</td><td>数据源（组件不修改外部列表）</td></tr>
+    <tr><td><code>rowKey</code></td><td><code>((T) -&gt; Any)?</code></td><td><code>null</code></td><td>完全自定义</td><td>稳定行标识；未配置时用源索引</td></tr>
+    <tr><td><code>tableWidth</code></td><td><code>Float?</code></td><td><code>null</code></td><td>完全自定义</td><td><code>null</code> 表示沿父容器撑满；否则任意正数 dp</td></tr>
+    <tr><td><code>zebraStripe</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>隔行变色；颜色改主题 <code>rowBackgroundAlt</code></td></tr>
+    <tr><td><code>lineMode</code></td><td><code>TableLineMode</code></td><td><code>Grid</code></td><td>预设 + 可自定义</td><td>预设 <code>None</code> / <code>Horizontal</code> / <code>Grid</code>；或 <code>Custom(style)</code></td></tr>
+    <tr><td><code>cornerRadius</code></td><td><code>Float</code></td><td><code>8f</code></td><td>预设 + 可自定义</td><td>常量 0/8/12，或任意 dp</td></tr>
+    <tr><td><code>cellPaddingH</code></td><td><code>Float</code></td><td><code>12f</code></td><td>完全自定义</td><td>水平内边距（dp）</td></tr>
+    <tr><td><code>cellPaddingV</code></td><td><code>Float</code></td><td><code>10f</code></td><td>完全自定义</td><td>垂直内边距（dp）</td></tr>
+    <tr><td><code>rowHeight</code></td><td><code>Float</code></td><td><code>0f</code></td><td>完全自定义</td><td><code>0</code> 内容自适应；固定列 / Windowed 须正数</td></tr>
+    <tr><td><code>fixedHeader</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>仅开关</td><td>纵滚时表头始终固定；写入 <code>false</code> 无效（兼容保留）</td></tr>
+    <tr><td><code>fixedFirstColumn</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>固定首列；被固定列须显式 <code>width</code>；不与 Windowed 组合</td></tr>
+    <tr><td><code>themeColors</code></td><td><code>TableThemeColors</code></td><td>Light</td><td>预设 + 可自定义</td><td>预设 <code>Light</code> / <code>Dark</code> / <code>Blue</code>，或 <code>copy</code> / 自建</td></tr>
+    <tr><td><code>rowRenderMode</code></td><td><code>TableRowRenderMode</code></td><td><code>Standard</code></td><td>预设 + 可自定义</td><td><code>Standard</code> 或 <code>Windowed(n)</code>（n 默认 60）；创建时选定</td></tr>
+    <tr><td><code>loading</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>加载中</td></tr>
+    <tr><td><code>emptyText</code> / <code>loadingText</code></td><td><code>String</code></td><td>默认文案</td><td>完全自定义</td><td>状态文案</td></tr>
+    <tr><td><code>emptyRenderer</code> / <code>loadingRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>完全自定义</td><td><code>null</code> 用内置；否则整块自定义</td></tr>
+    <tr><td><code>hasMore</code> / <code>loadingMore</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>加载更多状态</td></tr>
+    <tr><td><code>loadMoreThresholdRows</code></td><td><code>Int</code></td><td><code>3</code></td><td>完全自定义</td><td>距底部约 N 行触发</td></tr>
+    <tr><td><code>enableOverflowCellClick</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>仅开关</td><td>截断文本点击</td></tr>
   </table>
 </section>
 
@@ -711,8 +943,9 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
   <table class="api">
     <tr><th>事件</th><th>说明</th></tr>
     <tr><td><code>rowClick</code></td><td>行点击</td></tr>
-    <tr><td><code>cellClick</code></td><td>单元格点击（含行列信息）</td></tr>
-    <tr><td><code>sortChange</code></td><td>排序状态变化</td></tr>
+    <tr><td><code>cellClick</code></td><td>单元格点击（需列 <code>enableCellClick</code>；含行列信息）</td></tr>
+    <tr><td><code>cellLongPress</code></td><td>单元格长按（含完整 <code>text</code>；复制等由业务处理）</td></tr>
+    <tr><td><code>sortChange</code></td><td>排序状态变化（仅列 key + 方向；规则见列 <code>sortComparator</code>）</td></tr>
     <tr><td><code>overflowCellClick</code></td><td>截断单元格点击</td></tr>
     <tr><td><code>overflowTipDismiss</code></td><td>溢出提示关闭</td></tr>
     <tr><td><code>loadMore</code></td><td>触底加载更多</td></tr>
@@ -721,37 +954,38 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
 
 <section id="api-column">
   <h2>ColumnModel</h2>
+  <p class="note">「自由度」标签含义见<a href="#config">配置自由度</a>。</p>
   <table class="api">
-    <tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
-    <tr><td><code>key</code></td><td><code>String</code></td><td>—</td><td>列唯一标识</td></tr>
-    <tr><td><code>title</code></td><td><code>String</code></td><td>—</td><td>表头文案</td></tr>
-    <tr><td><code>accessor</code></td><td><code>(T) -&gt; String</code></td><td>—</td><td>默认文本取值</td></tr>
-    <tr><td><code>width</code></td><td><code>Float?</code></td><td><code>null</code></td><td>固定列宽；<code>null</code> 时弹性</td></tr>
-    <tr><td><code>minWidth</code></td><td><code>Float</code></td><td><code>100f</code></td><td>最小宽度（弹性列）</td></tr>
-    <tr><td><code>flex</code></td><td><code>Float</code></td><td><code>1f</code></td><td>剩余空间权重</td></tr>
-    <tr><td><code>alignment</code></td><td><code>ColumnAlignment</code></td><td><code>Start</code></td><td><code>Start</code> / <code>Center</code> / <code>End</code>；数值列不自动居右</td></tr>
-    <tr><td><code>sortable</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>是否可排序</td></tr>
-    <tr><td><code>sortComparator</code></td><td><code>Comparator&lt;T&gt;?</code></td><td><code>null</code></td><td>自定义比较器</td></tr>
-    <tr><td><code>cellRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>自定义单元格</td></tr>
-    <tr><td><code>headerRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>自定义表头</td></tr>
-    <tr><td><code>enableRowClick</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>该列是否允许触发 <code>rowClick</code></td></tr>
-    <tr><td><code>enableCellClick</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>该列是否允许触发 <code>cellClick</code></td></tr>
+    <tr><th>字段</th><th>类型</th><th>默认值</th><th>自由度</th><th>说明</th></tr>
+    <tr><td><code>key</code></td><td><code>String</code></td><td>—</td><td>完全自定义</td><td>列唯一标识</td></tr>
+    <tr><td><code>title</code></td><td><code>String</code></td><td>—</td><td>完全自定义</td><td>表头文案</td></tr>
+    <tr><td><code>accessor</code></td><td><code>(T) -&gt; String</code></td><td>—</td><td>完全自定义</td><td>默认文本取值</td></tr>
+    <tr><td><code>width</code></td><td><code>Float?</code></td><td><code>null</code></td><td>完全自定义</td><td>固定列宽；非 <code>null</code> 时优先于弹性</td></tr>
+    <tr><td><code>minWidth</code></td><td><code>Float</code></td><td><code>100f</code></td><td>完全自定义</td><td>最小宽度（仅 <code>width=null</code>）</td></tr>
+    <tr><td><code>flex</code></td><td><code>Float</code></td><td><code>1f</code></td><td>完全自定义</td><td>剩余空间权重（仅 <code>width=null</code>）</td></tr>
+    <tr><td><code>alignment</code></td><td><code>ColumnAlignment</code></td><td><code>Start</code></td><td>仅枚举</td><td>只能 <code>Start</code> / <code>Center</code> / <code>End</code>；数值列不自动居右</td></tr>
+    <tr><td><code>sortable</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>是否可排序</td></tr>
+    <tr><td><code>sortComparator</code></td><td><code>Comparator&lt;T&gt;?</code></td><td><code>null</code></td><td>完全自定义</td><td>列上比较规则；<code>null</code>=accessor 字符串。与 <code>sortChange</code> 解耦</td></tr>
+    <tr><td><code>cellRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>完全自定义</td><td><code>null</code> 默认 Text</td></tr>
+    <tr><td><code>headerRenderer</code></td><td>DSL?</td><td><code>null</code></td><td>完全自定义</td><td><code>null</code> 默认标题</td></tr>
+    <tr><td><code>enableRowClick</code></td><td><code>Boolean</code></td><td><code>true</code></td><td>仅开关</td><td>该列是否允许触发 <code>rowClick</code></td></tr>
+    <tr><td><code>enableCellClick</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>该列是否允许触发 <code>cellClick</code></td></tr>
   </table>
 </section>
 
 <section id="api-data-attr">
   <h2>DataTableAttr</h2>
-  <p>按 Kuikly 组件惯例分为基础属性与独有属性：基础属性即 <a href="#api-attr"><code>TableAttr</code> 全部属性</a>（Kotlin 继承，直接可用）；独有属性如下表：</p>
+  <p>基础属性即 <a href="#api-attr"><code>TableAttr</code> 全部属性</a>（Kotlin 继承，直接可用）；独有属性如下。「自由度」标签含义见<a href="#config">配置自由度</a>。</p>
   <table class="api">
-    <tr><th>属性</th><th>类型</th><th>默认值</th><th>说明</th></tr>
-    <tr><td><code>enableRowSelection</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>注入选择列 + 行高亮；关闭时清空</td></tr>
-    <tr><td><code>selectedKeys</code></td><td><code>List&lt;Any&gt;</code></td><td><code>[]</code></td><td>受控选中 rowKey 列表</td></tr>
-    <tr><td><code>selectionColumnWidth</code></td><td><code>Float</code></td><td><code>48f</code></td><td>选择列宽</td></tr>
-    <tr><td><code>filterPredicate</code></td><td><code>((T) -&gt; Boolean)?</code></td><td><code>null</code></td><td>筛选谓词；<code>null</code> 不过滤</td></tr>
-    <tr><td><code>enablePagination</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>客户端分页</td></tr>
-    <tr><td><code>pageIndex</code></td><td><code>Int</code></td><td><code>0</code></td><td>当前页（0 起）</td></tr>
-    <tr><td><code>pageSize</code></td><td><code>Int</code></td><td><code>10</code></td><td>每页行数</td></tr>
-    <tr><td><code>pageSizeOptions</code></td><td><code>List&lt;Int&gt;</code></td><td><code>[5, 10, 20]</code></td><td>分页栏「N 条/页 ▾」下拉选项</td></tr>
+    <tr><th>属性</th><th>类型</th><th>默认值</th><th>自由度</th><th>说明</th></tr>
+    <tr><td><code>enableRowSelection</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>注入选择列 + 行高亮；关闭时清空</td></tr>
+    <tr><td><code>selectedKeys</code></td><td><code>List&lt;Any&gt;</code></td><td><code>[]</code></td><td>完全自定义</td><td>受控选中 rowKey 列表</td></tr>
+    <tr><td><code>selectionColumnWidth</code></td><td><code>Float</code></td><td><code>48f</code></td><td>完全自定义</td><td>选择列宽（dp）</td></tr>
+    <tr><td><code>filterPredicate</code></td><td><code>((T) -&gt; Boolean)?</code></td><td><code>null</code></td><td>完全自定义</td><td><code>null</code> 不过滤；筛选项 UI 由业务做</td></tr>
+    <tr><td><code>enablePagination</code></td><td><code>Boolean</code></td><td><code>false</code></td><td>仅开关</td><td>客户端分页</td></tr>
+    <tr><td><code>pageIndex</code></td><td><code>Int</code></td><td><code>0</code></td><td>完全自定义</td><td>当前页（0 起，受控）</td></tr>
+    <tr><td><code>pageSize</code></td><td><code>Int</code></td><td><code>10</code></td><td>完全自定义</td><td>每页行数（受控）</td></tr>
+    <tr><td><code>pageSizeOptions</code></td><td><code>List&lt;Int&gt;</code></td><td><code>[5, 10, 20]</code></td><td>预设 + 可自定义</td><td>默认下拉选项；可换成任意正整数列表</td></tr>
   </table>
 </section>
 
@@ -764,14 +998,24 @@ fun &lt;T&gt; ViewContainer&lt;*, *&gt;.DataTableView(init: DataTableView&lt;T&g
     <tr><td><code>pageChange</code></td><td>页码变化</td></tr>
     <tr><td><code>pageSizeChange</code></td><td>页大小变化</td></tr>
   </table>
-  <div class="note">示例工程：运行 <code>androidApp</code> 后默认进入 <code>table_home</code>，再进入 <code>table_basic</code>（分章节验证 KuiklyTable）或 <code>table_data</code>（数据交互 / 大量数据 / 接入关系页签验证 KuiklyDataTable）。</div>
+  <div class="note">示例工程：运行 <code>androidApp</code> 后默认进入 <code>table_home</code>，再进入 <code>table_basic</code>（基础 / 滚动 / 主题 / 自定义 / 状态验证 KuiklyTable）或 <code>table_data</code>（数据交互 / 大量数据 / 接入关系页签验证 KuiklyDataTable）。</div>
 </section>
 
 </main>
 
+<a class="back-top" href="#top" id="backTop" aria-label="回到顶部" title="回到顶部">↑</a>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script>
   hljs.highlightAll();
+
+  var backTop = document.getElementById('backTop');
+  function syncBackTop() {
+    if (window.scrollY > 360) backTop.classList.add('visible');
+    else backTop.classList.remove('visible');
+  }
+  window.addEventListener('scroll', syncBackTop, { passive: true });
+  syncBackTop();
 
   var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (e) {

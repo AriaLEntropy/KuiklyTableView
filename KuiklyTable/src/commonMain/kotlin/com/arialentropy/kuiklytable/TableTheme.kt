@@ -27,7 +27,7 @@ class TableThemeColors(
     /** 默认行背景 */
     val rowBackground: Long = 0xFFFFFFFF,
     /** 斑马纹行背景 */
-    val rowBackgroundAlt: Long = 0xFFFAFAFA,
+    val rowBackgroundAlt: Long = 0xFFF5F5F5,
     /** 选中行背景；对齐 info 浅底语义 */
     val selectedRowBackground: Long = 0xFFEAF4FF,
     /** List 模式卡片背景 */
@@ -65,6 +65,65 @@ class TableThemeColors(
     /** 状态层主操作文字（有填充背景时） */
     val actionTextOnFill: Long = 0xFFFFFFFF,
 ) {
+    /** 基于当前主题覆盖个别语义色；未传入的字段保持原值。 */
+    fun copy(
+        headerBackground: Long = this.headerBackground,
+        headerText: Long = this.headerText,
+        cellText: Long = this.cellText,
+        cellTextSecondary: Long = this.cellTextSecondary,
+        gridLine: Long = this.gridLine,
+        dividerColor: Long? = this.dividerColor,
+        frozenDividerColor: Long? = this.frozenDividerColor,
+        rowBackground: Long = this.rowBackground,
+        rowBackgroundAlt: Long = this.rowBackgroundAlt,
+        selectedRowBackground: Long = this.selectedRowBackground,
+        cardBackground: Long = this.cardBackground,
+        cardBorder: Long = this.cardBorder,
+        statusTagBackground: Long = this.statusTagBackground,
+        statusTagText: Long = this.statusTagText,
+        statusTagBackgroundAlt: Long = this.statusTagBackgroundAlt,
+        statusTagTextAlt: Long = this.statusTagTextAlt,
+        statusTagDangerBackground: Long = this.statusTagDangerBackground,
+        statusTagDangerText: Long = this.statusTagDangerText,
+        statusTagNeutralBackground: Long = this.statusTagNeutralBackground,
+        statusTagNeutralText: Long = this.statusTagNeutralText,
+        statusTagInfoBackground: Long = this.statusTagInfoBackground,
+        statusTagInfoText: Long = this.statusTagInfoText,
+        selectionControlBackground: Long = this.selectionControlBackground,
+        stateOverlayBackground: Long = this.stateOverlayBackground,
+        stateText: Long = this.stateText,
+        actionText: Long = this.actionText,
+        actionTextOnFill: Long = this.actionTextOnFill,
+    ): TableThemeColors = TableThemeColors(
+        headerBackground = headerBackground,
+        headerText = headerText,
+        cellText = cellText,
+        cellTextSecondary = cellTextSecondary,
+        gridLine = gridLine,
+        dividerColor = dividerColor,
+        frozenDividerColor = frozenDividerColor,
+        rowBackground = rowBackground,
+        rowBackgroundAlt = rowBackgroundAlt,
+        selectedRowBackground = selectedRowBackground,
+        cardBackground = cardBackground,
+        cardBorder = cardBorder,
+        statusTagBackground = statusTagBackground,
+        statusTagText = statusTagText,
+        statusTagBackgroundAlt = statusTagBackgroundAlt,
+        statusTagTextAlt = statusTagTextAlt,
+        statusTagDangerBackground = statusTagDangerBackground,
+        statusTagDangerText = statusTagDangerText,
+        statusTagNeutralBackground = statusTagNeutralBackground,
+        statusTagNeutralText = statusTagNeutralText,
+        statusTagInfoBackground = statusTagInfoBackground,
+        statusTagInfoText = statusTagInfoText,
+        selectionControlBackground = selectionControlBackground,
+        stateOverlayBackground = stateOverlayBackground,
+        stateText = stateText,
+        actionText = actionText,
+        actionTextOnFill = actionTextOnFill,
+    )
+
     companion object {
         /** 默认浅色主题，语义角色对齐 KuiklyUI 宿主皮肤 token。 */
         val Light = TableThemeColors()

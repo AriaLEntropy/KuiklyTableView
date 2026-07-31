@@ -11,16 +11,16 @@ sealed class TableRowRenderMode {
     object Standard : TableRowRenderMode()
 
     /**
-     * Renders through Kuikly's lazy loop, which mounts at most [maxRenderedRows] row nodes and
-     * keeps the remaining scroll extent with head and tail placeholders.
+     * Mounts at most [maxRenderedRows] row nodes via a self-managed window (slice + spacers).
+     * Full [TableAttr.data] / display rows remain in memory; only the UI subtree is windowed.
      *
-     * Sizing rule: the lazy loop keeps roughly one third of the window as leading buffer, so the
-     * visible row count must not exceed two thirds of [maxRenderedRows]. Undersized windows leave
-     * blank space while scrolling. Estimate as `visibleRows * 3`, where
-     * `visibleRows = tableHeight / rowHeight`.
+     * Sizing rule: keep roughly one third of the window as leading buffer, so the visible row
+     * count must not exceed two thirds of [maxRenderedRows]. Undersized windows leave blank space
+     * while scrolling. Estimate as `visibleRows * 3`, where `visibleRows = tableHeight / rowHeight`.
      *
-     * Configure this when the Table is created. Runtime switching on the same mounted
-     * [TableView], fixed columns, and variable-height rows are not supported.
+     * Requires fixed row height (`rowHeight > 0`). Configure when the Table is created. Runtime
+     * switching on the same mounted [TableView], fixed columns, and variable-height rows are not
+     * supported.
      */
     data class Windowed(val maxRenderedRows: Int = DEFAULT_MAX_RENDERED_ROWS) : TableRowRenderMode() {
         init {

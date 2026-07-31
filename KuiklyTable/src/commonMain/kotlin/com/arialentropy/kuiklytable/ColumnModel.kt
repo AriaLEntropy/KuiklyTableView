@@ -28,7 +28,8 @@ sealed class ColumnAlignment {
  * @param flex 剩余空间分配权重，仅在 width 为 null 时生效
  * @param alignment 单元格文字对齐方式（响应式，运行时修改会触发表格重渲染）
  * @param sortable 是否允许点击表头切换排序
- * @param sortComparator 可选的业务值比较器；未配置时按 accessor 返回的字符串比较
+ * @param sortComparator 该列比较规则，与 [TableEvent.sortChange] 解耦（事件只通知列 key + 方向）。
+ *   为 null 时对 [accessor] 字符串做字典序——数字/「员工10」这类务必自传（如 `compareBy { it.age }`）
  * @param cellRenderer 可选的单元格渲染器；未配置时使用默认 Text
  * @param headerRenderer 可选的表头渲染器；未配置时使用默认 Text
  * @param enableRowClick 点击该列单元格时是否允许触发 Table 的 [TableEvent.rowClick]；与是否配置 cellRenderer 无关
